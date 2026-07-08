@@ -1,4 +1,23 @@
 {
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite/biome/core", "ultracite/biome/next"],
-  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json"
+  "files": {
+    "includes": [
+      "!!**/.agents",
+      "!!**/.claude",
+      "!!**/.cursor",
+      "!!**/graphql-env.d.ts"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "useConsistentTypeDefinitions": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error"
+      }
+    }
+  },
+
 }

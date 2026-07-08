@@ -1,8 +1,8 @@
 {
-	"tags": ["public"],
-	"tasks": {
-		"knip": {
-			"cache": false
-		}
-	}
+  "tags": ["public"],
+  "tasks": {
+    "knip": {
+      "cache": false
+    }
+  }
 }

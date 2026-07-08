@@ -6,14 +6,14 @@ import type { CaseStyle, MorphInput } from "./types";
 
 /** Morphs a string into the requested case style. */
 export function morphCase(input: MorphInput, style: CaseStyle): string {
-	switch (style) {
-		case "camel":
-			return toCamelCase(input);
-		case "kebab":
-			return toKebabCase(input);
-		case "snake":
-			return toSnakeCase(input);
-		case "slug":
-			return slugify(input);
-	}
+  switch (style) {
+    case "camel":
+      return toCamelCase(input);
+    case "kebab":
+      return toKebabCase(input);
+    case "snake":
+      return toSnakeCase(input);
+    case "slug":
+      return slugify(input);
+  }
 }
