@@ -1,9 +1,17 @@
 import { db } from "@vyrel/db";
-import { schema } from "@vyrel/db/schema/index";
+import {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  user,
+  verification,
+} from "@vyrel/db/schemas/auth.schema";
 import { env } from "@vyrel/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { organization as organizationPlugin } from "better-auth/plugins";
 
 export const auth = betterAuth({
   advanced: {
@@ -16,11 +24,19 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
 
-    schema,
+    schema: {
+      account,
+      invitation,
+      member,
+      organization,
+      session,
+      user,
+      verification,
+    },
   }),
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [organization()],
+  plugins: [organizationPlugin()],
   trustedOrigins: [env.CORS_ORIGIN],
 });

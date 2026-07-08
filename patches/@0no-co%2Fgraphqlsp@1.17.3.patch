@@ -1,0 +1,120 @@
+diff --git a/dist/graphqlsp.js b/dist/graphqlsp.js
+index 27a63ffc690bb0af38f88fd35e7da104bc601e13..97fdef5de4b509f89e3387525abbf4073dfa81f4 100644
+--- a/dist/graphqlsp.js
++++ b/dist/graphqlsp.js
+@@ -2933,15 +2933,14 @@ function getGraphQLCompletions(t, n, r, a) {
+       })));
+     }(r, getTypeInfo(e, r.state), e, t, a) : [];
+     var c = "Invalid" === r.state.kind ? r.state.prevState : r.state;
+-    var l = getParentDefinition(r.state, Me.FIELD)?.name;
++    var l = getSelectionScopeKey(r.state);
+     if (c && l) {
+       var {kind: d} = c;
+       if (d === Me.ARGUMENTS || d === Me.ARGUMENT) {
+         var f = new Set;
+         runOnlineParser(t, (e, t) => {
+           if (t.kind === Me.ARGUMENT) {
+-            var n = getParentDefinition(t, Me.FIELD);
+-            if (l && t.name && n?.name === l) {
++            if (l && t.name && getSelectionScopeKey(t) === l) {
+               f.add(t.name);
+             }
+           }
+@@ -2953,8 +2952,7 @@ function getGraphQLCompletions(t, n, r, a) {
+         var p = getUsedFragments(t, l);
+         runOnlineParser(t, (e, t) => {
+           if (t.kind === Me.FIELD || t.kind === Me.ALIASED_FIELD) {
+-            var n = getParentDefinition(t, Me.FIELD);
+-            if (n && n.name === l && t.name) {
++            if (getSelectionScopeKey(t) === l && t.name) {
+               v.add(t.name);
+             }
+           }
+@@ -3002,8 +3000,7 @@ function getUsedFragments(e, t) {
+   var n = new Set;
+   runOnlineParser(e, (e, r) => {
+     if (r.kind === Me.FRAGMENT_SPREAD && r.name) {
+-      var i = getParentDefinition(r, Me.FIELD);
+-      if (t && i?.name === t) {
++      if (t && getSelectionScopeKey(r) === t) {
+         n.add(r.name);
+       }
+     }
+@@ -3011,6 +3008,17 @@ function getUsedFragments(e, t) {
+   return n;
+ }
+ 
++function getSelectionScopeKey(e) {
++  var t = getParentDefinition(e, Me.FIELD);
++  if (t?.name) {
++    return `field:${t.name}`;
++  }
++  var n = getParentDefinition(e, Me.FRAGMENT_DEFINITION);
++  if (n?.name) {
++    return `fragment:${n.name}`;
++  }
++}
++
+ function getParentDefinition(e, t) {
+   if (e.prevState?.kind === t) {
+     return e.prevState;
+diff --git a/dist/graphqlsp.mjs b/dist/graphqlsp.mjs
+index 52d75b04602d1bc3e42f72906db1133819f36338..7439875e2420d79699cf0b0dc617f282bbd3df92 100644
+--- a/dist/graphqlsp.mjs
++++ b/dist/graphqlsp.mjs
+@@ -2933,15 +2933,14 @@ function getGraphQLCompletions(e, t, v, g) {
+       })));
+     }(r, getTypeInfo(e, r.state), e, t, i) : [];
+     var u = "Invalid" === r.state.kind ? r.state.prevState : r.state;
+-    var c = getParentDefinition(r.state, Pt.FIELD)?.name;
++    var c = getSelectionScopeKey(r.state);
+     if (u && c) {
+       var {kind: l} = u;
+       if (l === Pt.ARGUMENTS || l === Pt.ARGUMENT) {
+         var d = new Set;
+         runOnlineParser(t, (e, t) => {
+           if (t.kind === Pt.ARGUMENT) {
+-            var n = getParentDefinition(t, Pt.FIELD);
+-            if (c && t.name && n?.name === c) {
++            if (c && t.name && getSelectionScopeKey(t) === c) {
+               d.add(t.name);
+             }
+           }
+@@ -2953,8 +2952,7 @@ function getGraphQLCompletions(e, t, v, g) {
+         var v = getUsedFragments(t, c);
+         runOnlineParser(t, (e, t) => {
+           if (t.kind === Pt.FIELD || t.kind === Pt.ALIASED_FIELD) {
+-            var n = getParentDefinition(t, Pt.FIELD);
+-            if (n && n.name === c && t.name) {
++            if (getSelectionScopeKey(t) === c && t.name) {
+               f.add(t.name);
+             }
+           }
+@@ -3002,8 +3000,7 @@ function getUsedFragments(e, t) {
+   var n = new Set;
+   runOnlineParser(e, (e, r) => {
+     if (r.kind === Pt.FRAGMENT_SPREAD && r.name) {
+-      var i = getParentDefinition(r, Pt.FIELD);
+-      if (t && i?.name === t) {
++      if (t && getSelectionScopeKey(r) === t) {
+         n.add(r.name);
+       }
+     }
+@@ -3011,6 +3008,17 @@ function getUsedFragments(e, t) {
+   return n;
+ }
+ 
++function getSelectionScopeKey(e) {
++  var t = getParentDefinition(e, Pt.FIELD);
++  if (t?.name) {
++    return `field:${t.name}`;
++  }
++  var n = getParentDefinition(e, Pt.FRAGMENT_DEFINITION);
++  if (n?.name) {
++    return `fragment:${n.name}`;
++  }
++}
++
+ function getParentDefinition(e, t) {
+   if (e.prevState?.kind === t) {
+     return e.prevState;

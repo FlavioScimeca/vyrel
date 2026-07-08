@@ -21,15 +21,16 @@
   },
   "dependencies": {
     "@libsql/client": "catalog:",
+    "@logtape/drizzle-orm": "^2.2.4",
     "@vyrel/env": "workspace:*",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "1.0.0-rc.4",
     "libsql": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@vyrel/config": "workspace:*",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "1.0.0-rc.4",
     "typescript": "^6.0.3"
   }
 }
