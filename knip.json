@@ -1,0 +1,49 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": ["turso"],
+  "ignoreDependencies": ["@biomejs/biome", "@vyrel/config", "vercel"],
+  "ignoreIssues": {
+    "apps/docs/components/**": ["duplicates", "exports"],
+    "apps/web/src/components/ui/**": ["exports"]
+  },
+  "ignoreUnresolved": ["collections/server"],
+  "ignoreWorkspaces": ["packages/config"],
+  "workspaces": {
+    ".": {
+      "entry": ["script/*.ts"],
+      "project": ["script/**/*.ts"]
+    },
+    "apps/docs": {
+      "fumadocs": {
+        "config": "source.config.ts"
+      },
+      "project": ["**/*.{ts,tsx}", "!node_modules/**"]
+    },
+    "apps/extension": {
+      "wxt": true
+    },
+    "apps/server": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/web": {
+      "entry": ["src/mocks/{browser,node}.ts"],
+      "project": ["src/**/*.{ts,tsx}", ".storybook/**/*.{ts,tsx}"]
+    },
+    "packages/api": {
+      "project": ["src/**/*.ts"]
+    },
+    "packages/auth": {
+      "project": ["src/**/*.ts"]
+    },
+    "packages/db": {
+      "drizzle": {
+        "config": "drizzle.config.ts"
+      },
+      "project": ["src/**/*.ts"]
+    },
+    "packages/env": {
+      "entry": ["src/{server,web}.ts"],
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

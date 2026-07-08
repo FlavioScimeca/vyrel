@@ -1,0 +1,17 @@
+# Project: vyrel
+# Ecosystem: Typescript
+
+You are working on a TypeScript project.
+Runtime: bun
+Package manager: bun
+Frontend: next
+Backend: elysia
+Database: sqlite with drizzle
+API: graphql-yoga
+Auth: better-auth-organizations
+Testing: vitest-playwright
+Validation: zod
+
+Follow existing code patterns and conventions.
+Use the established project structure.
+Keep this file updated when the project structure changes.

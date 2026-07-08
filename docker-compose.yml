@@ -1,0 +1,26 @@
+name: vyrel
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.next
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - CORS_ORIGIN=http://localhost:3001
+    restart: unless-stopped

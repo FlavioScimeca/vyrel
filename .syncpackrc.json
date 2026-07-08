@@ -1,0 +1,72 @@
+{
+  "$schema": "./node_modules/syncpack/schema.json",
+  "versionGroups": [
+    {
+      "label": "Ignore root package local version",
+      "packages": ["vyrel"],
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    },
+    {
+      "label": "Ignore fumadocs template app",
+      "packages": ["fumadocs"],
+      "isIgnored": true
+    },
+    {
+      "label": "Use workspace:* for local packages",
+      "dependencies": ["$LOCAL"],
+      "dependencyTypes": ["dev", "prod"],
+      "pinVersion": "workspace:*"
+    },
+    {
+      "label": "Bun catalog dependencies",
+      "policy": "catalog",
+      "dependencies": [
+        "@effect/platform",
+        "@effect/vitest",
+        "@libsql/client",
+        "@playwright/test",
+        "@pothos/core",
+        "@tailwindcss/postcss",
+        "@types/bun",
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "@vitest/coverage-v8",
+        "@vitest/ui",
+        "better-auth",
+        "dotenv",
+        "effect",
+        "elysia",
+        "graphql",
+        "graphql-yoga",
+        "jsdom",
+        "libsql",
+        "msw",
+        "next",
+        "playwright",
+        "react",
+        "react-dom",
+        "tailwindcss",
+        "vitest",
+        "zod"
+      ],
+      "dependencyTypes": ["dev", "prod"]
+    }
+  ],
+  "semverGroups": [
+    {
+      "label": "Use caret ranges for semver dependencies",
+      "range": "^",
+      "dependencyTypes": ["dev", "prod", "bunCatalog"],
+      "specifierTypes": ["range-major", "range-minor"]
+    }
+  ],
+  "sortAz": [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies"
+  ],
+  "sortFirst": ["name", "version", "private", "type", "scripts"]
+}

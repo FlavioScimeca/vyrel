@@ -1,0 +1,29 @@
+{
+  "name": "extension",
+  "version": "0.0.0",
+  "private": true,
+  "description": "vyrel browser extension",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt --port 5555",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "check-types": "wxt prepare && tsc --noEmit",
+    "compile": "bun run check-types",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@wxt-dev/module-react": "^1.2.2",
+    "typescript": "^6.0.3",
+    "wxt": "^0.20.27"
+  }
+}

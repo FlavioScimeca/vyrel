@@ -1,0 +1,42 @@
+{
+  "name": "@vyrel/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@pothos/core": "catalog:",
+    "@vyrel/auth": "workspace:*",
+    "@vyrel/db": "workspace:*",
+    "@vyrel/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "effect": "catalog:",
+    "elysia": "catalog:",
+    "graphql": "catalog:",
+    "graphql-yoga": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "@playwright/test": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "catalog:",
+    "@vyrel/config": "workspace:*",
+    "jsdom": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "^6.0.3",
+    "vitest": "catalog:"
+  }
+}
