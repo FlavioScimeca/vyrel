@@ -18,6 +18,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./pothos": {
+      "types": "./dist/pothos.d.ts",
+      "import": "./dist/pothos.js"
     }
   },
   "publishConfig": {
@@ -25,6 +29,7 @@
   },
   "scripts": {
     "build": "bun run script/compiler.ts",
+    "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
     "build:verified": "bun run script/build.ts",
     "validate": "bun run script/verify.ts",
     "check-types": "tsc --noEmit",
@@ -41,7 +46,13 @@
     "@pothos/core": "catalog:",
     "zod": "catalog:"
   },
+  "peerDependencies": {
+    "@pothos/plugin-validation": "catalog:",
+    "@pothos/plugin-with-input": "catalog:"
+  },
   "devDependencies": {
+    "@pothos/plugin-validation": "catalog:",
+    "@pothos/plugin-with-input": "catalog:",
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@vyrel/config": "workspace:*",

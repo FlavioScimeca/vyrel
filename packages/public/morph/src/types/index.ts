@@ -1,13 +1,15 @@
 import "@pothos/plugin-validation";
 import "@pothos/plugin-with-input";
-import type { builder } from "./pothos";
+import type {
+  MutationFieldBuilder,
+  QueryFieldBuilder,
+  SchemaTypes,
+} from "@pothos/core";
 
-export type AppSchemaTypes = typeof builder.$inferSchemaTypes;
+export type AppSchemaTypes<Types extends SchemaTypes = SchemaTypes> = Types;
 
-export type TypeMutationFieldBuilder = Parameters<
-  Parameters<typeof builder.mutationFields>[0]
->[0];
+export type TypeMutationFieldBuilder<Types extends SchemaTypes = SchemaTypes> =
+  MutationFieldBuilder<Types, unknown>;
 
-export type TypeQueryFieldBuilder = Parameters<
-  Parameters<typeof builder.queryFields>[0]
->[0];
+export type TypeQueryFieldBuilder<Types extends SchemaTypes = SchemaTypes> =
+  QueryFieldBuilder<Types, unknown>;

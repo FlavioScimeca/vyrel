@@ -1,8 +1,13 @@
 import { FileSystem, Path } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
+import dotenv from "dotenv";
 import { Effect } from "effect";
 import { lexicographicSortSchema, printSchema } from "graphql";
 import { collectGraphqlImports } from "./collect-graphql-imports";
+
+dotenv.config({
+  path: "../../apps/server/.env",
+});
 
 const program = Effect.gen(function* () {
   yield* collectGraphqlImports;

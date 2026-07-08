@@ -1,2 +1,8 @@
 // biome-ignore-all lint/performance/noBarrelFile: public package entry point
-export { graphqlBridge } from "./graphql-bridge";
+export {
+  type DefineDrizzleGraphqlFieldsConfig,
+  type DrizzleGraphqlBridge,
+  type DrizzleGraphqlFields,
+  type InitializeDrizzleGraphqlBridgeOptions,
+  initializeDrizzleGraphqlBridge,
+} from "./lib/define-drizzle-graphql-fields";

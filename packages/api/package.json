@@ -20,6 +20,7 @@
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql": "workspace:*",
+    "@vyrel/storage": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "effect": "catalog:",

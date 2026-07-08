@@ -1,6 +1,11 @@
 import { FileSystem, Path } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
+import dotenv from "dotenv";
 import { Effect } from "effect";
+
+dotenv.config({
+  path: "../../apps/server/.env",
+});
 
 const GRAPHQL_MODEL_SUFFIX = ".graphql.ts";
 const TS_EXTENSION = /\.ts$/;

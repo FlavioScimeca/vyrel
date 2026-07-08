@@ -80,6 +80,7 @@
     "deps:update": "syncpack update",
     "deps:update:check": "syncpack update --check",
     "knip": "knip",
+    "knip:cycles": "knip --include cycles --reporter cycles",
     "knip:production": "knip --production",
     "changeset": "changeset",
     "version-packages": "changeset version",

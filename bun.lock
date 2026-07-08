@@ -192,6 +192,7 @@
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
         "@vyrel/graphql": "workspace:*",
+        "@vyrel/storage": "workspace:*",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
         "effect": "catalog:",
@@ -291,8 +292,10 @@
         "@vyrel/auth": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/logging": "workspace:*",
+        "@vyrel/morph": "workspace:*",
         "@whatwg-node/fetch": "^0.10.13",
         "better-auth": "catalog:",
+        "dotenv": "catalog:",
         "drizzle-orm": "1.0.0-rc.4",
         "effect": "catalog:",
         "elysia": "catalog:",
@@ -330,6 +333,8 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@pothos/plugin-validation": "catalog:",
+        "@pothos/plugin-with-input": "catalog:",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
         "@vyrel/config": "workspace:*",
@@ -337,6 +342,22 @@
         "typescript": "catalog:",
         "ultracite": "7.9.3",
         "vitest": "catalog:",
+      },
+      "peerDependencies": {
+        "@pothos/plugin-validation": "catalog:",
+        "@pothos/plugin-with-input": "catalog:",
+      },
+    },
+    "packages/storage": {
+      "name": "@vyrel/storage",
+      "version": "0.0.0",
+      "dependencies": {
+        "@vyrel/env": "workspace:*",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
       },
     },
   },
@@ -1900,6 +1921,8 @@
     "@vyrel/logging": ["@vyrel/logging@workspace:packages/logging"],
 
     "@vyrel/morph": ["@vyrel/morph@workspace:packages/public/morph"],
+
+    "@vyrel/storage": ["@vyrel/storage@workspace:packages/storage"],
 
     "@webassemblyjs/ast": ["@webassemblyjs/ast@1.14.1", "", { "dependencies": { "@webassemblyjs/helper-numbers": "1.13.2", "@webassemblyjs/helper-wasm-bytecode": "1.13.2" } }, "sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ=="],
 

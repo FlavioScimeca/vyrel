@@ -8,7 +8,7 @@ import {
   session,
   user,
   verification,
-} from "@vyrel/db/schemas/auth.schema";
+} from "@vyrel/db/schema";
 import { env } from "@vyrel/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

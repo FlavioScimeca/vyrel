@@ -1,15 +1,15 @@
-import type { InputFieldsFromShape } from "@pothos/core";
+import type { InputFieldsFromShape, SchemaTypes } from "@pothos/core";
 import { MutationFieldBuilder, QueryFieldBuilder } from "@pothos/core";
 import { z } from "zod/v4";
 
-import { builder } from "../pothos";
-import type {
-  AppSchemaTypes,
-  TypeMutationFieldBuilder,
-  TypeQueryFieldBuilder,
-} from "../types";
+export type PothosSchemaBuilder<Types extends SchemaTypes = SchemaTypes> =
+  PothosSchemaTypes.SchemaBuilder<Types>;
 
-type PothosSchemaBuilder = typeof builder;
+export type TypeMutationFieldBuilder<Types extends SchemaTypes = SchemaTypes> =
+  MutationFieldBuilder<Types, unknown>;
+
+export type TypeQueryFieldBuilder<Types extends SchemaTypes = SchemaTypes> =
+  QueryFieldBuilder<Types, unknown>;
 
 /** Flat Zod object shape (e.g. `mySchema.shape`). */
 export type ZodObjectShape = Record<string, z.ZodType>;
@@ -26,9 +26,8 @@ export type ZodSchemaKeys<TSchema extends z.ZodType> = [
   ? string
   : KnownZodSchemaKeys<TSchema>;
 
-export type PothosInputFieldType = Parameters<
-  TypeMutationFieldBuilder["input"]["field"]
->[0]["type"];
+export type PothosInputFieldType<Types extends SchemaTypes = SchemaTypes> =
+  Parameters<TypeMutationFieldBuilder<Types>["input"]["field"]>[0]["type"];
 
 /** Keys must match fields on the Zod shape that need non-String GraphQL types. */
 export type PothosFieldTypesMap<TShape extends ZodObjectShape> = Partial<
@@ -39,19 +38,19 @@ export type PothosSchemaFieldTypesMap<TSchema extends z.ZodType> = Partial<
   Record<ZodSchemaKeys<TSchema>, PothosInputFieldType>
 >;
 
-type PothosInputField =
-  | ReturnType<TypeMutationFieldBuilder["input"]["string"]>
-  | ReturnType<TypeMutationFieldBuilder["input"]["boolean"]>
-  | ReturnType<TypeMutationFieldBuilder["input"]["float"]>
-  | ReturnType<TypeMutationFieldBuilder["input"]["int"]>
-  | ReturnType<TypeMutationFieldBuilder["input"]["field"]>;
+type PothosInputField<Types extends SchemaTypes> =
+  | ReturnType<TypeMutationFieldBuilder<Types>["input"]["string"]>
+  | ReturnType<TypeMutationFieldBuilder<Types>["input"]["boolean"]>
+  | ReturnType<TypeMutationFieldBuilder<Types>["input"]["float"]>
+  | ReturnType<TypeMutationFieldBuilder<Types>["input"]["int"]>
+  | ReturnType<TypeMutationFieldBuilder<Types>["input"]["field"]>;
 
-type PothosQueryArgField =
-  | ReturnType<TypeQueryFieldBuilder["arg"]["string"]>
-  | ReturnType<TypeQueryFieldBuilder["arg"]["boolean"]>
-  | ReturnType<TypeQueryFieldBuilder["arg"]["float"]>
-  | ReturnType<TypeQueryFieldBuilder["arg"]["int"]>
-  | ReturnType<TypeQueryFieldBuilder["arg"]>;
+type PothosQueryArgField<Types extends SchemaTypes> =
+  | ReturnType<TypeQueryFieldBuilder<Types>["arg"]["string"]>
+  | ReturnType<TypeQueryFieldBuilder<Types>["arg"]["boolean"]>
+  | ReturnType<TypeQueryFieldBuilder<Types>["arg"]["float"]>
+  | ReturnType<TypeQueryFieldBuilder<Types>["arg"]["int"]>
+  | ReturnType<TypeQueryFieldBuilder<Types>["arg"]>;
 
 export type PothosInputsRequiredOption =
   | boolean
@@ -104,26 +103,28 @@ export type PothosZodSchemaGraphqlShape<
 
 /** Pothos `withInput` field map inferred from a Zod object schema. */
 export type PothosInputFieldsFromZodSchema<
+  Types extends SchemaTypes,
   TSchema extends z.ZodType,
   TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
     string,
     never
   >,
 > = InputFieldsFromShape<
-  AppSchemaTypes,
+  Types,
   PothosZodSchemaGraphqlShape<TSchema, TOptions>,
   "InputObject"
 >;
 
 /** Pothos query `args` field map inferred from a Zod object schema. */
 export type PothosArgsFieldsFromZodSchema<
+  Types extends SchemaTypes,
   TSchema extends z.ZodType,
   TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
     string,
     never
   >,
 > = InputFieldsFromShape<
-  AppSchemaTypes,
+  Types,
   PothosZodSchemaGraphqlShape<TSchema, TOptions>,
   "Arg"
 >;
@@ -183,12 +184,12 @@ type AutoDiscoveredEnumTypesCache = {
 };
 
 const autoDiscoveredEnumTypesCaches = new WeakMap<
-  PothosSchemaBuilder,
+  object,
   AutoDiscoveredEnumTypesCache
 >();
 
-const buildAutoDiscoveredEnumTypesCache = (
-  graphqlBuilder: PothosSchemaBuilder
+const buildAutoDiscoveredEnumTypesCache = <Types extends SchemaTypes>(
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ): ReadonlyMap<string, string> => {
   const byValues = new Map<string, string>();
   const ambiguous = new Map<string, string[]>();
@@ -228,9 +229,9 @@ const buildAutoDiscoveredEnumTypesCache = (
   return byValues;
 };
 
-const getAutoDiscoveredPothosEnumType = (
+const getAutoDiscoveredPothosEnumType = <Types extends SchemaTypes>(
   valuesKey: string,
-  graphqlBuilder: PothosSchemaBuilder
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ): PothosInputFieldType | undefined => {
   const typeConfigCount = graphqlBuilder.configStore.typeConfigs.size;
   const cached = autoDiscoveredEnumTypesCaches.get(graphqlBuilder);
@@ -248,9 +249,9 @@ const getAutoDiscoveredPothosEnumType = (
   return typeName as PothosInputFieldType | undefined;
 };
 
-const resolveZodEnumGraphqlType = (
+const resolveZodEnumGraphqlType = <Types extends SchemaTypes>(
   zodEnum: z.ZodEnum,
-  graphqlBuilder: PothosSchemaBuilder
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ): PothosInputFieldType | undefined => {
   const valuesKey = zodEnumValuesKey([...zodEnum.options]);
 
@@ -373,12 +374,12 @@ export const readZodFieldDescription = (
   return readZodFieldDescription(unwrapped);
 };
 
-export const resolveGraphqlTypeForZodField = (
+export const resolveGraphqlTypeForZodField = <Types extends SchemaTypes>(
   fieldKey: string,
   field: z.ZodType,
   fieldTypeOverride: PothosInputFieldType | undefined,
   enumRegistry: Readonly<Record<string, PothosInputFieldType>> | undefined,
-  graphqlBuilder: PothosSchemaBuilder
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ):
   | PothosInputFieldType
   | "boolean"
@@ -429,14 +430,14 @@ export const unmappedZodFieldMessage = (
 ) =>
   `[${source}] Field "${key}" (${unwrapZodField(field).constructor.name}) has no GraphQL mapping. Set fieldTypes, exclude the field, or choose an unmappedFields policy.`;
 
-const resolveUnmappedInputField = (
-  t: TypeMutationFieldBuilder,
+const resolveUnmappedInputField = <Types extends SchemaTypes>(
+  t: TypeMutationFieldBuilder<Types>,
   key: string,
   field: z.ZodType,
   options: PothosInputsRuntimeOptions,
   description: string | undefined,
   required: boolean
-): PothosInputField | undefined => {
+): PothosInputField<Types> | undefined => {
   const message = unmappedZodFieldMessage(key, field);
 
   switch (options.unmappedFields ?? "throw") {
@@ -472,28 +473,23 @@ export const isFieldRequired = (
   return !isZodFieldOptional(field);
 };
 
-let mutationInputBuilder: TypeMutationFieldBuilder | undefined;
-
-const getMutationInputBuilder = (): TypeMutationFieldBuilder => {
-  mutationInputBuilder ??= new MutationFieldBuilder(
-    builder
-  ) as TypeMutationFieldBuilder;
-
-  return mutationInputBuilder;
-};
-
-export const createPothosInputsFromZodSchema = (
-  graphqlBuilder: PothosSchemaBuilder
+export const createPothosInputsFromZodSchema = <
+  Types extends SchemaTypes = SchemaTypes,
+>(
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ) => {
-  let mutationInputBuilderForInstance: TypeMutationFieldBuilder | undefined;
+  let mutationInputBuilderForInstance:
+    | TypeMutationFieldBuilder<Types>
+    | undefined;
 
-  const getMutationInputBuilderForInstance = (): TypeMutationFieldBuilder => {
-    mutationInputBuilderForInstance ??= new MutationFieldBuilder(
-      graphqlBuilder
-    ) as TypeMutationFieldBuilder;
+  const getMutationInputBuilderForInstance =
+    (): TypeMutationFieldBuilder<Types> => {
+      mutationInputBuilderForInstance ??= new MutationFieldBuilder(
+        graphqlBuilder
+      ) as TypeMutationFieldBuilder<Types>;
 
-    return mutationInputBuilderForInstance;
-  };
+      return mutationInputBuilderForInstance;
+    };
 
   return <
     TSchema extends z.ZodType,
@@ -504,22 +500,22 @@ export const createPothosInputsFromZodSchema = (
   >(
     schema: TSchema,
     options?: TOptions
-  ): PothosInputFieldsFromZodSchema<TSchema, TOptions> =>
+  ): PothosInputFieldsFromZodSchema<Types, TSchema, TOptions> =>
     buildPothosInputFields(
       getMutationInputBuilderForInstance(),
       resolveZodObjectShape(schema),
       (options ?? {}) as PothosInputsRuntimeOptions,
       graphqlBuilder
-    ) as PothosInputFieldsFromZodSchema<TSchema, TOptions>;
+    ) as PothosInputFieldsFromZodSchema<Types, TSchema, TOptions>;
 };
 
-const buildPothosInputField = (
-  t: TypeMutationFieldBuilder,
+const buildPothosInputField = <Types extends SchemaTypes>(
+  t: TypeMutationFieldBuilder<Types>,
   key: string,
   field: z.ZodType,
   options: PothosInputsRuntimeOptions,
-  graphqlBuilder: PothosSchemaBuilder
-): PothosInputField | undefined => {
+  graphqlBuilder: PothosSchemaBuilder<Types>
+): PothosInputField<Types> | undefined => {
   const required = isFieldRequired(key, field, options.required);
   const validate = field;
   const description = readZodFieldDescription(field);
@@ -564,7 +560,7 @@ const buildPothosInputField = (
     return t.input.field({
       description,
       required,
-      type: "DateTime",
+      type: "DateTime" as PothosInputFieldType<Types>,
       validate,
     });
   }
@@ -583,14 +579,14 @@ const buildPothosInputField = (
   return t.input.string({ description, required, validate });
 };
 
-const buildPothosInputFields = (
-  t: TypeMutationFieldBuilder,
+const buildPothosInputFields = <Types extends SchemaTypes>(
+  t: TypeMutationFieldBuilder<Types>,
   shape: ZodObjectShape,
   options: PothosInputsRuntimeOptions,
-  graphqlBuilder: PothosSchemaBuilder
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ) => {
   const exclude = new Set(options.exclude ?? []);
-  const fields: Record<string, PothosInputField> = {};
+  const fields: Record<string, PothosInputField<Types>> = {};
 
   for (const [key, field] of Object.entries(shape)) {
     if (exclude.has(key)) {
@@ -612,8 +608,8 @@ const buildPothosInputFields = (
   return fields;
 };
 
-const buildUnmappedQueryArg = (
-  t: TypeQueryFieldBuilder,
+const buildUnmappedQueryArg = <Types extends SchemaTypes>(
+  t: TypeQueryFieldBuilder<Types>,
   key: string,
   field: z.ZodType,
   description: string | undefined,
@@ -639,13 +635,13 @@ const buildUnmappedQueryArg = (
   }
 };
 
-const buildPothosQueryArg = (
-  t: TypeQueryFieldBuilder,
+const buildPothosQueryArg = <Types extends SchemaTypes>(
+  t: TypeQueryFieldBuilder<Types>,
   key: string,
   field: z.ZodType,
-  graphqlBuilder: PothosSchemaBuilder,
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   options: PothosInputsRuntimeOptions
-): PothosQueryArgField | undefined => {
+): PothosQueryArgField<Types> | undefined => {
   const required = isFieldRequired(key, field, options.required);
   const description = readZodFieldDescription(field);
   const fieldTypes = options.fieldTypes ?? {};
@@ -688,7 +684,7 @@ const buildPothosQueryArg = (
     return t.arg({
       description,
       required,
-      type: "DateTime",
+      type: "DateTime" as PothosInputFieldType<Types>,
     });
   }
 
@@ -706,14 +702,14 @@ const buildPothosQueryArg = (
   return t.arg.string({ description, required });
 };
 
-const buildPothosQueryArgs = (
-  t: TypeQueryFieldBuilder,
+const buildPothosQueryArgs = <Types extends SchemaTypes>(
+  t: TypeQueryFieldBuilder<Types>,
   shape: ZodObjectShape,
   options: PothosInputsRuntimeOptions,
-  graphqlBuilder: PothosSchemaBuilder
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ) => {
   const exclude = new Set(options.exclude ?? []);
-  const args: Record<string, PothosQueryArgField> = {};
+  const args: Record<string, PothosQueryArgField<Types>> = {};
 
   for (const [key, field] of Object.entries(shape)) {
     if (exclude.has(key)) {
@@ -729,23 +725,17 @@ const buildPothosQueryArgs = (
   return args;
 };
 
-let queryArgBuilder: TypeQueryFieldBuilder | undefined;
-
-const getQueryArgBuilder = (): TypeQueryFieldBuilder => {
-  queryArgBuilder ??= new QueryFieldBuilder(builder) as TypeQueryFieldBuilder;
-
-  return queryArgBuilder;
-};
-
-export const createPothosArgsFromZodSchema = (
-  graphqlBuilder: PothosSchemaBuilder
+export const createPothosArgsFromZodSchema = <
+  Types extends SchemaTypes = SchemaTypes,
+>(
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ) => {
-  let queryArgBuilderForInstance: TypeQueryFieldBuilder | undefined;
+  let queryArgBuilderForInstance: TypeQueryFieldBuilder<Types> | undefined;
 
-  const getQueryArgBuilderForInstance = (): TypeQueryFieldBuilder => {
+  const getQueryArgBuilderForInstance = (): TypeQueryFieldBuilder<Types> => {
     queryArgBuilderForInstance ??= new QueryFieldBuilder(
       graphqlBuilder
-    ) as TypeQueryFieldBuilder;
+    ) as TypeQueryFieldBuilder<Types>;
 
     return queryArgBuilderForInstance;
   };
@@ -759,70 +749,11 @@ export const createPothosArgsFromZodSchema = (
   >(
     schema: TSchema,
     options?: TOptions
-  ): PothosArgsFieldsFromZodSchema<TSchema, TOptions> =>
+  ): PothosArgsFieldsFromZodSchema<Types, TSchema, TOptions> =>
     buildPothosQueryArgs(
       getQueryArgBuilderForInstance(),
       resolveZodObjectShape(schema),
       (options ?? {}) as PothosInputsRuntimeOptions,
       graphqlBuilder
-    ) as PothosArgsFieldsFromZodSchema<TSchema, TOptions>;
+    ) as PothosArgsFieldsFromZodSchema<Types, TSchema, TOptions>;
 };
-
-/**
- * Maps a Zod object schema to Pothos query `args` fields.
- *
- * Accepts plain `z.object()` schemas and wrappers such as `z.preprocess()`.
- * Pass the same schema your resolver validates against — no `.shape` needed.
- */
-export const pothosArgsFromZodSchema = <
-  TSchema extends z.ZodType,
-  TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
-    string,
-    never
-  >,
->(
-  schema: TSchema,
-  options?: TOptions
-): PothosArgsFieldsFromZodSchema<TSchema, TOptions> =>
-  buildPothosQueryArgs(
-    getQueryArgBuilder(),
-    resolveZodObjectShape(schema),
-    (options ?? {}) as PothosInputsRuntimeOptions,
-    builder
-  ) as PothosArgsFieldsFromZodSchema<TSchema, TOptions>;
-
-/**
- * Maps a Zod object schema to Pothos `withInput` fields.
- *
- * Accepts plain `z.object()` schemas and wrappers such as `z.preprocess()`.
- * Pass the same schema your service validates against — no `.shape` needed.
- */
-export const pothosInputsFromZodSchema = <
-  TSchema extends z.ZodType,
-  TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
-    string,
-    never
-  >,
->(
-  schema: TSchema,
-  options?: TOptions
-): PothosInputFieldsFromZodSchema<TSchema, TOptions> =>
-  buildPothosInputFields(
-    getMutationInputBuilder(),
-    resolveZodObjectShape(schema),
-    (options ?? {}) as PothosInputsRuntimeOptions,
-    builder
-  ) as PothosInputFieldsFromZodSchema<TSchema, TOptions>;
-
-/** @deprecated Prefer `pothosInputsFromZodSchema(schema, options)`. */
-export const pothosInputsFromZodShape = <TShape extends ZodObjectShape>(
-  t: TypeMutationFieldBuilder,
-  shape: TShape,
-  options: PothosInputsFromZodShapeOptions<TShape> = {}
-) =>
-  buildPothosInputFields(
-    t,
-    shape,
-    options as PothosInputsRuntimeOptions,
-    builder
-  );

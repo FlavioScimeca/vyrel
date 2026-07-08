@@ -1,8 +1,7 @@
-import type { FieldMap, GenericFieldRef } from '@pothos/core';
-import { z } from 'zod/v4';
+import type { FieldMap, GenericFieldRef, SchemaTypes } from "@pothos/core";
+import { z } from "zod/v4";
 
-import { builder as defaultBuilder } from '../pothos';
-import { buildDrizzleGraphqlEnumRegistry } from './drizzle-graphql-enum-registry';
+import { buildDrizzleGraphqlEnumRegistry } from "./drizzle-graphql-enum-registry";
 import {
   createPothosArgsFromZodSchema,
   createPothosInputsFromZodSchema,
@@ -11,6 +10,7 @@ import {
   type PothosInputFieldsFromZodSchema,
   type PothosInputFieldType,
   type PothosInputsFromZodSchemaOptions,
+  type PothosSchemaBuilder,
   type PothosUnmappedFieldPolicy,
   readZodFieldDescription,
   registerNamedPothosGraphqlType,
@@ -19,13 +19,12 @@ import {
   unmappedZodFieldMessage,
   unwrapZodField,
   type ZodSchemaKeys,
-} from './zod-pothos-inputs';
+} from "./zod-pothos-inputs";
 
-type PothosSchemaBuilder = typeof defaultBuilder;
 type ExtraEnumSource = readonly (string | number)[] | z.ZodType;
 type BivariantResolve<TParent> = {
-  bivarianceHack(parent: TParent): unknown;
-}['bivarianceHack'];
+  bivarianceHack: (parent: TParent) => unknown;
+}["bivarianceHack"];
 type ComputedEnumFieldOptions<TParent> = {
   readonly description?: string;
   readonly nullable?: boolean;
@@ -84,11 +83,17 @@ type ListArgsSchemaFromConfig<T> = T extends {
   ? S
   : undefined;
 
-type NamedArgsFields<T extends Readonly<Record<string, z.ZodType>>> = {
-  readonly [K in keyof T]: PothosArgsFieldsFromZodSchema<T[K]>;
+type NamedArgsFields<
+  Types extends SchemaTypes,
+  T extends Readonly<Record<string, z.ZodType>>,
+> = {
+  readonly [K in keyof T]: PothosArgsFieldsFromZodSchema<Types, T[K]>;
 };
 
-type DrizzleGraphqlFieldsCore<TRowSchema extends z.ZodType> = {
+type DrizzleGraphqlFieldsCore<
+  Types extends SchemaTypes,
+  TRowSchema extends z.ZodType,
+> = {
   readonly argsFrom: <
     TSchema extends z.ZodType,
     TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
@@ -98,7 +103,7 @@ type DrizzleGraphqlFieldsCore<TRowSchema extends z.ZodType> = {
   >(
     schema: TSchema,
     options?: TOptions
-  ) => PothosArgsFieldsFromZodSchema<TSchema, TOptions>;
+  ) => PothosArgsFieldsFromZodSchema<Types, TSchema, TOptions>;
   readonly exposeFields: <TBuilder>(
     t: TBuilder,
     options?: ExposeFieldsOptions<TRowSchema>
@@ -117,18 +122,19 @@ type DrizzleGraphqlFieldsCore<TRowSchema extends z.ZodType> = {
   >(
     schema: TSchema,
     options?: TOptions
-  ) => PothosInputFieldsFromZodSchema<TSchema, TOptions>;
+  ) => PothosInputFieldsFromZodSchema<Types, TSchema, TOptions>;
 };
 
 export type DrizzleGraphqlFields<
+  Types extends SchemaTypes = SchemaTypes,
   TRowSchema extends z.ZodType = z.ZodType,
   TListArgsSchema extends
     | Readonly<Record<string, z.ZodType>>
     | undefined = undefined,
-> = DrizzleGraphqlFieldsCore<TRowSchema> &
+> = DrizzleGraphqlFieldsCore<Types, TRowSchema> &
   (TListArgsSchema extends Readonly<Record<string, z.ZodType>>
     ? {
-        readonly args: NamedArgsFields<TListArgsSchema>;
+        readonly args: NamedArgsFields<Types, TListArgsSchema>;
         readonly listArgsSchema: TListArgsSchema;
       }
     : Record<string, never>);
@@ -142,12 +148,12 @@ export type InitializeDrizzleGraphqlBridgeOptions = {
 
 export type DrizzleGraphqlEnumRegistryConfig = Pick<
   DefineDrizzleGraphqlFieldsConfig<z.ZodType>,
-  | 'enumName'
-  | 'extraEnums'
-  | 'extraEnumsFrom'
-  | 'listArgsSchema'
-  | 'objectName'
-  | 'rowSchema'
+  | "enumName"
+  | "extraEnums"
+  | "extraEnumsFrom"
+  | "listArgsSchema"
+  | "objectName"
+  | "rowSchema"
 >;
 
 type ModelWithListArgsSchema<
@@ -160,7 +166,7 @@ type ModelWithListArgsSchema<
   readonly rowSchema: TRowSchema;
 };
 
-export type DrizzleGraphqlBridge = {
+export type DrizzleGraphqlBridge<Types extends SchemaTypes = SchemaTypes> = {
   readonly fields: <
     const TRowSchema extends z.ZodType,
     const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
@@ -169,7 +175,8 @@ export type DrizzleGraphqlBridge = {
   >(
     config: TConfig
   ) => DrizzleGraphqlFields<
-    TConfig['rowSchema'],
+    Types,
+    TConfig["rowSchema"],
     ListArgsSchemaFromConfig<TConfig>
   >;
   readonly model: {
@@ -178,7 +185,7 @@ export type DrizzleGraphqlBridge = {
       const TListArgs extends Readonly<Record<string, z.ZodType>>,
     >(
       config: ModelWithListArgsSchema<TRowSchema, TListArgs>
-    ): DrizzleGraphqlFields<typeof config.rowSchema, TListArgs>;
+    ): DrizzleGraphqlFields<Types, typeof config.rowSchema, TListArgs>;
     <
       const TRowSchema extends z.ZodType,
       const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
@@ -187,7 +194,8 @@ export type DrizzleGraphqlBridge = {
     >(
       config: TConfig
     ): DrizzleGraphqlFields<
-      TConfig['rowSchema'],
+      Types,
+      TConfig["rowSchema"],
       ListArgsSchemaFromConfig<TConfig>
     >;
   };
@@ -200,19 +208,19 @@ export type DrizzleGraphqlBridge = {
   >(
     schema: TSchema,
     options?: TOptions
-  ) => PothosInputFieldsFromZodSchema<TSchema, TOptions>;
+  ) => PothosInputFieldsFromZodSchema<Types, TSchema, TOptions>;
 };
 
 const builtInGraphqlInputTypeNames = [
-  'ID',
-  'String',
-  'Boolean',
-  'Int',
-  'Float',
+  "ID",
+  "String",
+  "Boolean",
+  "Int",
+  "Float",
 ] as const;
 
-const registerBuilderNamedGraphqlTypes = (
-  graphqlBuilder: PothosSchemaBuilder,
+const registerBuilderNamedGraphqlTypes = <Types extends SchemaTypes>(
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   scalarTypes: readonly PothosInputFieldType[] | undefined
 ) => {
   for (const typeName of builtInGraphqlInputTypeNames) {
@@ -220,13 +228,13 @@ const registerBuilderNamedGraphqlTypes = (
   }
 
   for (const config of graphqlBuilder.configStore.typeConfigs.values()) {
-    if (config.kind === 'Scalar') {
+    if (config.kind === "Scalar") {
       registerNamedPothosGraphqlType(config.name);
     }
   }
 
   for (const typeName of scalarTypes ?? []) {
-    if (typeof typeName === 'string') {
+    if (typeof typeName === "string") {
       registerNamedPothosGraphqlType(typeName);
     }
   }
@@ -240,14 +248,14 @@ const handleUnmappedExposeField = (
   const message = unmappedZodFieldMessage(
     key,
     field,
-    'defineDrizzleGraphqlFields'
+    "defineDrizzleGraphqlFields"
   );
 
-  switch (policy ?? 'throw') {
-    case 'omit':
+  switch (policy ?? "throw") {
+    case "omit":
       return;
-    case 'warn':
-      if (process.env.NODE_ENV !== 'production') {
+    case "warn":
+      if (process.env.NODE_ENV !== "production") {
         console.warn(`${message} Omitting field.`);
       }
       return;
@@ -256,11 +264,11 @@ const handleUnmappedExposeField = (
   }
 };
 
-const exposeZodColumnField = (
+const exposeZodColumnField = <Types extends SchemaTypes>(
   t: DrizzleExposeFieldsBuilder,
   key: string,
   field: z.ZodType,
-  graphqlBuilder: PothosSchemaBuilder,
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   enumRegistry: Readonly<Record<string, PothosInputFieldType>>,
   idFields: ReadonlySet<string>,
   fieldTypeOverride: PothosInputFieldType | undefined,
@@ -281,7 +289,7 @@ const exposeZodColumnField = (
     return handleUnmappedExposeField(key, field, unmappedFields);
   }
 
-  if (graphqlType === 'string') {
+  if (graphqlType === "string") {
     if (idFields.has(key) && unwrapped instanceof z.ZodString) {
       return t.exposeID(key, { description, nullable });
     }
@@ -289,79 +297,87 @@ const exposeZodColumnField = (
     return t.exposeString(key, { description, nullable });
   }
 
-  if (graphqlType === 'boolean') {
+  if (graphqlType === "boolean") {
     return t.exposeBoolean(key, { description, nullable });
   }
 
-  if (graphqlType === 'datetime') {
+  if (graphqlType === "datetime") {
     return t.field({
       description,
-      type: 'DateTime',
-      resolve: (row: Record<string, unknown>) => row[key],
       nullable,
+      resolve: (row: Record<string, unknown>) => row[key],
+      type: "DateTime",
     });
   }
 
-  if (graphqlType === 'int') {
+  if (graphqlType === "int") {
     return t.field({
       description,
-      type: 'Int',
-      resolve: (row: Record<string, unknown>) => row[key],
       nullable,
+      resolve: (row: Record<string, unknown>) => row[key],
+      type: "Int",
     });
   }
 
-  if (graphqlType === 'float') {
+  if (graphqlType === "float") {
     return t.field({
       description,
-      type: 'Float',
-      resolve: (row: Record<string, unknown>) => row[key],
       nullable,
+      resolve: (row: Record<string, unknown>) => row[key],
+      type: "Float",
     });
   }
 
   return t.field({
     description,
-    type: graphqlType,
-    resolve: (row: Record<string, unknown>) => row[key],
     nullable,
+    resolve: (row: Record<string, unknown>) => row[key],
+    type: graphqlType,
   });
 };
 
 const buildNamedArgsFields = <
+  Types extends SchemaTypes,
   TListArgsSchema extends Readonly<Record<string, z.ZodType>>,
 >(
   listArgsSchema: TListArgsSchema,
-  argsFrom: DrizzleGraphqlFieldsCore<z.ZodType>['argsFrom']
-): NamedArgsFields<TListArgsSchema> => {
+  argsFrom: DrizzleGraphqlFieldsCore<Types, z.ZodType>["argsFrom"]
+): NamedArgsFields<Types, TListArgsSchema> => {
   const args: Record<string, unknown> = {};
 
   for (const key of Object.keys(listArgsSchema) as (keyof TListArgsSchema)[]) {
     args[key as string] = argsFrom(listArgsSchema[key]);
   }
 
-  return args as NamedArgsFields<TListArgsSchema>;
+  return args as NamedArgsFields<Types, TListArgsSchema>;
 };
 
 const createDrizzleGraphqlFields = <
+  Types extends SchemaTypes,
   const TRowSchema extends z.ZodType,
   const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
     readonly rowSchema: TRowSchema;
   },
 >(
-  graphqlBuilder: PothosSchemaBuilder,
-  argsFromZodSchema: ReturnType<typeof createPothosArgsFromZodSchema>,
-  inputsFromZodSchema: ReturnType<typeof createPothosInputsFromZodSchema>,
+  graphqlBuilder: PothosSchemaBuilder<Types>,
+  argsFromZodSchema: ReturnType<typeof createPothosArgsFromZodSchema<Types>>,
+  inputsFromZodSchema: ReturnType<
+    typeof createPothosInputsFromZodSchema<Types>
+  >,
   bridgeOptions: InitializeDrizzleGraphqlBridgeOptions,
   config: TConfig
-): DrizzleGraphqlFields<TRowSchema, ListArgsSchemaFromConfig<TConfig>> => {
+): DrizzleGraphqlFields<
+  Types,
+  TRowSchema,
+  ListArgsSchemaFromConfig<TConfig>
+> => {
   const enumRegistry = buildDrizzleGraphqlEnumRegistry(
     graphqlBuilder,
     bridgeOptions,
     config
   );
   const idFields = new Set(
-    config.idFields ?? bridgeOptions.defaultIdFields ?? ['id', 'orgId']
+    config.idFields ?? bridgeOptions.defaultIdFields ?? ["id", "orgId"]
   );
   const unmappedFields = config.unmappedFields ?? bridgeOptions.unmappedFields;
 
@@ -374,7 +390,7 @@ const createDrizzleGraphqlFields = <
   >(
     schema: TSchema,
     options?: TOptions
-  ): PothosInputFieldsFromZodSchema<TSchema, TOptions> =>
+  ): PothosInputFieldsFromZodSchema<Types, TSchema, TOptions> =>
     inputsFromZodSchema(schema, {
       unmappedFields,
       ...options,
@@ -390,7 +406,7 @@ const createDrizzleGraphqlFields = <
   >(
     schema: TSchema,
     options?: TOptions
-  ): PothosArgsFieldsFromZodSchema<TSchema, TOptions> =>
+  ): PothosArgsFieldsFromZodSchema<Types, TSchema, TOptions> =>
     argsFromZodSchema(schema, {
       unmappedFields,
       ...options,
@@ -460,7 +476,7 @@ const createDrizzleGraphqlFields = <
     });
   };
 
-  const core: DrizzleGraphqlFieldsCore<TRowSchema> = {
+  const core: DrizzleGraphqlFieldsCore<Types, TRowSchema> = {
     argsFrom,
     computedEnumField,
     exposeFields,
@@ -469,6 +485,7 @@ const createDrizzleGraphqlFields = <
 
   if (config.listArgsSchema === undefined) {
     return core as DrizzleGraphqlFields<
+      Types,
       TRowSchema,
       ListArgsSchemaFromConfig<TConfig>
     >;
@@ -479,15 +496,18 @@ const createDrizzleGraphqlFields = <
     args: buildNamedArgsFields(config.listArgsSchema, argsFrom),
     listArgsSchema: config.listArgsSchema,
   } as unknown as DrizzleGraphqlFields<
+    Types,
     TRowSchema,
     ListArgsSchemaFromConfig<TConfig>
   >;
 };
 
-export const initializeDrizzleGraphqlBridge = (
-  graphqlBuilder: PothosSchemaBuilder,
+export const initializeDrizzleGraphqlBridge = <
+  Types extends SchemaTypes = SchemaTypes,
+>(
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   options: InitializeDrizzleGraphqlBridgeOptions = {}
-): DrizzleGraphqlBridge => {
+): DrizzleGraphqlBridge<Types> => {
   registerBuilderNamedGraphqlTypes(graphqlBuilder, options.scalarTypes);
 
   const inputsFrom = createPothosInputsFromZodSchema(graphqlBuilder);
@@ -498,7 +518,7 @@ export const initializeDrizzleGraphqlBridge = (
     const TListArgs extends Readonly<Record<string, z.ZodType>>,
   >(
     config: ModelWithListArgsSchema<TRowSchema, TListArgs>
-  ): DrizzleGraphqlFields<TRowSchema, TListArgs>;
+  ): DrizzleGraphqlFields<Types, TRowSchema, TListArgs>;
   function model<
     const TRowSchema extends z.ZodType,
     const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
@@ -506,14 +526,14 @@ export const initializeDrizzleGraphqlBridge = (
     },
   >(
     config: TConfig
-  ): DrizzleGraphqlFields<TRowSchema, ListArgsSchemaFromConfig<TConfig>>;
+  ): DrizzleGraphqlFields<Types, TRowSchema, ListArgsSchemaFromConfig<TConfig>>;
   function model<
     const TRowSchema extends z.ZodType,
     const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
       readonly rowSchema: TRowSchema;
     },
   >(config: TConfig) {
-    return createDrizzleGraphqlFields(
+    return createDrizzleGraphqlFields<Types, TRowSchema, TConfig>(
       graphqlBuilder,
       argsFromZodSchema,
       inputsFrom,
@@ -524,26 +544,7 @@ export const initializeDrizzleGraphqlBridge = (
 
   return {
     fields: model,
-    model,
     inputsFrom,
+    model,
   };
 };
-
-const defaultDrizzleGraphqlBridge =
-  initializeDrizzleGraphqlBridge(defaultBuilder);
-
-/**
- * Defines GraphQL enums, drizzle object exposes, mutation inputs, and query args
- * from Zod schemas for a single Drizzle-backed model.
- */
-export const defineDrizzleGraphqlFields = <
-  const TRowSchema extends z.ZodType,
-  const TConfig extends DefineDrizzleGraphqlFieldsConfig<TRowSchema> & {
-    readonly rowSchema: TRowSchema;
-  },
->(
-  config: TConfig
-): DrizzleGraphqlFields<
-  TConfig['rowSchema'],
-  ListArgsSchemaFromConfig<TConfig>
-> => defaultDrizzleGraphqlBridge.fields(config);

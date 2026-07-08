@@ -1,19 +1,19 @@
-import { z } from 'zod/v4';
+import type { SchemaTypes } from "@pothos/core";
+import { z } from "zod/v4";
 
-import type { builder as defaultBuilder } from '../pothos';
 import type {
   DrizzleGraphqlEnumRegistryConfig,
   InitializeDrizzleGraphqlBridgeOptions,
-} from './define-drizzle-graphql-fields';
+} from "./define-drizzle-graphql-fields";
 import {
   graphqlEnumRuntimeValues,
   type PothosInputFieldType,
+  type PothosSchemaBuilder,
   resolveZodObjectShape,
   unwrapZodField,
   zodEnumValuesKey,
-} from './zod-pothos-inputs';
+} from "./zod-pothos-inputs";
 
-type PothosSchemaBuilder = typeof defaultBuilder;
 type ExtraEnumSource = readonly (string | number)[] | z.ZodType;
 
 const pascalCase = (value: string): string =>
@@ -23,7 +23,7 @@ const defaultEnumName = (field: string, objectName: string) =>
   `${objectName}${pascalCase(field)}`;
 
 const formatEnumValues = (values: readonly (string | number)[]): string =>
-  zodEnumValuesKey(values).replaceAll('\0', ', ');
+  zodEnumValuesKey(values).replaceAll("\0", ", ");
 
 const assertExistingEnumValuesMatch = (
   graphqlName: string,
@@ -61,13 +61,13 @@ const enumValuesFromSource = (
   );
 };
 
-const registerEnumType = (
-  graphqlBuilder: PothosSchemaBuilder,
+const registerEnumType = <Types extends SchemaTypes>(
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   graphqlName: string,
   values: readonly (string | number)[]
 ): PothosInputFieldType => {
   const existing = graphqlBuilder.configStore.typeConfigs.get(graphqlName);
-  if (existing?.kind === 'Enum') {
+  if (existing?.kind === "Enum") {
     assertExistingEnumValuesMatch(graphqlName, existing.values, values);
 
     return graphqlName as PothosInputFieldType;
@@ -84,8 +84,8 @@ const registerEnumType = (
   });
 };
 
-const registerEnumsFromShape = (
-  graphqlBuilder: PothosSchemaBuilder,
+const registerEnumsFromShape = <Types extends SchemaTypes>(
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   enumRegistry: Record<string, PothosInputFieldType>,
   enumName: (field: string, objectName: string) => string,
   objectName: string,
@@ -108,8 +108,8 @@ const registerEnumsFromShape = (
   }
 };
 
-export const buildDrizzleGraphqlEnumRegistry = (
-  graphqlBuilder: PothosSchemaBuilder,
+export const buildDrizzleGraphqlEnumRegistry = <Types extends SchemaTypes>(
+  graphqlBuilder: PothosSchemaBuilder<Types>,
   bridgeOptions: InitializeDrizzleGraphqlBridgeOptions,
   config: DrizzleGraphqlEnumRegistryConfig
 ): Record<string, PothosInputFieldType> => {

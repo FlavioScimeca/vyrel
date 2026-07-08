@@ -1,7 +1,7 @@
 import { defineRelations } from "drizzle-orm";
 
 // biome-ignore lint/performance/noNamespaceImport: defineRelations requires a schema namespace
-import * as schema from "./schemas/auth.schema";
+import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
   account: {

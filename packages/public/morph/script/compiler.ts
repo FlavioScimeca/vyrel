@@ -6,24 +6,32 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outdir = join(packageRoot, "dist");
 
 const pkg = (await Bun.file(join(packageRoot, "package.json")).json()) as {
-  dependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
+  version: string;
 };
-
-const external = [
-  ...Object.keys(pkg.dependencies ?? {}),
-  ...Object.keys(pkg.peerDependencies ?? {}),
-];
 
 await rm(outdir, { force: true, recursive: true });
 
+const analyze = process.env.ANALYZE === "1";
+
 const result = await Bun.build({
-  entrypoints: [join(packageRoot, "src/index.ts")],
-  external,
+  banner: `/*! @vyrel/morph v${pkg.version} | MIT */`,
+  entrypoints: [
+    join(packageRoot, "src/index.ts"),
+    join(packageRoot, "src/pothos.ts"),
+  ],
+  env: "disable",
   format: "esm",
+  metafile: analyze,
+  minify: {
+    identifiers: true,
+    keepNames: true,
+    syntax: true,
+    whitespace: true,
+  },
   outdir,
-  sourcemap: "linked",
-  target: "bun",
+  packages: "external",
+  sourcemap: "none",
+  target: "node",
 });
 
 if (!result.success) {
@@ -31,6 +39,14 @@ if (!result.success) {
     console.error(log);
   }
   throw new Error("Bun build failed");
+}
+
+if (analyze && result.metafile) {
+  await Bun.write(
+    join(outdir, "meta.json"),
+    JSON.stringify(result.metafile, null, 2)
+  );
+  console.log("Wrote bundle metafile to dist/meta.json");
 }
 
 const types = Bun.spawnSync({
