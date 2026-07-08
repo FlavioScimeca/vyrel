@@ -37,6 +37,10 @@
     "size": "bun run script/size.ts",
     "test": "vitest run --passWithNoTests"
   },
+  "dependencies": {
+    "@pothos/core": "catalog:",
+    "zod": "catalog:"
+  },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/node": "catalog:",

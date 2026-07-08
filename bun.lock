@@ -282,12 +282,22 @@
       "dependencies": {
         "@graphql-yoga/plugin-apq": "^3.21.2",
         "@pothos/core": "catalog:",
+        "@pothos/plugin-dataloader": "catalog:",
+        "@pothos/plugin-drizzle": "catalog:",
+        "@pothos/plugin-relay": "catalog:",
+        "@pothos/plugin-scope-auth": "catalog:",
+        "@pothos/plugin-validation": "catalog:",
+        "@pothos/plugin-with-input": "catalog:",
+        "@vyrel/auth": "workspace:*",
+        "@vyrel/db": "workspace:*",
         "@vyrel/logging": "workspace:*",
         "@whatwg-node/fetch": "^0.10.13",
         "better-auth": "catalog:",
+        "drizzle-orm": "1.0.0-rc.4",
         "effect": "catalog:",
         "elysia": "catalog:",
         "graphql": "catalog:",
+        "graphql-scalars": "catalog:",
         "graphql-yoga": "catalog:",
       },
       "devDependencies": {
@@ -315,6 +325,10 @@
     "packages/public/morph": {
       "name": "@vyrel/morph",
       "version": "0.0.1",
+      "dependencies": {
+        "@pothos/core": "catalog:",
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
@@ -336,6 +350,12 @@
     "@libsql/client": "^0.17.4",
     "@playwright/test": "^1.61.1",
     "@pothos/core": "^4.13.0",
+    "@pothos/plugin-dataloader": "^4.4.4",
+    "@pothos/plugin-drizzle": "^0.17.4",
+    "@pothos/plugin-relay": "^4.7.0",
+    "@pothos/plugin-scope-auth": "^4.1.6",
+    "@pothos/plugin-validation": "^4.3.0",
+    "@pothos/plugin-with-input": "^4.1.4",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/bun": "^1.3.14",
     "@types/node": "^26.0.1",
@@ -348,6 +368,7 @@
     "effect": "^3.21.4",
     "elysia": "^1.4.29",
     "graphql": "^16.11.0",
+    "graphql-scalars": "^1.25.0",
     "graphql-yoga": "^5.21.2",
     "jsdom": "^29.1.1",
     "libsql": "^0.5.29",
@@ -1319,6 +1340,18 @@
     "@polka/url": ["@polka/url@1.0.0-next.29", "", {}, "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="],
 
     "@pothos/core": ["@pothos/core@4.13.0", "", { "peerDependencies": { "graphql": "^16.10.0 || ^17.0.0" } }, "sha512-bIaVdLTkwPkkmIn0Ji13vsc9Zy0mEi++a9iMFIRVa88l0G7JuFJrJX5qGPo1GGu4drvRW4SAr2aDm2V5KcYj4A=="],
+
+    "@pothos/plugin-dataloader": ["@pothos/plugin-dataloader@4.4.4", "", { "peerDependencies": { "@pothos/core": "*", "dataloader": "2", "graphql": "^16.10.0" } }, "sha512-tQwWVU/bGEipA2qhOEy+knQPJaNT8S5mZ0tHLYg35OiNUTFuG70bdWgMFw39gBIIHVvenqMFW9sBzlqGDEoijg=="],
+
+    "@pothos/plugin-drizzle": ["@pothos/plugin-drizzle@0.17.4", "", { "peerDependencies": { "@pothos/core": "*", "drizzle-orm": ">=1.0.0-beta.2", "graphql": "^16.10.0" } }, "sha512-cAaMexSSOtoXf7Khj62yOHGxHyaOnuIzNdgl+w0rNfnJdtVOr4slQjHinWJWzYWdRauOclZddxWbLaou4NK0QQ=="],
+
+    "@pothos/plugin-relay": ["@pothos/plugin-relay@4.7.0", "", { "peerDependencies": { "@pothos/core": "*", "graphql": "^16.10.0" } }, "sha512-IQ7f7WLu7uXxiZBcJgUTdspjIVzX3bgvd8XjnzxGJUbn/uE5HlVyCFmvhJffHIIS2OKSHhOOJRMwIwVwauwnSg=="],
+
+    "@pothos/plugin-scope-auth": ["@pothos/plugin-scope-auth@4.1.6", "", { "peerDependencies": { "@pothos/core": "*", "graphql": "^16.10.0" } }, "sha512-OuVrDiIf03VrExT3sgyt6YHYuFdUbJ6a6R9cHa01JWbnDUTEag8jFhtstZHou4tB8PkldtUgSspfkhJvFNk6bA=="],
+
+    "@pothos/plugin-validation": ["@pothos/plugin-validation@4.3.0", "", { "peerDependencies": { "@pothos/core": "*", "graphql": "^16.10.0" } }, "sha512-38TV+hqbQX7wBTyXONPA8VPlO0iuWY1tQ8C+vaGEIRcHzAVHx9oNFVavcnft6pvbuDAfRCSHsi47YsLzxhsOXw=="],
+
+    "@pothos/plugin-with-input": ["@pothos/plugin-with-input@4.1.4", "", { "peerDependencies": { "@pothos/core": "*", "graphql": "^16.10.0" } }, "sha512-ov8Ufga6lU1PmE0lHt50jpt3G3ypJvHJ0YF2PmjcgWEvJMi/cDhRRKoU2IoB13juBBRE2yo9rS3QhSRUR35iAQ=="],
 
     "@quansync/fs": ["@quansync/fs@1.0.0", "", { "dependencies": { "quansync": "^1.0.0" } }, "sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ=="],
 
@@ -2735,6 +2768,8 @@
     "graphql-config": ["graphql-config@5.1.6", "", { "dependencies": { "@graphql-tools/graphql-file-loader": "^8.0.0", "@graphql-tools/json-file-loader": "^8.0.0", "@graphql-tools/load": "^8.1.0", "@graphql-tools/merge": "^9.0.0", "@graphql-tools/url-loader": "^9.0.0", "@graphql-tools/utils": "^11.0.0", "cosmiconfig": "^8.1.0", "jiti": "^2.0.0", "minimatch": "^10.0.0", "string-env-interpolation": "^1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "cosmiconfig-toml-loader": "^1.0.0", "graphql": "^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0" }, "optionalPeers": ["cosmiconfig-toml-loader"] }, "sha512-fCkYnm4Kdq3un0YIM4BCZHVR5xl0UeLP6syxxO7KAstdY7QVyVvTHP0kRPDYEP1v08uwtJVgis5sj3IOTLOniQ=="],
 
     "graphql-depth-limit": ["graphql-depth-limit@1.1.0", "", { "dependencies": { "arrify": "^1.0.1" }, "peerDependencies": { "graphql": "*" } }, "sha512-+3B2BaG8qQ8E18kzk9yiSdAa75i/hnnOwgSeAxVJctGQPvmeiLtqKOYF6HETCyRjiF7Xfsyal0HbLlxCQkgkrw=="],
+
+    "graphql-scalars": ["graphql-scalars@1.25.0", "", { "dependencies": { "tslib": "^2.5.0" }, "peerDependencies": { "graphql": "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0" } }, "sha512-b0xyXZeRFkne4Eq7NAnL400gStGqG/Sx9VqX0A05nHyEbv57UJnWKsjNnrpVqv5e/8N1MUxkt0wwcRXbiyKcFg=="],
 
     "graphql-ws": ["graphql-ws@6.0.8", "", { "peerDependencies": { "@fastify/websocket": "^10 || ^11", "crossws": "~0.3", "graphql": "^15.10.1 || ^16", "ws": "^8" }, "optionalPeers": ["@fastify/websocket", "crossws", "ws"] }, "sha512-m3EOaNsUBXwAnkBWbzPfe0Nq8pXUfxsWnolC54sru3FzHvhTZL0Ouf/BoQsaGAXqM+YPerXOJ47BUnmgmoupCw=="],
 

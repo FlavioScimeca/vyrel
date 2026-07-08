@@ -27,7 +27,7 @@
   "linter": {
     "rules": {
       "style": {
-        "useConsistentTypeDefinitions": "error"
+        "useConsistentTypeDefinitions": "off"
       },
       "performance": {
         "noBarrelFile": "error"
