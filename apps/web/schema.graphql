@@ -1,0 +1,14 @@
+type Mutation {
+  _empty: String
+}
+
+type Query {
+  health: String
+  me: User
+}
+
+type User {
+  email: String
+  id: String
+  name: String
+}

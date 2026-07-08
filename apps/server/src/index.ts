@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { auth } from "@vyrel/auth";
 import { env } from "@vyrel/env/server";
 import { Elysia } from "elysia";
+import { graphqlPlugin } from "@/plugins/graphql";
 
 new Elysia()
   .use(
@@ -12,6 +13,7 @@ new Elysia()
       origin: env.CORS_ORIGIN,
     })
   )
+  .use(graphqlPlugin)
   .all("/api/auth/*", (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {

@@ -20,12 +20,13 @@
     "@better-auth/drizzle-adapter": "^1.6.22",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
+    "@vyrel/consts": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@vyrel/config": "workspace:*",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   }
 }

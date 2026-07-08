@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strictNullChecks": true,
+    "paths": {
+      "@vyrel/graphql": ["./src/index.ts"],
+      "@vyrel/graphql/*": ["./src/*.ts"]
+    }
+  },
+  "include": ["src/**/*", "gen/**/*"]
+}

@@ -49,9 +49,10 @@ vyrel/
 │   ├── web/         # Frontend application
 │   └── server/      # Backend API
 ├── packages/
-│   ├── api/         # API layer
+│   ├── api/         # API layer (domain resolvers, auth context)
 │   ├── auth/        # Authentication
-│   └── db/          # Database schema
+│   ├── db/          # Database schema
+│   └── graphql/     # GraphQL infrastructure (Pothos, Yoga)
 ```
 
 ## Common Commands
@@ -62,6 +63,7 @@ vyrel/
 - `bun test` - Run tests
 - `bun db:push` - Push database schema
 - `bun db:studio` - Open database UI
+- `bun graphql:schema` - Generate GraphQL SDL for the web app
 
 ## Maintenance
 

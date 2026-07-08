@@ -1,3 +1,4 @@
+import { JWT_EXPIRATION_TIME } from "@vyrel/consts/server";
 import { db } from "@vyrel/db";
 import {
   account,
@@ -12,6 +13,7 @@ import { env } from "@vyrel/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
+import { jwt } from "better-auth/plugins/jwt";
 
 export const auth = betterAuth({
   advanced: {
@@ -37,6 +39,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [organizationPlugin()],
+  plugins: [
+    organizationPlugin(),
+    jwt({
+      jwt: {
+        expirationTime: JWT_EXPIRATION_TIME,
+      },
+    }),
+  ],
   trustedOrigins: [env.CORS_ORIGIN],
 });

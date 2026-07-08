@@ -143,3 +143,11 @@ export const invitation = sqliteTable(
     index("invitation_email_idx").on(table.email),
   ]
 );
+
+export const jwks = sqliteTable("jwks", {
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+  id: text("id").primaryKey(),
+  privateKey: text("private_key").notNull(),
+  publicKey: text("public_key").notNull(),
+});

@@ -25,6 +25,6 @@
     "@types/react-dom": "catalog:",
     "postcss": "^8.5.15",
     "tailwindcss": "catalog:",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   }
 }

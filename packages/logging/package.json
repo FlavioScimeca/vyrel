@@ -1,0 +1,22 @@
+{
+  "name": "@vyrel/logging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/logging.ts"
+    }
+  },
+  "dependencies": {
+    "@logtape/logtape": "^2.1.5",
+    "@logtape/pretty": "^2.2.4",
+    "@vyrel/env": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@vyrel/config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

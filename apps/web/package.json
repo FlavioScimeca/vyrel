@@ -69,7 +69,7 @@
     "playwright": "catalog:",
     "storybook": "^8.6.18",
     "tailwindcss": "catalog:",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

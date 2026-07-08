@@ -16,16 +16,14 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@pothos/core": "catalog:",
     "@vyrel/auth": "workspace:*",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
+    "@vyrel/graphql": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "effect": "catalog:",
     "elysia": "catalog:",
-    "graphql": "catalog:",
-    "graphql-yoga": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -36,7 +34,7 @@
     "@vyrel/config": "workspace:*",
     "jsdom": "catalog:",
     "playwright": "catalog:",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

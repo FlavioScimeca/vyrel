@@ -1,0 +1,37 @@
+{
+  "name": "@vyrel/graphql",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "gen-imports": "bun run scripts/collect-graphql-imports.ts",
+    "gen-schema": "bun run scripts/gen-schema.ts",
+    "gen": "bun run gen-imports && bun run gen-schema"
+  },
+  "dependencies": {
+    "@graphql-yoga/plugin-apq": "^3.21.2",
+    "@pothos/core": "catalog:",
+    "@vyrel/logging": "workspace:*",
+    "@whatwg-node/fetch": "^0.10.13",
+    "better-auth": "catalog:",
+    "elysia": "catalog:",
+    "effect": "catalog:",
+    "graphql": "catalog:",
+    "graphql-yoga": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/platform": "catalog:",
+    "@effect/platform-bun": "^0.90.0",
+    "@vyrel/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

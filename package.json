@@ -36,7 +36,8 @@
       "tailwindcss": "^4.3.1",
       "@types/node": "^26.0.1",
       "@types/react-dom": "^19.2.3",
-      "@effect/language-service": "^0.86.4"
+      "@effect/language-service": "^0.86.4",
+      "typescript": "^6.0.3"
     }
   },
   "type": "module",
@@ -48,15 +49,18 @@
     "dev:docs": "turbo -F docs dev",
     "build:docs": "turbo -F docs build",
     "check:docs": "turbo -F docs check-types",
+    "check:effect-ts": "bun run script/check-effect-ts.ts",
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @vyrel/db db:push",
     "db:studio": "turbo -F @vyrel/db db:studio",
     "db:generate": "turbo -F @vyrel/db db:generate",
     "db:migrate": "turbo -F @vyrel/db db:migrate",
     "db:local": "turbo -F @vyrel/db db:local",
+    "graphql:schema": "bun run --filter @vyrel/graphql gen-schema",
     "test": "bun run --filter web test && bun run --filter server test && bun run --filter @vyrel/api test",
     "preflight": "bun run deps:lint && bun run lint && bun run check-types && bun run build && bun run test",
     "lint": "ultracite check",
+    "rover": "bun run script/entry-point.ts",
     "format": "ultracite fix",
     "lint:doctor": "ultracite doctor",
     "check": "ultracite check",
@@ -105,7 +109,7 @@
     "syncpack": "^15.3.2",
     "tegami": "^1.2.3",
     "turbo": "^2.10.0",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "typescript-eslint": "^8.63.0",
     "ultracite": "7.9.3",
     "vercel": "^54.18.2"

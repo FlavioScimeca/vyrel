@@ -29,7 +29,7 @@
         "syncpack": "^15.3.2",
         "tegami": "^1.2.3",
         "turbo": "^2.10.0",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "typescript-eslint": "^8.63.0",
         "ultracite": "7.9.3",
         "vercel": "^54.18.2",
@@ -54,7 +54,7 @@
         "@types/react-dom": "catalog:",
         "postcss": "^8.5.15",
         "tailwindcss": "catalog:",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
       },
     },
     "apps/extension": {
@@ -68,7 +68,7 @@
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
         "@wxt-dev/module-react": "^1.2.2",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "wxt": "^0.20.27",
       },
     },
@@ -84,13 +84,13 @@
         "@effect/sql-drizzle": "^0.50.0",
         "@effect/sql-sqlite-bun": "^0.52.0",
         "@elysiajs/cors": "^1.4.2",
-        "@pothos/core": "catalog:",
         "@react-email/components": "^1.0.12",
         "@sinclair/typebox": "^0.34.49",
         "@vyrel/api": "workspace:*",
         "@vyrel/auth": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
+        "@vyrel/graphql": "workspace:*",
         "ai": "^7.0.4",
         "better-auth": "catalog:",
         "bullmq": "^5.79.2",
@@ -98,8 +98,6 @@
         "effect": "catalog:",
         "elysia": "catalog:",
         "evlog": "^2.19.2",
-        "graphql": "catalog:",
-        "graphql-yoga": "catalog:",
         "react": "catalog:",
         "react-email": "^6.6.5",
         "resend": "^6.16.0",
@@ -117,7 +115,7 @@
         "msw": "catalog:",
         "playwright": "catalog:",
         "tsdown": "^0.22.3",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -182,7 +180,7 @@
         "playwright": "catalog:",
         "storybook": "^8.6.18",
         "tailwindcss": "catalog:",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -190,16 +188,14 @@
       "name": "@vyrel/api",
       "version": "0.0.0",
       "dependencies": {
-        "@pothos/core": "catalog:",
         "@vyrel/auth": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
+        "@vyrel/graphql": "workspace:*",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
         "effect": "catalog:",
         "elysia": "catalog:",
-        "graphql": "catalog:",
-        "graphql-yoga": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -210,7 +206,7 @@
         "@vyrel/config": "workspace:*",
         "jsdom": "catalog:",
         "playwright": "catalog:",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -219,6 +215,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@better-auth/drizzle-adapter": "^1.6.22",
+        "@vyrel/consts": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
         "better-auth": "catalog:",
@@ -227,12 +224,24 @@
       },
       "devDependencies": {
         "@vyrel/config": "workspace:*",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
       },
     },
     "packages/config": {
       "name": "@vyrel/config",
       "version": "0.0.0",
+    },
+    "packages/consts": {
+      "name": "@vyrel/consts",
+      "version": "0.0.0",
+      "dependencies": {
+        "@vyrel/env": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@vyrel/config": "workspace:*",
+        "typescript": "catalog:",
+      },
     },
     "packages/db": {
       "name": "@vyrel/db",
@@ -249,7 +258,7 @@
       "devDependencies": {
         "@vyrel/config": "workspace:*",
         "drizzle-kit": "1.0.0-rc.4",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
       },
     },
     "packages/env": {
@@ -264,7 +273,43 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@vyrel/config": "workspace:*",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/graphql": {
+      "name": "@vyrel/graphql",
+      "version": "0.0.1",
+      "dependencies": {
+        "@graphql-yoga/plugin-apq": "^3.21.2",
+        "@pothos/core": "catalog:",
+        "@vyrel/logging": "workspace:*",
+        "@whatwg-node/fetch": "^0.10.13",
+        "better-auth": "catalog:",
+        "effect": "catalog:",
+        "elysia": "catalog:",
+        "graphql": "catalog:",
+        "graphql-yoga": "catalog:",
+      },
+      "devDependencies": {
+        "@effect/platform": "catalog:",
+        "@effect/platform-bun": "^0.90.0",
+        "@vyrel/config": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/logging": {
+      "name": "@vyrel/logging",
+      "version": "0.0.0",
+      "dependencies": {
+        "@logtape/logtape": "^2.1.5",
+        "@logtape/pretty": "^2.2.4",
+        "@vyrel/env": "workspace:*",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@vyrel/config": "workspace:*",
+        "typescript": "catalog:",
       },
     },
     "packages/public/morph": {
@@ -275,7 +320,7 @@
         "@types/node": "catalog:",
         "@vyrel/config": "workspace:*",
         "knip": "^6.25.0",
-        "typescript": "^6.0.3",
+        "typescript": "catalog:",
         "ultracite": "7.9.3",
         "vitest": "catalog:",
       },
@@ -312,6 +357,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
     "vitest": "4.1.8",
     "zod": "^4.4.3",
   },
@@ -882,6 +928,8 @@
 
     "@graphql-yoga/logger": ["@graphql-yoga/logger@2.0.1", "", { "dependencies": { "tslib": "^2.8.1" } }, "sha512-Nv0BoDGLMg9QBKy9cIswQ3/6aKaKjlTh87x3GiBg2Z4RrjyrM48DvOOK0pJh1C1At+b0mUIM67cwZcFTDLN4sA=="],
 
+    "@graphql-yoga/plugin-apq": ["@graphql-yoga/plugin-apq@3.21.2", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.3.2" }, "peerDependencies": { "graphql-yoga": "^5.21.2" } }, "sha512-t34vgE/DS5mDkAxAOud/HoCZ+FLquFGiGgX0hSuLokggVUbw2wZKtyBBz9Qfz7djhjp+JxIX0k/5E69Dgvm9YA=="],
+
     "@graphql-yoga/subscription": ["@graphql-yoga/subscription@5.0.5", "", { "dependencies": { "@graphql-yoga/typed-event-target": "^3.0.2", "@repeaterjs/repeater": "^3.0.4", "@whatwg-node/events": "^0.1.0", "tslib": "^2.8.1" } }, "sha512-oCMWOqFs6QV96/NZRt/ZhTQvzjkGB4YohBOpKM4jH/lDT4qb7Lex/aGCxpi/JD9njw3zBBtMqxbaC22+tFHVvw=="],
 
     "@graphql-yoga/typed-event-target": ["@graphql-yoga/typed-event-target@3.0.2", "", { "dependencies": { "@repeaterjs/repeater": "^3.0.4", "tslib": "^2.8.1" } }, "sha512-ZpJxMqB+Qfe3rp6uszCQoag4nSw42icURnBRfFYSOmTgEeOe4rD0vYlbA8spvCu2TlCesNTlEN9BLWtQqLxabA=="],
@@ -1013,6 +1061,8 @@
     "@logtape/drizzle-orm": ["@logtape/drizzle-orm@2.2.4", "", { "peerDependencies": { "@logtape/logtape": "^2.2.4" } }, "sha512-UNTEagFM5YVFLJC1sAAhVZpaf2kyvUivkNIVvK5lDZtMsv/HFDPE5O/hvEsnLDSZCV/kyb868DqiN5sKRgRvYA=="],
 
     "@logtape/logtape": ["@logtape/logtape@2.2.4", "", {}, "sha512-2rALzv9m4ibE5FyB8/FMm5MPMMlK7ujgy3ufricVKIxj6e7SZbw4w6J16/fRAsXgdDlOXPUA0aa6XoEQvdlKxw=="],
+
+    "@logtape/pretty": ["@logtape/pretty@2.2.4", "", { "peerDependencies": { "@logtape/logtape": "^2.2.4" } }, "sha512-eUaa7+Y3WieTDeSSo3osGDE3m1ohTPGCjqOY9006sYrEZGPRvf4HyU+kbMcKm7Q3syWLF6RkSyJ1WhxTs1Ccvg=="],
 
     "@manypkg/find-root": ["@manypkg/find-root@1.1.0", "", { "dependencies": { "@babel/runtime": "^7.5.5", "@types/node": "^12.7.1", "find-up": "^4.1.0", "fs-extra": "^8.1.0" } }, "sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA=="],
 
@@ -1806,9 +1856,15 @@
 
     "@vyrel/config": ["@vyrel/config@workspace:packages/config"],
 
+    "@vyrel/consts": ["@vyrel/consts@workspace:packages/consts"],
+
     "@vyrel/db": ["@vyrel/db@workspace:packages/db"],
 
     "@vyrel/env": ["@vyrel/env@workspace:packages/env"],
+
+    "@vyrel/graphql": ["@vyrel/graphql@workspace:packages/graphql"],
+
+    "@vyrel/logging": ["@vyrel/logging@workspace:packages/logging"],
 
     "@vyrel/morph": ["@vyrel/morph@workspace:packages/public/morph"],
 
