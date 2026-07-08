@@ -6,6 +6,9 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(packageRoot, "dist");
 const packCacheDir = join(packageRoot, "node_modules/.cache/morph-size");
 
+const UNPACKED_SIZE_REGEX = /Unpacked size:\s*(.+)/i;
+const TOTAL_FILES_REGEX = /Total files:\s*(\d+)/i;
+
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -22,23 +25,25 @@ const listDistFiles = async (
   directory: string
 ): Promise<{ path: string; size: number }[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
-  const files: { path: string; size: number }[] = [];
 
-  for (const entry of entries) {
-    const fullPath = join(directory, entry.name);
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = join(directory, entry.name);
 
-    if (entry.isDirectory()) {
-      files.push(...(await listDistFiles(fullPath)));
-      continue;
-    }
+      if (entry.isDirectory()) {
+        return listDistFiles(fullPath);
+      }
 
-    if (entry.isFile()) {
-      const fileStat = await stat(fullPath);
-      files.push({ path: fullPath, size: fileStat.size });
-    }
-  }
+      if (entry.isFile()) {
+        const fileStat = await stat(fullPath);
+        return [{ path: fullPath, size: fileStat.size }];
+      }
 
-  return files;
+      return [];
+    })
+  );
+
+  return nested.flat();
 };
 
 const readPackSummary = async () => {
@@ -54,8 +59,8 @@ const readPackSummary = async () => {
   }
 
   const output = `${dryRun.stdout}\n${dryRun.stderr}`;
-  const unpackedSize = output.match(/Unpacked size:\s*(.+)/i)?.[1]?.trim();
-  const totalFiles = output.match(/Total files:\s*(\d+)/i)?.[1]?.trim();
+  const unpackedSize = output.match(UNPACKED_SIZE_REGEX)?.[1]?.trim();
+  const totalFiles = output.match(TOTAL_FILES_REGEX)?.[1]?.trim();
 
   await mkdir(packCacheDir, { recursive: true });
 

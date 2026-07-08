@@ -12,7 +12,7 @@ new Elysia()
       origin: env.CORS_ORIGIN,
     })
   )
-  .all("/api/auth/*", async (context) => {
+  .all("/api/auth/*", (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
       return auth.handler(request);

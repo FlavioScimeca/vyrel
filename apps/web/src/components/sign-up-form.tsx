@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -51,6 +52,15 @@ export default function SignUpForm({
     },
   });
 
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      form.handleSubmit();
+    },
+    [form]
+  );
+
   if (isPending) {
     return <Loader />;
   }
@@ -59,79 +69,84 @@ export default function SignUpForm({
     <div className="mx-auto mt-10 w-full max-w-md p-6">
       <h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
 
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-      >
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <form.Field name="name">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Name</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
+            {(field) => {
+              const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+                field.handleChange(e.target.value);
+              return (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Name</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={handleChange}
+                    value={field.state.value}
+                  />
+                  {field.state.meta.errors.map((error) => (
+                    <p className="text-red-500" key={error?.message}>
+                      {error?.message}
+                    </p>
+                  ))}
+                </div>
+              );
+            }}
           </form.Field>
         </div>
 
         <div>
           <form.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="email"
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
+            {(field) => {
+              const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+                field.handleChange(e.target.value);
+              return (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Email</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={handleChange}
+                    type="email"
+                    value={field.state.value}
+                  />
+                  {field.state.meta.errors.map((error) => (
+                    <p className="text-red-500" key={error?.message}>
+                      {error?.message}
+                    </p>
+                  ))}
+                </div>
+              );
+            }}
           </form.Field>
         </div>
 
         <div>
           <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="password"
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
+            {(field) => {
+              const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+                field.handleChange(e.target.value);
+              return (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Password</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={handleChange}
+                    type="password"
+                    value={field.state.value}
+                  />
+                  {field.state.meta.errors.map((error) => (
+                    <p className="text-red-500" key={error?.message}>
+                      {error?.message}
+                    </p>
+                  ))}
+                </div>
+              );
+            }}
           </form.Field>
         </div>
 

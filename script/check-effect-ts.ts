@@ -18,7 +18,7 @@ export interface EffectCheckReport {
   root: string;
 }
 
-export async function runEffectDiagnostics(
+export function runEffectDiagnostics(
   repoRoot: string,
   project: string
 ): Promise<number> {
@@ -62,6 +62,7 @@ export async function checkEffectProjects(
     console.log("");
     console.log(`==> ${project}`);
 
+    // biome-ignore lint/performance/noAwaitInLoops: runs sequentially to short-circuit on the first failing project
     const exitCode = await runEffectDiagnostics(root, project);
     results.push({ exitCode, project, skipped: false });
 

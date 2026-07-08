@@ -13,7 +13,7 @@ export function morphCase(input: MorphInput, style: CaseStyle): string {
       return toKebabCase(input);
     case "snake":
       return toSnakeCase(input);
-    case "slug":
+    default:
       return slugify(input);
   }
 }

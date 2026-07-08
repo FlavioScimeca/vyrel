@@ -2,7 +2,7 @@ import { createClient } from "@libsql/client";
 import { env } from "@vyrel/env/server";
 import { drizzle } from "drizzle-orm/libsql";
 
-import * as schema from "./schema/index";
+import { schema } from "./schema/index";
 
 const client = createClient({
   authToken: env.DATABASE_AUTH_TOKEN,

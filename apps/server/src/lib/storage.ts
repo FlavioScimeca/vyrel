@@ -18,14 +18,14 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
  */
 export const r2Client = new S3Client({
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
   },
-  endpoint: `https://${process.env.R2_ACCOUNT_ID!}.r2.cloudflarestorage.com`,
+  endpoint: `https://${process.env.R2_ACCOUNT_ID ?? ""}.r2.cloudflarestorage.com`,
   region: "auto",
 });
 
-const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
+const BUCKET_NAME = process.env.R2_BUCKET_NAME ?? "";
 
 /**
  * Storage utilities for common R2 operations
@@ -149,7 +149,7 @@ export async function listFiles(
 
   return {
     files: (response.Contents ?? []).map((item) => ({
-      key: item.Key!,
+      key: item.Key ?? "",
       lastModified: item.LastModified,
       size: item.Size,
     })),
@@ -239,7 +239,7 @@ export async function moveFile(
 /**
  * Generate a presigned URL for uploading a file
  */
-export async function getUploadUrl(
+export function getUploadUrl(
   key: string,
   options?: {
     expiresIn?: number; // seconds, default 3600 (1 hour)
@@ -260,7 +260,7 @@ export async function getUploadUrl(
 /**
  * Generate a presigned URL for downloading a file
  */
-export async function getDownloadUrl(
+export function getDownloadUrl(
   key: string,
   options?: {
     expiresIn?: number; // seconds, default 3600 (1 hour)

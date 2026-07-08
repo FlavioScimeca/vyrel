@@ -33,7 +33,7 @@ export interface NotificationJobData {
 /**
  * Add an email job to the queue
  */
-export async function queueEmail(
+export function queueEmail(
   data: EmailJobData,
   options?: { delay?: number; priority?: number }
 ) {
@@ -51,7 +51,7 @@ export async function queueEmail(
 /**
  * Add a notification job to the queue
  */
-export async function queueNotification(
+export function queueNotification(
   data: NotificationJobData,
   options?: { delay?: number }
 ) {
@@ -69,7 +69,7 @@ export async function queueNotification(
  * Schedule a recurring job (cron-style)
  * @example scheduleRecurringJob(emailQueue, "daily-report", { type: "report" }, "0 9 * * *")
  */
-export async function scheduleRecurringJob<T>(
+export function scheduleRecurringJob<T>(
   queue: Queue,
   name: string,
   data: T,

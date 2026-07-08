@@ -1,1 +1,31 @@
-export * from "./auth";
+import {
+  account,
+  accountRelations,
+  invitation,
+  invitationRelations,
+  member,
+  memberRelations,
+  organization,
+  organizationRelations,
+  session,
+  sessionRelations,
+  user,
+  userRelations,
+  verification,
+} from "./auth";
+
+export const schema = {
+  account,
+  accountRelations,
+  invitation,
+  invitationRelations,
+  member,
+  memberRelations,
+  organization,
+  organizationRelations,
+  session,
+  sessionRelations,
+  user,
+  userRelations,
+  verification,
+};

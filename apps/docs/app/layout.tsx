@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 
 import "./global.css";
 
-type RootLayoutProps = {
+interface RootLayoutProps {
   children: ReactNode;
-};
+}
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (

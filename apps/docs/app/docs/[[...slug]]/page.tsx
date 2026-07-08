@@ -11,11 +11,11 @@ import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { source } from "@/lib/source";
 
-type DocsPageProps = {
+interface DocsPageProps {
   params: Promise<{
     slug?: string[];
   }>;
-};
+}
 
 export default async function Page(props: DocsPageProps) {
   const params = await props.params;

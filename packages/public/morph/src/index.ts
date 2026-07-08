@@ -1,3 +1,4 @@
+// biome-ignore-all lint/performance/noBarrelFile: public package entry point
 export { morphCase } from "./morph-case";
 export { slugify } from "./slugify";
 export { toCamelCase } from "./to-camel-case";

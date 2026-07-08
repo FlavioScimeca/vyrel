@@ -16,7 +16,7 @@ interface WelcomeEmailProps {
   username?: string;
 }
 
-export function WelcomeEmail({
+function WelcomeEmail({
   username = "there",
   loginUrl = "http://localhost:3000",
 }: WelcomeEmailProps) {

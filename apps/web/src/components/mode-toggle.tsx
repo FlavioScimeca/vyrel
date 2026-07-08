@@ -2,6 +2,7 @@
 
 import { IconMoon as Moon, IconSun as Sun } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
+import { useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,10 @@ import {
 export function ModeToggle() {
   const { setTheme } = useTheme();
 
+  const setLight = useCallback(() => setTheme("light"), [setTheme]);
+  const setDark = useCallback(() => setTheme("dark"), [setTheme]);
+  const setSystem = useCallback(() => setTheme("system"), [setTheme]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button size="icon" variant="outline" />}>
@@ -22,15 +27,9 @@ export function ModeToggle() {
         <span className="sr-only">Toggle theme</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={setLight}>Light</DropdownMenuItem>
+        <DropdownMenuItem onClick={setDark}>Dark</DropdownMenuItem>
+        <DropdownMenuItem onClick={setSystem}>System</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

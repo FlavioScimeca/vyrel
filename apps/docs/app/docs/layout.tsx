@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { baseOptions } from "@/lib/layout.shared";
 import { source } from "@/lib/source";
 
-type DocsLayoutProps = {
+interface DocsLayoutProps {
   children: ReactNode;
-};
+}
 
 export default function Layout({ children }: DocsLayoutProps) {
   return (

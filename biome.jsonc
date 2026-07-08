@@ -16,8 +16,13 @@
       "!!**/.agents",
       "!!**/.claude",
       "!!**/.cursor",
+      "!!**/.source",
+      "!!**/.wxt",
       "!!**/graphql-env.d.ts"
     ]
+  },
+  "javascript": {
+    "globals": ["Bun", "defineBackground", "defineContentScript", "browser"]
   },
   "linter": {
     "rules": {

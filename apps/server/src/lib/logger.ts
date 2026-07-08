@@ -13,5 +13,3 @@ export function logEvent<T extends Record<string, unknown>>(
 ): void {
   logger.info(event, payload);
 }
-
-export default logger;

@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
 
+  const increment = useCallback(() => setCount((value) => value + 1), []);
+
   return (
     <main>
       <p className="eyebrow">Better Fullstack Extension</p>
       <h1>WXT + React</h1>
-      <button onClick={() => setCount((value) => value + 1)} type="button">
+      <button onClick={increment} type="button">
         Count is {count}
       </button>
       <p className="hint">

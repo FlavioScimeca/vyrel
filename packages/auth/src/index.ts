@@ -1,5 +1,5 @@
 import { db } from "@vyrel/db";
-import * as schema from "@vyrel/db/schema/auth";
+import { schema } from "@vyrel/db/schema/index";
 import { env } from "@vyrel/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
