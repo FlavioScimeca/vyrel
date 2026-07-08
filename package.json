@@ -86,7 +86,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.2",
+    "@biomejs/biome": "2.5.1",
     "@changesets/cli": "^2.29.8",
     "@effect/language-service": "catalog:",
     "@eslint/config-helpers": "^0.6.0",
