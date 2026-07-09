@@ -15,10 +15,7 @@ const analyze = process.env.ANALYZE === "1";
 
 const result = await Bun.build({
   banner: `/*! @vyrel/morph v${pkg.version} | MIT */`,
-  entrypoints: [
-    join(packageRoot, "src/index.ts"),
-    join(packageRoot, "src/pothos.ts"),
-  ],
+  entrypoints: [join(packageRoot, "src/index.ts")],
   env: "disable",
   format: "esm",
   metafile: analyze,

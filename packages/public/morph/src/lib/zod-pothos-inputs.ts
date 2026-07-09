@@ -1,5 +1,7 @@
 import type { InputFieldsFromShape, SchemaTypes } from "@pothos/core";
 import { MutationFieldBuilder, QueryFieldBuilder } from "@pothos/core";
+import "@pothos/plugin-validation";
+import "@pothos/plugin-with-input";
 import { z } from "zod/v4";
 
 export type PothosSchemaBuilder<Types extends SchemaTypes = SchemaTypes> =
@@ -29,12 +31,7 @@ export type ZodSchemaKeys<TSchema extends z.ZodType> = [
 export type PothosInputFieldType<Types extends SchemaTypes = SchemaTypes> =
   Parameters<TypeMutationFieldBuilder<Types>["input"]["field"]>[0]["type"];
 
-/** Keys must match fields on the Zod shape that need non-String GraphQL types. */
-export type PothosFieldTypesMap<TShape extends ZodObjectShape> = Partial<
-  Record<keyof TShape & string, PothosInputFieldType>
->;
-
-export type PothosSchemaFieldTypesMap<TSchema extends z.ZodType> = Partial<
+type PothosSchemaFieldTypesMap<TSchema extends z.ZodType> = Partial<
   Record<ZodSchemaKeys<TSchema>, PothosInputFieldType>
 >;
 
@@ -52,18 +49,14 @@ type PothosQueryArgField<Types extends SchemaTypes> =
   | ReturnType<TypeQueryFieldBuilder<Types>["arg"]["int"]>
   | ReturnType<TypeQueryFieldBuilder<Types>["arg"]>;
 
-export type PothosInputsRequiredOption =
+type PothosInputsRequiredOption =
   | boolean
   | ReadonlySet<string>
   | ((key: string, field: z.ZodType) => boolean);
 
 export type PothosUnmappedFieldPolicy = "omit" | "throw" | "warn";
 
-/** Field names to omit from the generated GraphQL input. */
-export type PothosInputExclude<TShape extends ZodObjectShape> =
-  readonly (keyof TShape & string)[];
-
-export type PothosInputExcludeFromSchema<TSchema extends z.ZodType> =
+type PothosInputExcludeFromSchema<TSchema extends z.ZodType> =
   readonly ZodSchemaKeys<TSchema>[];
 
 /**
@@ -93,7 +86,7 @@ type ZodSchemaExcludedKeys<TOptions> = TOptions extends {
   : never;
 
 /** Zod output shape exposed on GraphQL after `exclude` is applied. */
-export type PothosZodSchemaGraphqlShape<
+type PothosZodSchemaGraphqlShape<
   TSchema extends z.ZodType,
   TOptions extends PothosInputsFromZodSchemaOptions<TSchema> = Record<
     string,
@@ -129,17 +122,6 @@ export type PothosArgsFieldsFromZodSchema<
   "Arg"
 >;
 
-/** @deprecated Use `PothosInputsFromZodSchemaOptions`. */
-export type PothosInputsFromZodShapeOptions<
-  TShape extends ZodObjectShape = ZodObjectShape,
-> = {
-  exclude?: PothosInputExclude<TShape>;
-  enumRegistry?: Readonly<Record<string, PothosInputFieldType>>;
-  fieldTypes?: PothosFieldTypesMap<TShape>;
-  required?: PothosInputsRequiredOption;
-  unmappedFields?: PothosUnmappedFieldPolicy;
-};
-
 /** Widened options used inside builders (avoids `never` when generics are not inferred). */
 export type PothosInputsRuntimeOptions = {
   exclude?: readonly string[];
@@ -149,7 +131,6 @@ export type PothosInputsRuntimeOptions = {
   unmappedFields?: PothosUnmappedFieldPolicy;
 };
 
-const zodEnumGraphqlTypeOverrides = new Map<string, PothosInputFieldType>();
 const namedPothosGraphqlTypeRegistry = new Map<string, PothosInputFieldType>();
 
 export const registerNamedPothosGraphqlType = (
@@ -221,7 +202,7 @@ const buildAutoDiscoveredEnumTypesCache = <Types extends SchemaTypes>(
   if (process.env.NODE_ENV !== "production") {
     for (const [valuesKey, names] of ambiguous) {
       console.warn(
-        `[pothosInputsFromZodSchema] Ambiguous GraphQL enums for values [${valuesKey.replaceAll("\0", ", ")}]: ${names.join(", ")}. Use fieldTypes or registerZodEnumGraphqlType.`
+        `[pothosInputsFromZodSchema] Ambiguous GraphQL enums for values [${valuesKey.replaceAll("\0", ", ")}]: ${names.join(", ")}. Use fieldTypes.`
       );
     }
   }
@@ -255,35 +236,16 @@ const resolveZodEnumGraphqlType = <Types extends SchemaTypes>(
 ): PothosInputFieldType | undefined => {
   const valuesKey = zodEnumValuesKey([...zodEnum.options]);
 
-  return (
-    zodEnumGraphqlTypeOverrides.get(valuesKey) ??
-    getAutoDiscoveredPothosEnumType(valuesKey, graphqlBuilder)
-  );
+  return getAutoDiscoveredPothosEnumType(valuesKey, graphqlBuilder);
 };
 
-/**
- * Optional override when multiple GraphQL enums share the same Zod values, or when
- * enums are registered after the auto-discovery cache was built.
- */
-export const registerZodEnumGraphqlType = (
-  values: readonly (string | number)[],
-  type: PothosInputFieldType,
-  options?: { readonly name?: string }
-) => {
-  zodEnumGraphqlTypeOverrides.set(zodEnumValuesKey(values), type);
-
-  if (options?.name !== undefined) {
-    registerNamedPothosGraphqlType(options.name, type);
-  }
-};
-
-export const isZodFieldOptional = (field: z.ZodType) =>
+const isZodFieldOptional = (field: z.ZodType) =>
   field.safeParse(undefined).success;
 
 export const isZodFieldGraphqlNullable = (field: z.ZodType) =>
   isZodFieldOptional(field) || field.safeParse(null).success;
 
-export const isZodNumberInt = (field: z.ZodNumber) => field.isInt;
+const isZodNumberInt = (field: z.ZodNumber) => field.isInt;
 
 export const unwrapZodField = (field: z.ZodType): z.ZodType => {
   if (field instanceof z.ZodOptional) {
@@ -334,7 +296,7 @@ const resolvePothosTypeFromMetaValue = (
   return pothosType as PothosInputFieldType | undefined;
 };
 
-export const readPothosTypeFromZodMeta = (
+const readPothosTypeFromZodMeta = (
   field: z.ZodType
 ): PothosInputFieldType | undefined => {
   const meta = field.meta?.();
@@ -453,7 +415,7 @@ const resolveUnmappedInputField = <Types extends SchemaTypes>(
   }
 };
 
-export const isFieldRequired = (
+const isFieldRequired = (
   key: string,
   field: z.ZodType,
   required: PothosInputsRequiredOption | undefined

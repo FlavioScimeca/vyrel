@@ -8,7 +8,6 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod/v4";
 
 import { initializeDrizzleGraphqlBridge } from ".";
-import { createPothosInputsFromZodSchema } from "./pothos";
 
 const sourceRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -38,7 +37,6 @@ describe("initializeDrizzleGraphqlBridge", () => {
 
     expect(rootExports).toHaveProperty("initializeDrizzleGraphqlBridge");
     expect(rootExports).not.toHaveProperty("createPothosInputsFromZodSchema");
-    expect(createPothosInputsFromZodSchema).toBeTypeOf("function");
   });
 
   it("uses the Pothos builder supplied by the consumer", () => {

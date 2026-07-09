@@ -64,8 +64,11 @@ export function messageForImageOptimizeError(
       "File is not a readable PNG, WebP, or JPEG image.",
   };
 
-  if (code !== undefined && code in messages) {
-    return messages[code];
+  if (code !== undefined) {
+    const message = messages[code];
+    if (message !== undefined) {
+      return message;
+    }
   }
 
   return "Unable to optimize design preview images.";

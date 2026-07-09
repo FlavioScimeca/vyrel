@@ -13,8 +13,6 @@
     "start": "bun run dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1075.0",
-    "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "@effect/platform": "catalog:",
     "@effect/platform-bun": "^0.90.0",
     "@effect/sql": "^0.51.1",

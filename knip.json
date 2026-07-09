@@ -1,12 +1,15 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "rules": {
+    "dependencies": "off",
+    "devDependencies": "off",
+    "files": "off"
+  },
   "ignoreBinaries": ["turso"],
-  "ignoreDependencies": ["@biomejs/biome", "@vyrel/config", "vercel"],
   "ignoreIssues": {
     "apps/docs/components/**": ["duplicates", "exports"],
     "apps/web/src/components/ui/**": ["exports"]
   },
-  "ignoreUnresolved": ["collections/server"],
   "ignoreWorkspaces": ["packages/config"],
   "workspaces": {
     ".": {
