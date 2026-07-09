@@ -3,7 +3,7 @@ import { user } from "@vyrel/db/schema";
 import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
-import type { UserTypeById } from "../types/base.types";
+import type { UserTypeById } from "../types/extra.types";
 import { fetchSessionUserId, fetchUser } from "../utils/auth-api";
 import { UserRepositoryError } from "../utils/errors";
 

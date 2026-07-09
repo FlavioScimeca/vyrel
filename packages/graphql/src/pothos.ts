@@ -12,6 +12,7 @@ import type { Session, User } from "better-auth";
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { DateTimeResolver, JSONResolver } from "graphql-scalars";
 import { GraphQLFile } from "./scalars/file";
+import { GraphQLURL } from "./scalars/url";
 
 type DrizzleRelations = typeof relations;
 
@@ -43,6 +44,10 @@ type PothosTypes = {
     File: {
       Output: File;
       Input: File;
+    };
+    URL: {
+      Output: string;
+      Input: string;
     };
   };
   Context: {
@@ -82,3 +87,4 @@ export const builder = new SchemaBuilder<PothosTypes>({
 builder.addScalarType("DateTime", DateTimeResolver);
 builder.addScalarType("JSON", JSONResolver);
 builder.addScalarType("File", GraphQLFile);
+builder.addScalarType("URL", GraphQLURL);

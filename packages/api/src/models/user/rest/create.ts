@@ -21,7 +21,6 @@ export const userCreateRest = new Elysia({ name: "user-create-rest" })
             email: body.email,
             name: body.name,
             password: body.password,
-            printifyToken: body.printifyToken,
           },
           request.headers
         )

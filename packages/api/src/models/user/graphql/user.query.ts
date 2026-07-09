@@ -2,7 +2,8 @@ import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
 import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
 import { getUser } from "../services/read.service";
-import { userByIdSchema, userQuerySchema } from "../types/base.types";
+import { userQuerySchema } from "../types/base.types";
+import { userByIdSchema } from "../types/extra.types";
 import { runUserGraphqlEffect } from "./effect";
 
 const metadata = {
@@ -26,7 +27,7 @@ export const UserObject = builder.drizzleObject("user", {
   description: metadata.description,
   fields: (t) => ({
     ...userGraphql.exposeFields(t, {
-      exclude: ["imageThumb", "imageFull", "printifyToken"],
+      exclude: [],
     }),
     imageFull: t.field({
       nullable: true,

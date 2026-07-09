@@ -15,33 +15,11 @@ export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
       });
     }
 
-    const {
-      name,
-      imageThumb,
-      imageFull,
-      imagePlaceholder,
-      imageAssetId,
-      printifyToken,
-    } = safeValues.data;
+    const { name } = safeValues.data;
     const body: UpdateAuthUserBody = {};
 
     if (name !== undefined) {
       body.name = name;
-    }
-    if (imageThumb !== undefined) {
-      body.imageThumb = imageThumb;
-    }
-    if (imageFull !== undefined) {
-      body.imageFull = imageFull;
-    }
-    if (imagePlaceholder !== undefined) {
-      body.imagePlaceholder = imagePlaceholder;
-    }
-    if (imageAssetId !== undefined) {
-      body.imageAssetId = imageAssetId;
-    }
-    if (printifyToken !== undefined) {
-      body.printifyToken = printifyToken;
     }
 
     yield* updateAuthUser(body, headers);

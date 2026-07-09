@@ -1,14 +1,55 @@
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+"""Delete the current authenticated user account."""
+input DeleteUser {
+  callbackURL: String
+  password: String
+  token: String
+}
+
+"""The `File` scalar type represents a file upload."""
+scalar File
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
 type Mutation {
-  _empty: String
+  deleteUser(input: DeleteUser!): String
+  updateUser(input: UpdateUser!): User
 }
 
 type Query {
   health: String
-  me: User
+
+  """Get a user by id"""
+  user(id: ID!): User
 }
 
-type User {
-  email: String
-  id: String
+"""
+A field whose value conforms to the standard URL format as specified in RFC3986: https://www.ietf.org/rfc/rfc3986.txt.
+"""
+scalar URL
+
+"""Update the current authenticated user profile."""
+input UpdateUser {
+  avatar: File
+  callbackURL: URL
   name: String
+}
+
+"""Authenticated user model"""
+type User {
+  createdAt: DateTime!
+  email: String!
+  emailVerified: Boolean!
+  imageFull: String
+  imagePlaceholder: String
+  imageThumb: String
+  name: String!
+  updatedAt: DateTime!
 }

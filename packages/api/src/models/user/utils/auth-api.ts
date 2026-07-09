@@ -43,7 +43,6 @@ export function normalizeUserRecord(
     imagePlaceholder: authUser.imagePlaceholder ?? null,
     imageThumb: authUser.imageThumb ?? null,
     name: authUser.name,
-    printifyToken: authUser.printifyToken,
     updatedAt: authUser.updatedAt,
   };
 }
