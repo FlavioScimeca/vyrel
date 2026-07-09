@@ -1,6 +1,11 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/next"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/next",
+    "ultracite/biome/react",
+    "ultracite/biome/vitest"
+  ],
   "files": {
     "includes": [
       "!!**/node_modules",
@@ -25,6 +30,9 @@
     "globals": ["Bun", "defineBackground", "defineContentScript", "browser"]
   },
   "linter": {
+    "domains": {
+      "types": "recommended"
+    },
     "rules": {
       "style": {
         "useConsistentTypeDefinitions": "off"

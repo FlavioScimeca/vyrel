@@ -41,6 +41,7 @@ export const graphqlYogaServer = createYoga({
   },
   plugins: [
     ...(env.PROFILING ? [profilingPlugin] : [timingPlugin]),
+    // biome-ignore lint/correctness/useHookAtTopLevel: GraphQL Yoga plugin factory, not a React hook
     useAPQ({
       responseConfig: {
         forceStatusCodeOk: true,

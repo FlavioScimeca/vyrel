@@ -1,5 +1,8 @@
 {
   "editor.defaultFormatter": "biomejs.biome",
+  "biome.enabled": true,
+  "biome.requireConfiguration": true,
+  "biome.configurationPath": "biome.jsonc",
   "biome.lsp.trace.server": "verbose",
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,

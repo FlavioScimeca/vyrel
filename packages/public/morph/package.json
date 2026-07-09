@@ -58,7 +58,7 @@
     "@vyrel/config": "workspace:*",
     "knip": "^6.25.0",
     "typescript": "catalog:",
-    "ultracite": "7.9.3",
+    "ultracite": "7.9.2",
     "vitest": "catalog:"
   }
 }

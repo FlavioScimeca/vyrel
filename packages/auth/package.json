@@ -18,11 +18,12 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.22",
+    "@vyrel/consts": "workspace:*",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
-    "@vyrel/consts": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "jose": "^6.2.3",
     "zod": "catalog:"
   },
   "devDependencies": {

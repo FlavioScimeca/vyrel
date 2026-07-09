@@ -65,7 +65,7 @@
     "db:local": "turbo -F @vyrel/db db:local",
     "graphql:schema": "bun run --filter @vyrel/graphql gen-schema",
     "test": "bun run --filter web test && bun run --filter server test && bun run --filter @vyrel/api test",
-    "preflight": "bun run deps:lint && bun run lint && bun run check-types && bun run build && bun run test",
+    "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run lint && bun run check-types && bun run build && bun run test",
     "lint": "ultracite check",
     "rover": "bun run script/entry-point.ts",
     "format": "ultracite fix",
@@ -120,7 +120,7 @@
     "turbo": "^2.10.0",
     "typescript": "catalog:",
     "typescript-eslint": "^8.63.0",
-    "ultracite": "7.9.3",
+    "ultracite": "7.9.2",
     "vercel": "^54.18.2"
   },
   "overrides": {

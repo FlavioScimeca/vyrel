@@ -3,6 +3,12 @@
     "afterFileEdit": [
       {
         "command": "bun run fix --skip=correctness/noUnusedImports"
+      },
+      {
+        "command": "bun run lint"
+      },
+      {
+        "command": "bun run check:effect-ts"
       }
     ]
   },

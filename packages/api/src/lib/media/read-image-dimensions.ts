@@ -181,13 +181,13 @@ export function fitInsideBox(
 }
 
 function resolvePreparedOutputDimensions(input: {
-  readonly imageWidth: number;
-  readonly imageHeight: number;
-  readonly outputBuffer: Buffer;
-  readonly sourceWidth: number;
-  readonly sourceHeight: number;
-  readonly maxSide: number;
-  readonly hasKnownSourceSize: boolean;
+  imageWidth: number;
+  imageHeight: number;
+  outputBuffer: Buffer;
+  sourceWidth: number;
+  sourceHeight: number;
+  maxSide: number;
+  hasKnownSourceSize: boolean;
 }): { width: number; height: number } {
   const probedOutput = readImageDimensionsFromBuffer(input.outputBuffer);
 
@@ -207,21 +207,27 @@ function resolvePreparedOutputDimensions(input: {
 }
 
 export function resolveSourceImageSizing(input: {
-  readonly sourceBuffer: Buffer;
-  readonly imageWidth: number;
-  readonly imageHeight: number;
-  readonly maxSide: number;
+  sourceBuffer: Buffer;
+  imageWidth: number;
+  imageHeight: number;
+  maxSide: number;
 }): {
-  readonly sourceWidth: number;
-  readonly sourceHeight: number;
-  readonly hasKnownSourceSize: boolean;
-  readonly shouldResize: boolean;
+  sourceWidth: number;
+  sourceHeight: number;
+  hasKnownSourceSize: boolean;
+  shouldResize: boolean;
 } {
   const probedSource = readImageDimensionsFromBuffer(input.sourceBuffer);
-  const sourceWidth =
-    probedSource?.width ?? (input.imageWidth > 0 ? input.imageWidth : 0);
-  const sourceHeight =
-    probedSource?.height ?? (input.imageHeight > 0 ? input.imageHeight : 0);
+  let sourceWidth = 0;
+  let sourceHeight = 0;
+
+  if (probedSource) {
+    sourceWidth = probedSource.width;
+    sourceHeight = probedSource.height;
+  } else {
+    sourceWidth = input.imageWidth > 0 ? input.imageWidth : 0;
+    sourceHeight = input.imageHeight > 0 ? input.imageHeight : 0;
+  }
   const hasKnownSourceSize = sourceWidth > 0 && sourceHeight > 0;
 
   return {
@@ -235,19 +241,19 @@ export function resolveSourceImageSizing(input: {
 }
 
 export function resolvePreparedDesignDimensions(input: {
-  readonly sourceBuffer: Buffer;
-  readonly imageWidth: number;
-  readonly imageHeight: number;
-  readonly outputBuffer: Buffer;
-  readonly maxSide: number;
+  sourceBuffer: Buffer;
+  imageWidth: number;
+  imageHeight: number;
+  outputBuffer: Buffer;
+  maxSide: number;
 }): {
-  readonly sourceWidth: number;
-  readonly sourceHeight: number;
-  readonly width: number;
-  readonly height: number;
-  readonly hasKnownSourceSize: boolean;
-  readonly shouldResize: boolean;
-  readonly wasResized: boolean;
+  sourceWidth: number;
+  sourceHeight: number;
+  width: number;
+  height: number;
+  hasKnownSourceSize: boolean;
+  shouldResize: boolean;
+  wasResized: boolean;
 } {
   const source = resolveSourceImageSizing({
     imageHeight: input.imageHeight,

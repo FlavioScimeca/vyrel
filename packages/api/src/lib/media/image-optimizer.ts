@@ -14,18 +14,18 @@ const WEBP_CONTENT_TYPE = "image/webp" as const;
 const PLACEHOLDER_MAX_SIZE = 8;
 const PLACEHOLDER_WEBP_QUALITY = 10;
 
-export type OptimizedImageVariant = {
-  readonly buffer: Uint8Array;
-  readonly contentType: typeof WEBP_CONTENT_TYPE;
-};
+export interface OptimizedImageVariant {
+  buffer: Uint8Array;
+  contentType: typeof WEBP_CONTENT_TYPE;
+}
 
 export type OptimizedPreviewImages = {
-  readonly full: OptimizedImageVariant;
-  readonly thumb: OptimizedImageVariant;
+  full: OptimizedImageVariant;
+  thumb: OptimizedImageVariant;
 };
 
 export class ImageOptimizeError extends Data.TaggedError("ImageOptimizeError")<{
-  readonly cause: unknown;
+  cause: unknown;
 }> {}
 
 function unwrapErrorCause(error: unknown): unknown {
@@ -52,20 +52,23 @@ export function messageForImageOptimizeError(
       ? root.code
       : undefined;
 
-  switch (code) {
-    case "ERR_IMAGE_TOO_MANY_PIXELS":
-      return `Image is too large to process (max ${MAX_IMAGE_PIXELS_PER_SIDE}×${MAX_IMAGE_PIXELS_PER_SIDE} pixels). Resize the file and try again.`;
-    case "ERR_IMAGE_UNKNOWN_FORMAT":
-      return "File is not a readable PNG, WebP, or JPEG image.";
-    case "ERR_IMAGE_DECODE_FAILED":
-      return "The image could not be decoded. It may be corrupt or use an unsupported color profile.";
-    case "ERR_IMAGE_ENCODE_FAILED":
-      return "The image could not be converted to WebP for previews.";
-    case "ERR_IMAGE_FORMAT_UNSUPPORTED":
-      return "This image format is not supported for design uploads.";
-    default:
-      return "Unable to optimize design preview images.";
+  const messages: Record<string, string> = {
+    ERR_IMAGE_DECODE_FAILED:
+      "The image could not be decoded. It may be corrupt or use an unsupported color profile.",
+    ERR_IMAGE_ENCODE_FAILED:
+      "The image could not be converted to WebP for previews.",
+    ERR_IMAGE_FORMAT_UNSUPPORTED:
+      "This image format is not supported for design uploads.",
+    ERR_IMAGE_TOO_MANY_PIXELS: `Image is too large to process (max ${MAX_IMAGE_PIXELS_PER_SIDE}×${MAX_IMAGE_PIXELS_PER_SIDE} pixels). Resize the file and try again.`,
+    ERR_IMAGE_UNKNOWN_FORMAT:
+      "File is not a readable PNG, WebP, or JPEG image.",
+  };
+
+  if (code !== undefined && code in messages) {
+    return messages[code];
   }
+
+  return "Unable to optimize design preview images.";
 }
 
 function createSourceImage(sourcePng: Buffer) {
