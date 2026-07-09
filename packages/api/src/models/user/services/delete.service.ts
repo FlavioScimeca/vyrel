@@ -1,9 +1,9 @@
-import { auth } from "@vyrel/auth";
 import { Effect } from "effect";
 
 import { type UserTypeDelete, userDeleteSchema } from "../types/base.types";
-import { fetchCurrentUser, mapAuthApiFailure } from "../utils/auth-api";
+import { fetchCurrentUser } from "../utils/auth-api";
 import { UserRepositoryError, UserValidationError } from "../utils/errors";
+import { deleteAuthUser } from "./auth.service";
 
 export const deleteUser = (input: UserTypeDelete, headers: Headers) =>
   Effect.gen(function* () {
@@ -25,19 +25,11 @@ export const deleteUser = (input: UserTypeDelete, headers: Headers) =>
 
     const { password, callbackURL, token } = safeValues.data;
 
-    yield* Effect.tryPromise({
-      catch: (cause) =>
-        mapAuthApiFailure(cause, `Unable to delete user ${currentUser.id}.`),
-      try: () =>
-        auth.api.deleteUser({
-          body: {
-            callbackURL,
-            password,
-            token,
-          },
-          headers,
-        }),
-    });
+    yield* deleteAuthUser(
+      { callbackURL, password, token },
+      headers,
+      currentUser.id
+    );
 
     return currentUser.id;
   });

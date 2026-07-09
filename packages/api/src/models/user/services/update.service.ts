@@ -1,9 +1,9 @@
-import { auth } from "@vyrel/auth";
 import { Effect } from "effect";
 
 import { type UserTypeUpdate, userUpdateSchema } from "../types/base.types";
-import { fetchCurrentUser, mapAuthApiFailure } from "../utils/auth-api";
+import { fetchCurrentUser } from "../utils/auth-api";
 import { UserRepositoryError, UserValidationError } from "../utils/errors";
+import { type UpdateAuthUserBody, updateAuthUser } from "./auth.service";
 
 export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
   Effect.gen(function* () {
@@ -23,14 +23,7 @@ export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
       imageAssetId,
       printifyToken,
     } = safeValues.data;
-    const body: {
-      name?: string;
-      imageThumb?: string | null;
-      imageFull?: string | null;
-      imagePlaceholder?: string | null;
-      imageAssetId?: string | null;
-      printifyToken?: string;
-    } = {};
+    const body: UpdateAuthUserBody = {};
 
     if (name !== undefined) {
       body.name = name;
@@ -51,14 +44,7 @@ export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
       body.printifyToken = printifyToken;
     }
 
-    yield* Effect.tryPromise({
-      catch: (cause) => mapAuthApiFailure(cause, "Unable to update user."),
-      try: () =>
-        auth.api.updateUser({
-          body,
-          headers,
-        }),
-    });
+    yield* updateAuthUser(body, headers);
 
     const record = yield* fetchCurrentUser(headers);
     if (record === null) {

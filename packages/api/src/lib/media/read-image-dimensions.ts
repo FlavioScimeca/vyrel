@@ -221,12 +221,12 @@ export function resolveSourceImageSizing(input: {
   let sourceWidth = 0;
   let sourceHeight = 0;
 
-  if (probedSource) {
-    sourceWidth = probedSource.width;
-    sourceHeight = probedSource.height;
-  } else {
+  if (probedSource === null) {
     sourceWidth = input.imageWidth > 0 ? input.imageWidth : 0;
     sourceHeight = input.imageHeight > 0 ? input.imageHeight : 0;
+  } else {
+    sourceWidth = probedSource.width;
+    sourceHeight = probedSource.height;
   }
   const hasKnownSourceSize = sourceWidth > 0 && sourceHeight > 0;
 
