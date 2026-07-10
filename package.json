@@ -92,7 +92,6 @@
   "dependencies": {
     "@vyrel/env": "workspace:*",
     "dotenv": "catalog:",
-
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -100,6 +99,7 @@
     "@changesets/cli": "^2.29.8",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/types": "^21.2.0",
     "@effect/language-service": "catalog:",
     "@eslint/config-helpers": "^0.6.0",
     "@graphql-eslint/eslint-plugin": "^4.4.0",
