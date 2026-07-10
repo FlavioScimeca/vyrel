@@ -6,5 +6,20 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "updateInternalDependencies": "patch"
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "web",
+    "server",
+    "docs",
+    "extension",
+    "@vyrel/api",
+    "@vyrel/auth",
+    "@vyrel/config",
+    "@vyrel/consts",
+    "@vyrel/db",
+    "@vyrel/env",
+    "@vyrel/graphql",
+    "@vyrel/logging",
+    "@vyrel/storage"
+  ]
 }
