@@ -1,1 +1,9 @@
+branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo "Commits on '$branch' are blocked. Create a feature branch first:"
+  echo "  git checkout -b feat/your-change"
+  exit 1
+fi
+
 bun run deps:lint

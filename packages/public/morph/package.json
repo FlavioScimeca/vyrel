@@ -3,14 +3,34 @@
   "version": "0.0.2",
   "description": "Vyrel morph",
   "license": "MIT",
+  "author": "Flavio Scimeca",
+  "homepage": "https://github.com/FlavioScimeca/vyrel/tree/main/packages/public/morph",
+  "bugs": {
+    "url": "https://github.com/FlavioScimeca/vyrel/issues"
+  },
+  "keywords": [
+    "graphql",
+    "pothos",
+    "zod",
+    "drizzle",
+    "typescript",
+    "schema",
+    "codegen"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/FlavioScimeca/vyrel.git",
     "directory": "packages/public/morph"
   },
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "types": "./src/index.ts",
@@ -34,6 +54,7 @@
     "build": "bun run script/compiler.ts",
     "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
     "build:verified": "bun run script/build.ts",
+    "prepublishOnly": "bun run build:verified",
     "validate": "bun run script/verify.ts",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist",

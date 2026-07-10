@@ -65,7 +65,7 @@
     "db:migrate": "turbo -F @vyrel/db db:migrate",
     "db:local": "turbo -F @vyrel/db db:local",
     "graphql:schema": "bun run --filter @vyrel/graphql gen-schema",
-    "test": "bun run --filter web test && bun run --filter server test && bun run --filter @vyrel/api test",
+    "test": "bun run --filter web test && bun run --filter server test && bun run --filter @vyrel/api test && bun run --filter @vyrel/morph test",
     "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run lint && bun run check-types && bun run build && bun run test",
     "lint": "ultracite check",
     "rover": "bun run script/entry-point.ts",
@@ -85,19 +85,21 @@
     "knip:production": "knip --production",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build --filter='./packages/public/*' && changeset publish",
+    "release": "turbo run build:verified --filter='./packages/public/*' && changeset publish",
     "scripts": "bun script/entry-point.ts",
     "prepare": "husky"
   },
   "dependencies": {
     "@vyrel/env": "workspace:*",
     "dotenv": "catalog:",
-
     "zod": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.1",
     "@changesets/cli": "^2.29.8",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/types": "^21.2.0",
     "@effect/language-service": "catalog:",
     "@eslint/config-helpers": "^0.6.0",
     "@graphql-eslint/eslint-plugin": "^4.4.0",
