@@ -33,5 +33,10 @@ bun run dev
 ```
 apps/web       Next.js frontend
 apps/server    Elysia API
-packages/      api, auth, db
+packages/      api, auth, db, graphql, …
+packages/public/morph   @vyrel/morph (published to npm)
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions, changesets, and the release workflow.
