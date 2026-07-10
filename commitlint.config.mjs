@@ -15,9 +15,17 @@ const scopes = [
   "root",
 ];
 
-/** @type {import("@commitlint/types").UserConfig} */
+/** @type {import("cz-git").UserConfig} */
 export default {
   extends: ["@commitlint/config-conventional"],
+  prompt: {
+    allowCustomScopes: false,
+    allowEmptyScopes: false,
+    maxSubjectLength: 100,
+    scopes,
+    skipQuestions: ["body", "footer"],
+    upperCaseSubject: false,
+  },
   rules: {
     "scope-enum": [2, "always", scopes],
   },
