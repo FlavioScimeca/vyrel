@@ -6,6 +6,7 @@
       "name": "vyrel",
       "dependencies": {
         "@vyrel/env": "workspace:*",
+        "cz-git": "^1.13.1",
         "dotenv": "catalog:",
         "zod": "catalog:",
       },
@@ -2391,6 +2392,8 @@
     "cssom": ["cssom@0.5.0", "", {}, "sha512-iKuQcq+NdHqlAcwUY0o/HL69XQrUaQdMjmStJ8JFmUaiiQErlhrmuigkg/CU4E2J0IyUKUrMAgl36TvN67MqTw=="],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
+
+    "cz-git": ["cz-git@1.13.1", "", {}, "sha512-xeMA5ci+gkBY6uKmqc6nzhG/Q4pmK1DKbVVUgByOTBgregoiYE0f3otEF0ADelyEWH4vNsO1W2o7QZYEe7Nwlw=="],
 
     "czg": ["czg@1.13.1", "", { "bin": { "czg": "bin/index.js", "git-czg": "bin/index.js" } }, "sha512-mCfY4bCAMAdaFSlrQwtUTChzFAv59kD/y2leX5+C7X9inu0mt/VkHT7gkbzwcToh26oJaOaYPA9lcXUX92/6cw=="],
 

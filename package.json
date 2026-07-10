@@ -92,6 +92,7 @@
   },
   "dependencies": {
     "@vyrel/env": "workspace:*",
+    "cz-git": "^1.13.1",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },
