@@ -67,6 +67,15 @@ docs(morph): expand README quick start
 
 Commit messages are validated locally by **Commitlint** (`.husky/commit-msg`).
 
+Use the guided commit CLI instead of writing messages by hand:
+
+```bash
+git add .
+bun run commit
+```
+
+You get an interactive prompt for type, scope, and subject — the same rules commitlint enforces on `main`.
+
 Pull request titles are validated by the **Semantic Pull Request** workflow. With squash merge, the PR title becomes the commit on `main`, so keep it in the same format.
 
 ## Git hooks
