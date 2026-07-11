@@ -8,6 +8,9 @@
       "default": "./src/logging.ts"
     }
   },
+  "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"
+  },
   "dependencies": {
     "@logtape/logtape": "^2.1.5",
     "@logtape/pretty": "^2.2.4",

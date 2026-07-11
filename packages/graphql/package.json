@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
     "gen": "bun run gen-imports && bun run gen-schema",
     "gen-imports": "bun run scripts/collect-graphql-imports.ts",

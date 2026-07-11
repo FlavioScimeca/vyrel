@@ -10,6 +10,8 @@
     "linux-x64": "./node_modules/@biomejs/cli-linux-x64/biome",
     "win32-x64": "./node_modules/@biomejs/cli-win32-x64/biome.exe"
   },
+  "typescript.tsdk": "node_modules/typescript6/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "editor.codeActionsOnSaveMode": "all",

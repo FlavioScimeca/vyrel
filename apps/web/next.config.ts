@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   serverExternalPackages: ["libsql", "@libsql/client"],
   typedRoutes: true,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;

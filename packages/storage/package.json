@@ -11,6 +11,9 @@
       "default": "./src/*.ts"
     }
   },
+  "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"
+  },
   "dependencies": {
     "@vyrel/env": "workspace:*",
     "effect": "catalog:"

@@ -17,6 +17,9 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "check-effect-ts": {
+      "cache": false
+    },
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",

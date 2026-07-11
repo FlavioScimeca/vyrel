@@ -8,6 +8,9 @@
     "./native": "./src/native.ts",
     "./web": "./src/web.ts"
   },
+  "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"
+  },
   "dependencies": {
     "@vyrel/env": "workspace:*"
   },
