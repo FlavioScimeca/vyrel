@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.4
+
+### Patch Changes
+
+- 2d074f7: version packages
+
 ## 0.0.3
 
 ### Patch Changes
