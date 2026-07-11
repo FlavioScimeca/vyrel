@@ -26,12 +26,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md",
@@ -53,11 +53,8 @@
     "test": "vitest run --passWithNoTests",
     "validate": "bun run script/verify.ts"
   },
-  "dependencies": {
-    "@pothos/core": "catalog:",
-    "zod": "catalog:"
-  },
   "devDependencies": {
+    "@pothos/core": "catalog:",
     "@pothos/plugin-validation": "catalog:",
     "@pothos/plugin-with-input": "catalog:",
     "@types/bun": "catalog:",
@@ -66,11 +63,14 @@
     "knip": "^6.25.0",
     "typescript": "catalog:",
     "ultracite": "7.9.2",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "peerDependencies": {
-    "@pothos/plugin-validation": "catalog:",
-    "@pothos/plugin-with-input": "catalog:"
+    "@pothos/core": "^4.13.0",
+    "@pothos/plugin-validation": "^4.3.0",
+    "@pothos/plugin-with-input": "^4.1.4",
+    "zod": "^4.4.3"
   },
   "engines": {
     "node": ">=20"

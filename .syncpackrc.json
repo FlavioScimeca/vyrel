@@ -13,6 +13,18 @@
       "isIgnored": true
     },
     {
+      "label": "Allow public npm peer dependency ranges",
+      "packages": ["@vyrel/morph"],
+      "dependencyTypes": ["peer"],
+      "dependencies": [
+        "@pothos/core",
+        "@pothos/plugin-validation",
+        "@pothos/plugin-with-input",
+        "zod"
+      ],
+      "isIgnored": true
+    },
+    {
       "label": "Use workspace:* for local packages",
       "dependencies": ["$LOCAL"],
       "dependencyTypes": ["dev", "prod"],
