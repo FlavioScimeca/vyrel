@@ -7,13 +7,13 @@ Use it to derive GraphQL object fields, list filters, and input shapes from Zod 
 ## Install
 
 ```bash
-npm install @vyrel/morph
+bun install @vyrel/morph
 ```
 
 Peer dependencies:
 
 ```bash
-npm install @pothos/core @pothos/plugin-validation @pothos/plugin-with-input zod
+bun install @pothos/core @pothos/plugin-validation @pothos/plugin-with-input zod
 ```
 
 ## Quick start

@@ -68,5 +68,6 @@
     "peerDependencies",
     "optionalDependencies"
   ],
-  "sortFirst": ["name", "version", "private", "type", "scripts"]
+  "sortFirst": ["name", "version"],
+  "sortPackages": false
 }

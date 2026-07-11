@@ -8,13 +8,13 @@
     "build": "tsdown",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
-    "test": "vitest run --passWithNoTests",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.js"
+    "start": "bun run dist/index.js",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@effect/platform": "catalog:",
-    "@effect/platform-bun": "^0.90.0",
+    "@effect/platform-bun": "catalog:",
     "@effect/sql": "^0.51.1",
     "@effect/sql-drizzle": "^0.50.0",
     "@effect/sql-sqlite-bun": "^0.52.0",
@@ -24,8 +24,8 @@
     "@vyrel/api": "workspace:*",
     "@vyrel/auth": "workspace:*",
     "@vyrel/db": "workspace:*",
-    "@vyrel/graphql": "workspace:*",
     "@vyrel/env": "workspace:*",
+    "@vyrel/graphql": "workspace:*",
     "ai": "^7.0.4",
     "better-auth": "catalog:",
     "bullmq": "^5.79.2",

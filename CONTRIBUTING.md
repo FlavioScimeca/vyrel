@@ -83,6 +83,8 @@ Pull request titles are validated by the **Semantic Pull Request** workflow. Wit
 | Hook | Runs |
 |------|------|
 | `pre-commit` | blocks commits on `main` / `master`, then `deps:lint` (syncpack) |
+| `prepare-commit-msg` | auto-creates a changeset when public packages are staged |
+| `post-commit` | amends the commit to include the auto-created changeset |
 | `commit-msg` | commitlint |
 | `pre-push` | knip, lint, types, build, test |
 
@@ -91,6 +93,24 @@ Branch protection on private repos requires a paid GitHub plan, so commits on `m
 ## Changesets
 
 When a PR changes a **public** package under `packages/public/*`, it must include a changeset.
+
+Usually you **do not** need to run this manually. During `git commit` / `bun run commit`, the `prepare-commit-msg` hook creates one when:
+
+- staged files include `packages/public/**` (excluding test files)
+- the branch does not already have a changeset vs `main`
+- no changeset is already staged
+
+The bump type is inferred from your commit message:
+
+| Commit type | Bump |
+|-------------|------|
+| `feat` | minor |
+| `fix`, `chore`, `docs`, … | patch |
+| `feat!` or `BREAKING CHANGE` | major |
+
+The changeset summary comes from the commit subject. Review the generated file in `.changeset/` before pushing — edit it if the bump or wording should change.
+
+Manual creation is still available:
 
 ```bash
 bun run changeset
@@ -102,11 +122,15 @@ Changesets records:
 - semver bump (`patch`, `minor`, `major`)
 - a short summary for the changelog
 
-Commit the generated file in `.changeset/` with your PR.
+To skip locally:
+
+```bash
+SKIP_CHANGESET=1 git commit -m "chore(morph): internal only"
+```
 
 CI enforces this via **Require Changeset** (`.github/workflows/require-changeset.yml`).
 
-To skip intentionally (internal refactors, test-only follow-ups, etc.), add the **`skip-changeset`** label to the PR.
+To skip on GitHub (internal refactors, test-only follow-ups, etc.), add the **`skip-changeset`** label to the PR.
 
 Test-only changes under `packages/public/**` (`*.test.ts`, `*.spec.ts`) do not trigger the check.
 

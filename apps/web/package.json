@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "build": "next build",
+    "build-storybook": "storybook build",
     "check-types": "tsc --noEmit",
     "dev": "next dev --port 3001",
-    "build": "next build",
     "start": "next start",
-    "test": "vitest run --passWithNoTests",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.5",

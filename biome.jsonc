@@ -43,5 +43,29 @@
         "noBarrelFile": "error"
       }
     }
-  }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedKeys": "off"
+      }
+    }
+  },
+  "json": {
+    "assist": {
+      "enabled": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/package.json"],
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedPackageJson": "on"
+          }
+        }
+      }
+    }
+  ]
 }

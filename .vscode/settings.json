@@ -3,15 +3,18 @@
   "biome.enabled": true,
   "biome.requireConfiguration": true,
   "biome.configurationPath": "biome.jsonc",
-  "biome.lsp.trace.server": "verbose",
+  "biome.lsp.bin": {
+    "darwin-arm64": "./node_modules/@biomejs/cli-darwin-arm64/biome",
+    "darwin-x64": "./node_modules/@biomejs/cli-darwin-x64/biome",
+    "linux-arm64": "./node_modules/@biomejs/cli-linux-arm64/biome",
+    "linux-x64": "./node_modules/@biomejs/cli-linux-x64/biome",
+    "win32-x64": "./node_modules/@biomejs/cli-win32-x64/biome.exe"
+  },
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
+  "editor.codeActionsOnSaveMode": "all",
+
   "emmet.showExpandedAbbreviation": "never",
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
-  "typescript.preferences.importModuleSpecifier": "non-relative",
-  "javascript.preferences.importModuleSpecifier": "non-relative",
-  "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "[css]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
@@ -28,10 +31,20 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "[json]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "source.action.useSortedPackageJson.biome": "always",
+      "source.fixAll.biome": "always",
+      "source.organizeImports.biome": "never"
+    }
   },
   "[jsonc]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "source.action.useSortedPackageJson.biome": "always",
+      "source.fixAll.biome": "always",
+      "source.organizeImports.biome": "never"
+    }
   },
   "[markdown]": {
     "editor.defaultFormatter": "biomejs.biome"

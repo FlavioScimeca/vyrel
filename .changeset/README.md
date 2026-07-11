@@ -16,6 +16,10 @@ Private apps and internal packages are ignored (see `config.json` → `ignore`).
 bun run changeset
 ```
 
+Usually this is **automatic** on commit when you change `packages/public/**`. The hook writes a file in `.changeset/` and stages it for the same commit.
+
+Manual creation is useful when you want full control over bump type and summary before committing.
+
 Follow the prompts:
 
 1. Select the package(s) to release
