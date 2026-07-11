@@ -12,8 +12,8 @@
     "@vyrel/env": "workspace:*"
   },
   "devDependencies": {
-    "@vyrel/config": "workspace:*",
     "@types/bun": "catalog:",
+    "@vyrel/config": "workspace:*",
     "typescript": "catalog:"
   }
 }

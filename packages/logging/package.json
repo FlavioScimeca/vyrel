@@ -15,8 +15,8 @@
     "effect": "catalog:"
   },
   "devDependencies": {
-    "@vyrel/config": "workspace:*",
     "@types/bun": "catalog:",
+    "@vyrel/config": "workspace:*",
     "typescript": "catalog:"
   }
 }

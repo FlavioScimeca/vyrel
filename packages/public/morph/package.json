@@ -2,12 +2,6 @@
   "name": "@vyrel/morph",
   "version": "0.0.2",
   "description": "Vyrel morph",
-  "license": "MIT",
-  "author": "Flavio Scimeca",
-  "homepage": "https://github.com/FlavioScimeca/vyrel/tree/main/packages/public/morph",
-  "bugs": {
-    "url": "https://github.com/FlavioScimeca/vyrel/issues"
-  },
   "keywords": [
     "graphql",
     "pothos",
@@ -17,62 +11,51 @@
     "schema",
     "codegen"
   ],
+  "homepage": "https://github.com/FlavioScimeca/vyrel/tree/main/packages/public/morph",
+  "bugs": {
+    "url": "https://github.com/FlavioScimeca/vyrel/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/FlavioScimeca/vyrel.git",
     "directory": "packages/public/morph"
   },
-  "type": "module",
+  "license": "MIT",
+  "author": "Flavio Scimeca",
   "sideEffects": false,
-  "engines": {
-    "node": ">=20"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "import": "./dist/index.js"
     }
   },
-  "publishConfig": {
-    "access": "public",
-    "types": "./dist/index.d.ts",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js"
-      }
-    }
-  },
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "bun run script/compiler.ts",
     "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
     "build:verified": "bun run script/build.ts",
-    "prepublishOnly": "bun run build:verified",
-    "validate": "bun run script/verify.ts",
+    "check": "ultracite check",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "lint": "ultracite check",
-    "format": "ultracite fix",
-    "check": "ultracite check",
     "fix": "ultracite fix",
+    "format": "ultracite fix",
     "knip": "knip",
+    "lint": "ultracite check",
+    "prepublishOnly": "bun run build:verified",
     "size": "bun run script/size.ts",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "validate": "bun run script/verify.ts"
   },
   "dependencies": {
     "@pothos/core": "catalog:",
     "zod": "catalog:"
-  },
-  "peerDependencies": {
-    "@pothos/plugin-validation": "catalog:",
-    "@pothos/plugin-with-input": "catalog:"
   },
   "devDependencies": {
     "@pothos/plugin-validation": "catalog:",
@@ -84,5 +67,22 @@
     "typescript": "catalog:",
     "ultracite": "7.9.2",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@pothos/plugin-validation": "catalog:",
+    "@pothos/plugin-with-input": "catalog:"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
   }
 }

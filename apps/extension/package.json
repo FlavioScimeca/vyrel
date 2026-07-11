@@ -5,15 +5,15 @@
   "description": "vyrel browser extension",
   "type": "module",
   "scripts": {
-    "dev": "wxt --port 5555",
-    "dev:firefox": "wxt -b firefox",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
     "check-types": "wxt prepare && tsc --noEmit",
     "compile": "bun run check-types",
-    "postinstall": "wxt prepare"
+    "dev": "wxt --port 5555",
+    "dev:firefox": "wxt -b firefox",
+    "postinstall": "wxt prepare",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
     "react": "catalog:",
