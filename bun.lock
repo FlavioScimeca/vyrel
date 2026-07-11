@@ -5,9 +5,12 @@
     "": {
       "name": "vyrel",
       "dependencies": {
+        "@effect/platform": "catalog:",
+        "@effect/platform-bun": "catalog:",
         "@vyrel/env": "workspace:*",
         "cz-git": "^1.13.1",
         "dotenv": "catalog:",
+        "effect": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -81,7 +84,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@effect/platform": "catalog:",
-        "@effect/platform-bun": "^0.90.0",
+        "@effect/platform-bun": "catalog:",
         "@effect/sql": "^0.51.1",
         "@effect/sql-drizzle": "^0.50.0",
         "@effect/sql-sqlite-bun": "^0.52.0",
@@ -308,7 +311,7 @@
       },
       "devDependencies": {
         "@effect/platform": "catalog:",
-        "@effect/platform-bun": "^0.90.0",
+        "@effect/platform-bun": "catalog:",
         "@vyrel/config": "workspace:*",
         "typescript": "catalog:",
       },
@@ -370,6 +373,7 @@
   "catalog": {
     "@effect/language-service": "^0.86.4",
     "@effect/platform": "^0.96.2",
+    "@effect/platform-bun": "^0.90.0",
     "@effect/vitest": "^0.29.0",
     "@libsql/client": "^0.17.4",
     "@playwright/test": "^1.61.1",
