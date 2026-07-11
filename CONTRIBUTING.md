@@ -84,6 +84,7 @@ Pull request titles are validated by the **Semantic Pull Request** workflow. Wit
 |------|------|
 | `pre-commit` | blocks commits on `main` / `master`, then `deps:lint` (syncpack) |
 | `prepare-commit-msg` | auto-creates a changeset when public packages are staged |
+| `post-commit` | amends the commit to include the auto-created changeset |
 | `commit-msg` | commitlint |
 | `pre-push` | knip, lint, types, build, test |
 

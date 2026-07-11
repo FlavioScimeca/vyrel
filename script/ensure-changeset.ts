@@ -235,6 +235,10 @@ if (
 
         await Bun.write(absolutePath, contents);
         stageFile(relativePath);
+        await Bun.write(
+          `${repoRoot}.git/vyrel-pending-changeset`,
+          relativePath
+        );
 
         const bumpSummary = changedPackages
           .map((name) => `${name}: ${bump}`)
