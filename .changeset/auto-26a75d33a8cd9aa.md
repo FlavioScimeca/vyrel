@@ -2,4 +2,4 @@
 "@vyrel/morph": patch
 ---
 
-fix types of morph
+version packages

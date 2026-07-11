@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.5
+
+### Patch Changes
+
+- f25e74f: fix types of morph
+
 ## 0.0.4
 
 ### Patch Changes
