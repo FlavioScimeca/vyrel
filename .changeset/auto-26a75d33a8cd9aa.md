@@ -2,4 +2,4 @@
 "@vyrel/morph": patch
 ---
 
-fix readme
+version packages
