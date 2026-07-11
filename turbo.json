@@ -17,6 +17,13 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    },
     "knip": {
       "cache": false
     },
