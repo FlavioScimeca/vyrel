@@ -83,12 +83,12 @@
     "knip:production": "knip --production",
     "lint": "ultracite check",
     "lint:doctor": "ultracite doctor",
-    "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run lint && bun run check-types && bun run build && bun run test",
+    "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run check-types && bun run build && bun run test",
     "prepare": "husky",
     "release": "turbo run build:verified --filter='./packages/public/*' && changeset publish",
     "rover": "bun run script/entry-point.ts",
     "scripts": "bun script/entry-point.ts",
-    "test": "bun run --filter web test && bun run --filter server test && bun run --filter @vyrel/api test && bun run --filter @vyrel/morph test",
+    "test": "turbo test",
     "version-packages": "changeset version"
   },
   "overrides": {
