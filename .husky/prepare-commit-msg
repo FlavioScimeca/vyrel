@@ -1,0 +1,1 @@
+bun run script/ensure-changeset.ts "$1" "$2" "$3"
