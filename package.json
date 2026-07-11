@@ -47,16 +47,18 @@
       "@types/node": "^26.0.1",
       "@types/react-dom": "^19.2.3",
       "@effect/language-service": "^0.86.4",
-      "typescript": "^6.0.3"
+      "typescript": "npm:typescript@^7.0.2",
+      "typescript6": "npm:typescript@^6.0.3"
     }
   },
   "scripts": {
+    "biome:kill": "pkill -f '@biomejs/cli' || true",
     "build": "turbo build",
     "build:docs": "turbo -F docs build",
     "changeset": "changeset",
     "check": "ultracite check",
     "check:docs": "turbo -F docs check-types",
-    "check:effect-ts": "bun run script/check-effect-ts.ts",
+    "check:effect-ts": "turbo check-effect-ts",
     "check-types": "turbo check-types",
     "commit": "czg",
     "db:generate": "turbo -F @vyrel/db db:generate",
@@ -84,7 +86,7 @@
     "lint": "ultracite check",
     "lint:doctor": "ultracite doctor",
     "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run check-types && bun run build && bun run test",
-    "prepare": "husky",
+    "prepare": "bun run script/patch-ts6-imports.ts && husky",
     "release": "turbo run build:verified --filter='./packages/public/*' && changeset publish",
     "rover": "bun run script/entry-point.ts",
     "scripts": "bun script/entry-point.ts",
@@ -128,6 +130,7 @@
     "turbo": "^2.10.0",
     "typescript": "catalog:",
     "typescript-eslint": "^8.63.0",
+    "typescript6": "catalog:",
     "ultracite": "7.9.2",
     "vercel": "^54.18.2"
   },

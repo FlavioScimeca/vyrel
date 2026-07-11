@@ -5,7 +5,7 @@
     "devDependencies": "off",
     "files": "off"
   },
-  "ignoreBinaries": ["turso"],
+  "ignoreBinaries": ["turso", "pkill"],
   "ignoreIssues": {
     "apps/docs/components/**": ["duplicates", "exports"],
     "apps/web/src/components/ui/**": ["exports"]
