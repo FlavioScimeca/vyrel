@@ -7,7 +7,7 @@ Use it to derive GraphQL object fields, list filters, and input shapes from Zod 
 ## Install
 
 ```bash
-bun  install @vyrel/morph
+bun install @vyrel/morph
 ```
 
 Peer dependencies:

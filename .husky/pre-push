@@ -1,6 +1,1 @@
-bun run knip
-bun run knip:cycles
-bun run lint
-bun run check-types
-bun run build
-bun run test
+bun run preflight

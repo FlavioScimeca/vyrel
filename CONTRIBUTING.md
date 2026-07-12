@@ -76,7 +76,7 @@ bun run commit
 
 You get an interactive prompt for type, scope, and subject — the same rules commitlint enforces on `main`.
 
-Pull request titles are validated by the **Semantic Pull Request** workflow. With squash merge, the PR title becomes the commit on `main`, so keep it in the same format.
+Pull request titles are validated in CI (same rules as commitlint). With squash merge, the PR title becomes the commit on `main`, so keep it in the same format.
 
 ## Git hooks
 
@@ -86,7 +86,7 @@ Pull request titles are validated by the **Semantic Pull Request** workflow. Wit
 | `prepare-commit-msg` | prompts for changeset bump/summary when public packages are staged |
 | `post-commit` | amends the commit to include the auto-created changeset |
 | `commit-msg` | commitlint |
-| `pre-push` | knip, lint, types, build, test |
+| `pre-push` | `bun run preflight` (full gate — same as CI) |
 
 Branch protection on private repos requires a paid GitHub plan, so commits on `main` are blocked locally via the pre-commit hook. Use a feature branch and open a PR to merge.
 
@@ -128,7 +128,7 @@ To skip locally:
 SKIP_CHANGESET=1 git commit -m "chore(morph): internal only"
 ```
 
-CI enforces this via **Require Changeset** (`.github/workflows/require-changeset.yml`).
+CI enforces this in the **CI** workflow (`.github/workflows/ci.yml`) on pull requests.
 
 To skip on GitHub (internal refactors, test-only follow-ups, etc.), add the **`skip-changeset`** label to the PR.
 
@@ -174,11 +174,13 @@ You do **not** need to run `version-packages` or `release` manually in the norma
 
 ## CI
 
-On every PR and push to `main`:
+On every PR and push to `main`, a single **CI** workflow (`.github/workflows/ci.yml`) runs:
 
-- **CI** — lint, typecheck, build, test (includes `@vyrel/morph`)
-- **Semantic PR** — validates PR title format
-- **Require Changeset** — fails if `packages/public/**` changes without a changeset (unless `skip-changeset` label)
+- **`bun run preflight`** — deps lint, ultracite lint, knip, knip cycles, typecheck, build, test (same as local pre-push)
+- **PR title** — validates conventional commit format (PRs only)
+- **Changeset** — fails if `packages/public/**` changes without a changeset, unless the `skip-changeset` label is set (PRs only)
+
+If `bun run preflight` passes locally, CI should pass too.
 
 ## Manual publish (emergency only)
 
