@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.8
+
+### Patch Changes
+
+- 87474a8: ci pipeline should be faster
+
 ## 0.0.7
 
 ### Patch Changes
