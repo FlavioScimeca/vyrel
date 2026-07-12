@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.7
+
+### Patch Changes
+
+- ef51995: fixing stuff
+
 ## 0.0.6
 
 ### Patch Changes
