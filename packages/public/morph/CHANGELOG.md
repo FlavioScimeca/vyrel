@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.6
+
+### Patch Changes
+
+- e054018: fixing attempt
+
 ## 0.0.5
 
 ### Patch Changes
