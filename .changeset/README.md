@@ -16,7 +16,7 @@ Private apps and internal packages are ignored (see `config.json` → `ignore`).
 bun run changeset
 ```
 
-Usually this is **automatic** on commit when you change `packages/public/**`. The hook writes a file in `.changeset/` and stages it for the same commit.
+Usually `bun run commit` prompts you for bump type and summary when you change `packages/public/**`. The hook writes a file in `.changeset/` and stages it for the same commit.
 
 Manual creation is useful when you want full control over bump type and summary before committing.
 

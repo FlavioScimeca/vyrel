@@ -83,7 +83,7 @@ Pull request titles are validated by the **Semantic Pull Request** workflow. Wit
 | Hook | Runs |
 |------|------|
 | `pre-commit` | blocks commits on `main` / `master`, then `deps:lint` (syncpack) |
-| `prepare-commit-msg` | auto-creates a changeset when public packages are staged |
+| `prepare-commit-msg` | prompts for changeset bump/summary when public packages are staged |
 | `post-commit` | amends the commit to include the auto-created changeset |
 | `commit-msg` | commitlint |
 | `pre-push` | knip, lint, types, build, test |
@@ -94,21 +94,21 @@ Branch protection on private repos requires a paid GitHub plan, so commits on `m
 
 When a PR changes a **public** package under `packages/public/*`, it must include a changeset.
 
-Usually you **do not** need to run this manually. During `git commit` / `bun run commit`, the `prepare-commit-msg` hook creates one when:
+Usually you **do not** need to run this manually. `bun run commit` prompts you when public packages are staged:
 
-- staged files include `packages/public/**` (excluding test files)
-- the branch does not already have a changeset vs `main`
-- no changeset is already staged
+1. Whether to create a changeset
+2. Semver bump (`patch`, `minor`, `major`)
+3. Changelog summary (defaults to your commit subject)
 
-The bump type is inferred from your commit message:
+The commit wizard (`czg`) still handles type, scope, and message as before.
 
-| Commit type | Bump |
-|-------------|------|
+During a plain `git commit` (without `bun run commit`), the hook may prompt interactively in the terminal, or infer the bump from your commit type when non-interactive:
+
+| Commit type | Default bump |
+|-------------|--------------|
 | `feat` | minor |
 | `fix`, `chore`, `docs`, … | patch |
 | `feat!` or `BREAKING CHANGE` | major |
-
-The changeset summary comes from the commit subject. Review the generated file in `.changeset/` before pushing — edit it if the bump or wording should change.
 
 Manual creation is still available:
 

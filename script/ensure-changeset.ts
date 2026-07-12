@@ -1,210 +1,108 @@
-import { Glob } from "bun";
+import confirm from "@inquirer/confirm";
+import input from "@inquirer/input";
+import select from "@inquirer/select";
+import {
+  type Bump,
+  bumpFromCommit,
+  changedPublicPackages,
+  clearIntent,
+  createAndStageChangeset,
+  isAutomationEnvironment,
+  isInteractiveTerminal,
+  listStagedFiles,
+  loadPublicPackageNames,
+  needsChangesetDecision,
+  parseCommitMessage,
+  readIntent,
+} from "./changeset-utils";
 
-const repoRoot = new URL("../", import.meta.url).pathname;
-const publicPackagesRoot = `${repoRoot}packages/public`;
-const changesetDir = `${repoRoot}.changeset`;
+const bumpChoices: Array<{ name: string; value: Bump }> = [
+  { name: "patch", value: "patch" },
+  { name: "minor", value: "minor" },
+  { name: "major", value: "major" },
+];
 
-type Bump = "major" | "minor" | "patch";
-
-const publicTestFilePattern = /\.(test|spec)\.(ts|tsx)$/;
-const packageJsonPathPattern = /\/package\.json$/;
-const conventionalCommitPattern = /^(\w+)(?:\([\w.-]+\))?!?:\s*(.+)$/;
-
-const readTextFile = (path: string): string => {
-  const result = Bun.spawnSync(["cat", path], {
-    cwd: repoRoot,
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-
-  if (result.exitCode !== 0) {
-    throw new Error(`Failed to read ${path}`);
-  }
-
-  return result.stdout.toString();
+const writeLog = (message: string): void => {
+  process.stderr.write(`${message}\n`);
 };
 
-const runGit = (args: string[]): string | null => {
-  const result = Bun.spawnSync(["git", ...args], {
-    cwd: repoRoot,
-    stderr: "pipe",
-    stdout: "pipe",
+const promptBump = async (defaultBump: Bump): Promise<Bump> =>
+  select<Bump>({
+    choices: bumpChoices,
+    default: defaultBump,
+    message: "Select semver bump for the changeset:",
+    pageSize: 5,
   });
 
-  if (result.exitCode !== 0) {
+const promptSummary = async (defaultSummary: string): Promise<string> => {
+  const summary = await input({
+    default: defaultSummary,
+    message: "Changeset summary (changelog entry):",
+  });
+
+  const trimmed = summary.trim();
+  return trimmed.length > 0 ? trimmed : defaultSummary;
+};
+
+const resolveChangesetPlan = async ({
+  breaking,
+  subject,
+  type,
+  changedPackages,
+}: {
+  breaking: boolean;
+  subject: string;
+  type: string;
+  changedPackages: string[];
+}): Promise<{ bump: Bump; summary: string } | null> => {
+  const intent = await readIntent();
+
+  if (intent?.action === "skip") {
+    await clearIntent();
+    writeLog("Changeset skipped by choice");
     return null;
   }
 
-  return result.stdout.toString().trim();
-};
+  if (intent?.action === "create") {
+    const summary = isInteractiveTerminal()
+      ? await promptSummary(subject)
+      : subject;
 
-const listStagedFiles = (): string[] => {
-  const output = runGit([
-    "diff",
-    "--cached",
-    "--name-only",
-    "--diff-filter=ACMRT",
-  ]);
-
-  if (output === null) {
-    return [];
+    await clearIntent();
+    return {
+      bump: intent.bump,
+      summary,
+    };
   }
 
-  return output.split("\n").filter(Boolean);
-};
+  if (isInteractiveTerminal() && Bun.env.VYREL_INTERACTIVE_COMMIT !== "1") {
+    const shouldCreate = await confirm({
+      default: true,
+      message: `Create a changeset for ${changedPackages.join(", ")}?`,
+    });
 
-const isPublishablePublicChange = (file: string): boolean => {
-  if (!file.startsWith("packages/public/")) {
-    return false;
-  }
-
-  return !publicTestFilePattern.test(file);
-};
-
-const isChangesetFile = (file: string): boolean =>
-  file.startsWith(".changeset/") &&
-  file.endsWith(".md") &&
-  !file.endsWith("README.md");
-
-const resolveBaseBranch = (): string => {
-  if (runGit(["rev-parse", "--verify", "origin/main"]) !== null) {
-    return "origin/main";
-  }
-
-  if (runGit(["rev-parse", "--verify", "main"]) !== null) {
-    return "main";
-  }
-
-  return "HEAD~1";
-};
-
-const branchChangesetFiles = (): string[] => {
-  const base = resolveBaseBranch();
-  const mergeBase = runGit(["merge-base", "HEAD", base]);
-
-  if (mergeBase === null) {
-    return [];
-  }
-
-  const output = runGit([
-    "diff",
-    "--name-only",
-    `${mergeBase}..HEAD`,
-    "--",
-    ".changeset/",
-  ]);
-
-  if (output === null) {
-    return [];
-  }
-
-  return output.split("\n").filter(isChangesetFile);
-};
-
-const loadPublicPackageNames = (): Map<string, string> => {
-  const packages = new Map<string, string>();
-  const glob = new Glob("*/package.json");
-
-  for (const packageJsonPath of glob.scanSync({
-    cwd: publicPackagesRoot,
-    onlyFiles: true,
-  })) {
-    const dirName = packageJsonPath.replace(packageJsonPathPattern, "");
-    const prefix = `packages/public/${dirName}/`;
-    const { name } = JSON.parse(
-      readTextFile(`${publicPackagesRoot}/${packageJsonPath}`)
-    ) as { name?: string };
-
-    if (name !== undefined && name.length > 0) {
-      packages.set(prefix, name);
-    }
-  }
-
-  return packages;
-};
-
-const changedPublicPackages = (
-  files: string[],
-  publicPackages: Map<string, string>
-): string[] => {
-  const changed = new Set<string>();
-
-  for (const file of files) {
-    if (!isPublishablePublicChange(file)) {
-      continue;
+    if (!shouldCreate) {
+      writeLog("Changeset skipped");
+      return null;
     }
 
-    for (const [prefix, packageName] of publicPackages) {
-      if (file.startsWith(prefix)) {
-        changed.add(packageName);
-      }
-    }
+    const bump = await promptBump(bumpFromCommit(type, breaking));
+    const summary = await promptSummary(subject);
+
+    return { bump, summary };
   }
 
-  return [...changed].toSorted();
-};
-
-const parseCommitMessage = (commitMessagePath: string) => {
-  const raw = readTextFile(commitMessagePath);
-  const lines = raw.split("\n");
-  const firstLine =
-    lines.find((line) => line.trim().length > 0 && !line.startsWith("#")) ?? "";
-
-  const match = conventionalCommitPattern.exec(firstLine);
-  const type = match?.[1] ?? "chore";
-  const subject =
-    match?.[2]?.trim() || firstLine.trim() || "Update public packages";
-  const breaking =
-    firstLine.includes("!:") ||
-    raw.includes("\nBREAKING CHANGE:") ||
-    raw.includes("\nBREAKING-CHANGE:");
-
-  return { breaking, subject, type };
-};
-
-const bumpFromCommit = (type: string, breaking: boolean): Bump => {
-  if (breaking) {
-    return "major";
-  }
-
-  if (type === "feat") {
-    return "minor";
-  }
-
-  return "patch";
-};
-
-const buildChangesetContents = (
-  packageBumps: Readonly<Record<string, Bump>>,
-  summary: string
-) => {
-  const frontmatter = Object.entries(packageBumps)
-    .map(([name, bump]) => `"${name}": ${bump}`)
-    .join("\n");
-
-  return `---\n${frontmatter}\n---\n\n${summary}\n`;
-};
-
-const stageFile = (relativePath: string) => {
-  const result = Bun.spawnSync(["git", "add", relativePath], {
-    cwd: repoRoot,
-    stderr: "inherit",
-    stdout: "inherit",
-  });
-
-  if (result.exitCode !== 0) {
-    throw new Error(`Failed to stage ${relativePath}`);
-  }
-};
-
-const writeLog = (message: string) => {
-  process.stderr.write(`${message}\n`);
+  return {
+    bump: bumpFromCommit(type, breaking),
+    summary: subject,
+  };
 };
 
 const [messagePath, source = "message"] = process.argv.slice(2);
 
 if (
   Bun.env.SKIP_CHANGESET !== "1" &&
+  !isAutomationEnvironment() &&
   source !== "merge" &&
   source !== "squash"
 ) {
@@ -212,40 +110,40 @@ if (
   const publicPackages = loadPublicPackageNames();
   const changedPackages = changedPublicPackages(stagedFiles, publicPackages);
 
-  if (changedPackages.length > 0) {
-    const hasStagedChangeset = stagedFiles.some(isChangesetFile);
-    const hasExistingBranchChangeset = branchChangesetFiles().length > 0;
+  if (needsChangesetDecision(stagedFiles, changedPackages)) {
+    if (messagePath === undefined) {
+      writeLog(
+        "Public package files are staged without a changeset, but no commit message file was provided."
+      );
+    } else {
+      const { breaking, subject, type } = parseCommitMessage(messagePath);
 
-    if (!(hasStagedChangeset || hasExistingBranchChangeset)) {
-      if (messagePath === undefined) {
-        writeLog(
-          "Public package files are staged without a changeset, but no commit message file was provided."
-        );
+      if (subject === "version packages") {
+        writeLog("Skipping auto-changeset for changesets version commit");
       } else {
-        const { breaking, subject, type } = parseCommitMessage(messagePath);
-        const bump = bumpFromCommit(type, breaking);
-        const packageBumps = Object.fromEntries(
-          changedPackages.map((name) => [name, bump])
-        ) as Record<string, Bump>;
+        const plan = await resolveChangesetPlan({
+          breaking,
+          changedPackages,
+          subject,
+          type,
+        });
 
-        const filename = `auto-${Bun.hash.wyhash(`${subject}:${changedPackages.join(",")}`).toString(16)}.md`;
-        const relativePath = `.changeset/${filename}`;
-        const absolutePath = `${changesetDir}/${filename}`;
-        const contents = buildChangesetContents(packageBumps, subject);
+        if (plan !== null) {
+          const relativePath = await createAndStageChangeset({
+            bump: plan.bump,
+            packages: changedPackages,
+            summary: plan.summary,
+          });
 
-        await Bun.write(absolutePath, contents);
-        stageFile(relativePath);
-        await Bun.write(
-          `${repoRoot}.git/vyrel-pending-changeset`,
-          relativePath
-        );
+          const bumpSummary = changedPackages
+            .map((name) => `${name}: ${plan.bump}`)
+            .join(", ");
 
-        const bumpSummary = changedPackages
-          .map((name) => `${name}: ${bump}`)
-          .join(", ");
-
-        writeLog(`Created changeset ${relativePath} (${bumpSummary})`);
+          writeLog(`Created changeset ${relativePath} (${bumpSummary})`);
+        }
       }
     }
+  } else {
+    await clearIntent();
   }
 }
