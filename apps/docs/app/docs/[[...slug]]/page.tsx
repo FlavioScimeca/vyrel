@@ -1,8 +1,8 @@
 import {
   DocsBody,
   DocsDescription,
-  DocsPage,
-  DocsTitle,
+  type DocsPage,
+  type DocsTitle,
 } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
@@ -27,18 +27,20 @@ export default async function Page(props: DocsPageProps) {
   const MDX = page.data.body;
 
   return (
-    <DocsPage full={page.data.full} toc={page.data.toc}>
+    <DocsPage full={page.data.full}
+  toc={page.data.toc}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDX
           components={getMDXComponents({
             a: createRelativeLink(source, page),
-          })}
-        />
-      </DocsBody>
-    </DocsPage>
-  );
+          }
+  )
+}
+/> < / > BDcdoosy < /;
+  >DPacegos
+  )
 }
 
 export function generateStaticParams() {

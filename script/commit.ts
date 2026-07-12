@@ -4,6 +4,7 @@ import chalk from "chalk";
 import {
   type Bump,
   changedPublicPackages,
+  getChangesetSkipReason,
   listStagedFiles,
   loadPublicPackageNames,
   needsChangesetDecision,
@@ -88,6 +89,14 @@ export async function runCommit(): Promise<number> {
 
   if (needsChangesetDecision(stagedFiles, changedPackages)) {
     await promptChangesetIntent(changedPackages);
+  } else {
+    const skipReason = getChangesetSkipReason(stagedFiles, changedPackages);
+
+    if (skipReason !== null) {
+      console.log("");
+      console.log(chalk.dim(`Changeset: ${skipReason}`));
+      console.log("");
+    }
   }
 
   return runCzg();

@@ -97,39 +97,39 @@ export const isAutomationEnvironment = (): boolean =>
 export const isInteractiveTerminal = (): boolean =>
   Boolean(process.stdin.isTTY && process.stdout.isTTY);
 
-const resolveBaseBranch = (): string => {
-  if (runGit(["rev-parse", "--verify", "origin/main"]) !== null) {
-    return "origin/main";
-  }
-
-  if (runGit(["rev-parse", "--verify", "main"]) !== null) {
-    return "main";
-  }
-
-  return "HEAD~1";
-};
-
-export const branchChangesetFiles = (): string[] => {
-  const base = resolveBaseBranch();
-  const mergeBase = runGit(["merge-base", "HEAD", base]);
-
-  if (mergeBase === null) {
-    return [];
-  }
-
-  const output = runGit([
-    "diff",
-    "--name-only",
-    `${mergeBase}..HEAD`,
-    "--",
-    ".changeset/",
-  ]);
+export const headChangesetFiles = (): string[] => {
+  const output = runGit(["ls-files", ".changeset"]);
 
   if (output === null) {
     return [];
   }
 
   return output.split("\n").filter(isChangesetFile);
+};
+
+export const getChangesetSkipReason = (
+  stagedFiles: string[],
+  changedPackages: string[]
+): string | null => {
+  if (changedPackages.length === 0) {
+    return null;
+  }
+
+  if (isVersionOnlyPublicChange(stagedFiles)) {
+    return "Only version/changelog files changed — no new changeset needed";
+  }
+
+  if (stagedFiles.some(isChangesetFile)) {
+    return "Changeset already staged for this commit";
+  }
+
+  const existingChangesets = headChangesetFiles();
+
+  if (existingChangesets.length > 0) {
+    return `Branch already has a changeset: ${existingChangesets.join(", ")}`;
+  }
+
+  return null;
 };
 
 export const loadPublicPackageNames = (): Map<string, string> => {
@@ -184,9 +184,9 @@ export const needsChangesetDecision = (
   }
 
   const hasStagedChangeset = stagedFiles.some(isChangesetFile);
-  const hasExistingBranchChangeset = branchChangesetFiles().length > 0;
+  const hasExistingChangeset = headChangesetFiles().length > 0;
 
-  return !(hasStagedChangeset || hasExistingBranchChangeset);
+  return !(hasStagedChangeset || hasExistingChangeset);
 };
 
 export const buildChangesetContents = (
