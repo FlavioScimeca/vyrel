@@ -33,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: lts/*
           registry-url: "https://registry.npmjs.org"
 
       - name: Decide whether release should run
@@ -102,7 +102,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: lts/*
           registry-url: "https://registry.npmjs.org"
 
       - name: Upgrade npm for trusted publishing
