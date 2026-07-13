@@ -16,7 +16,8 @@
     "check-types": "tsc --noEmit",
     "gen": "bun run gen-imports && bun run gen-schema",
     "gen-imports": "bun run scripts/collect-graphql-imports.ts",
-    "gen-schema": "bun run scripts/gen-schema.ts"
+    "gen-schema": "bun run scripts/gen-schema.ts",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@graphql-yoga/plugin-apq": "^3.21.2",
@@ -45,6 +46,7 @@
     "@effect/platform": "catalog:",
     "@effect/platform-bun": "catalog:",
     "@vyrel/config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

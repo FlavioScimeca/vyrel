@@ -3,28 +3,44 @@ import { getAppLogger } from "@vyrel/logging";
 import { GraphQLError } from "graphql";
 import type { Plugin } from "graphql-yoga";
 import { getProfile, truncateSql } from "./profiler";
+import { isPublicGraphqlOperation } from "./public-operations";
 
 const graphqlLogger = getAppLogger("graphql");
 
-/** Blocks GraphQL execution when there is no authenticated session. */
+const isProd = env.NODE_ENV === "production";
+
+/** Blocks GraphQL execution when the request is not authenticated. */
 export const requireAuthPlugin: Plugin = {
   onExecute({ args, setResultAndStopExecution }) {
-    const ctx = args.contextValue as {
-      session?: { user: { id: string } } | null;
-    };
-    if (ctx.session === undefined || ctx.session === null) {
-      setResultAndStopExecution({
-        data: null,
-        errors: [
-          new GraphQLError("UNAUTHENTICATED", {
-            extensions: {
-              code: "UNAUTHENTICATED",
-              http: { status: 401 },
-            },
-          }),
-        ],
-      });
+    if (
+      isPublicGraphqlOperation(args.document, args.operationName ?? undefined, {
+        allowIntrospection: !isProd,
+      })
+    ) {
+      return;
     }
+
+    const isAuthenticated =
+      typeof args.contextValue === "object" &&
+      args.contextValue !== null &&
+      "isAuthenticated" in args.contextValue &&
+      args.contextValue.isAuthenticated === true;
+
+    if (isAuthenticated) {
+      return;
+    }
+
+    setResultAndStopExecution({
+      data: null,
+      errors: [
+        new GraphQLError("UNAUTHENTICATED", {
+          extensions: {
+            code: "UNAUTHENTICATED",
+            http: { status: 401 },
+          },
+        }),
+      ],
+    });
   },
 };
 

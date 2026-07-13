@@ -1,8 +1,7 @@
-import type { PothosContext } from "@vyrel/graphql";
-import type { Session, User } from "better-auth";
+import type { GraphQLContext } from "@vyrel/graphql/context";
 
 export function createContext(
-  session: { user: User; session: Session } | null
-): PothosContext {
+  session: GraphQLContext["session"]
+): Pick<GraphQLContext, "session"> {
   return { session };
 }

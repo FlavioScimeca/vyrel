@@ -1,3 +1,4 @@
+import { resolveActorUserId } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
 import { Effect } from "effect";
 
@@ -22,7 +23,9 @@ builder.mutationFields((t) => ({
           headers: context.headers,
           input: userUpdateSchema.parse(args.input),
         })).pipe(
-          Effect.flatMap(({ input, headers }) => updateUser(input, headers))
+          Effect.flatMap(({ input, headers }) =>
+            updateUser(input, headers, resolveActorUserId(context))
+          )
         )
       ),
     type: UserObject,

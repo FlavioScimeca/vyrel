@@ -1,3 +1,4 @@
+import { resolveActorUserId } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
 import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
@@ -62,7 +63,11 @@ builder.queryFields((t) => ({
     nullable: true,
     resolve: (_root, args, context) =>
       runUserGraphqlEffect(
-        getUser(userByIdSchema.parse({ id: String(args.id) }), context.headers)
+        getUser(
+          userByIdSchema.parse({ id: String(args.id) }),
+          context.headers,
+          resolveActorUserId(context)
+        )
       ),
     type: UserObject,
   }),

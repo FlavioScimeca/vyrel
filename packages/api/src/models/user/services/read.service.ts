@@ -7,8 +7,11 @@ import type { UserTypeById } from "../types/extra.types";
 import { fetchSessionUserId, fetchUser } from "../utils/auth-api";
 import { UserRepositoryError } from "../utils/errors";
 
-export const getUser = (input: UserTypeById, headers: Headers) =>
-  fetchUser(input.id, headers);
+export const getUser = (
+  input: UserTypeById,
+  headers: Headers,
+  jwtUserId?: string
+) => fetchUser(input.id, headers, jwtUserId);
 
 /** Loads the user for the session cookie (or verified JWT fallback) from the database. */
 export const getCurrentUser = (headers: Headers, jwtUserId?: string) =>

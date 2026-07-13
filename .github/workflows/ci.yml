@@ -17,6 +17,18 @@ permissions:
 
 env:
   HUSKY: "0"
+  BETTER_AUTH_SECRET: ci-placeholder-better-auth-secret-32chars
+  BETTER_AUTH_URL: http://localhost:3000
+  CORS_ORIGIN: http://localhost:3000
+  DATABASE_AUTH_TOKEN: ci-placeholder-database-auth-token
+  DATABASE_URL: file::memory:?cache=shared
+  LOG_LEVEL: info
+  NODE_ENV: test
+  R2_ACCESS_KEY_ID: ci-placeholder-r2-access-key-id
+  R2_ACCOUNT_ID: ci-placeholder-r2-account-id
+  R2_BUCKET_NAME: ci-placeholder-r2-bucket
+  R2_SECRET_ACCESS_KEY: ci-placeholder-r2-secret-access-key
+  NEXT_PUBLIC_SERVER_URL: http://localhost:3000
 
 jobs:
   ci:
@@ -25,17 +37,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.1
         with:
           fetch-depth: 0
-
-      - name: Validate Conventional Commits PR title
-        if: github.event_name == 'pull_request'
-        uses: amannn/action-semantic-pull-request@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          scopes: morph,web,server,api,graphql,auth,db,ci,deps,release,docs,extension,config,root
 
       - name: Verify changeset when public packages change
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository

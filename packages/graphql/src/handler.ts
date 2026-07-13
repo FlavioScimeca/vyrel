@@ -1,8 +1,8 @@
 import { useAPQ } from "@graphql-yoga/plugin-apq";
-import { verifyBearer } from "@vyrel/auth/lib/verify-bearer";
 import { env } from "@vyrel/env/server";
 import { createFetch } from "@whatwg-node/fetch";
 import { createYoga } from "graphql-yoga";
+import { createGraphqlContext } from "./context";
 import { formatError } from "./lib/error-handler";
 import { schema } from "./schema";
 import {
@@ -19,13 +19,13 @@ export const graphqlYogaServer = createYoga({
   context: async ({ request }) => {
     const store = getProfile();
     const t0 = performance.now();
-    const user = await verifyBearer(request.headers);
-    if (store !== undefined && user !== undefined) {
+    const context = await createGraphqlContext(request);
+
+    if (store !== undefined) {
       store.authMs = performance.now() - t0;
-      return { headers: request.headers, user };
     }
 
-    return { headers: request.headers, user: undefined };
+    return context;
   },
   fetchAPI: createFetch({
     formDataLimits: {
