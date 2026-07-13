@@ -83,9 +83,11 @@ export const fetchSessionUserId = (
     Effect.catchTag("UserRepositoryError", () => Effect.succeed(null))
   );
 
-export const fetchCurrentUser = (headers: Headers) =>
+/** Resolves the authenticated user from session cookie or Bearer JWT fallback. */
+export const fetchCurrentUser = (headers: Headers, jwtUserId?: string) =>
   Effect.gen(function* () {
-    const userId = yield* fetchSessionUserId(headers);
+    const sessionUserId = yield* fetchSessionUserId(headers);
+    const userId = sessionUserId ?? jwtUserId ?? null;
     if (userId === null) {
       return null;
     }
@@ -103,8 +105,8 @@ export const fetchCurrentUser = (headers: Headers) =>
     return record ?? null;
   });
 
-export const fetchUser = (id: string, headers: Headers) =>
-  fetchCurrentUser(headers).pipe(
+export const fetchUser = (id: string, headers: Headers, jwtUserId?: string) =>
+  fetchCurrentUser(headers, jwtUserId).pipe(
     Effect.flatMap((currentUser) => {
       if (currentUser === null) {
         return Effect.succeed(null);

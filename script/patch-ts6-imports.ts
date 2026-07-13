@@ -13,6 +13,7 @@ const repoRoot = resolve(join(fileURLToPath(import.meta.url), "..", ".."));
 const PATCH_TARGETS = [
   "node_modules/@typescript-eslint",
   "node_modules/@effect/language-service",
+  "node_modules/@gql.tada",
   "node_modules/ts-api-utils",
 ] as const;
 

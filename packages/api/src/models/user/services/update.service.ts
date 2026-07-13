@@ -5,7 +5,11 @@ import { fetchCurrentUser } from "../utils/auth-api";
 import { UserRepositoryError, UserValidationError } from "../utils/errors";
 import { type UpdateAuthUserBody, updateAuthUser } from "./auth.service";
 
-export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
+export const updateUser = (
+  input: UserTypeUpdate,
+  headers: Headers,
+  jwtUserId?: string
+) =>
   Effect.gen(function* () {
     const safeValues = userUpdateSchema.safeParse(input);
     if (!safeValues.success) {
@@ -24,7 +28,7 @@ export const updateUser = (input: UserTypeUpdate, headers: Headers) =>
 
     yield* updateAuthUser(body, headers);
 
-    const record = yield* fetchCurrentUser(headers);
+    const record = yield* fetchCurrentUser(headers, jwtUserId);
     if (record === null) {
       return yield* new UserRepositoryError({
         cause: null,

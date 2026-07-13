@@ -5,7 +5,11 @@ import { fetchCurrentUser } from "../utils/auth-api";
 import { UserRepositoryError, UserValidationError } from "../utils/errors";
 import { deleteAuthUser } from "./auth.service";
 
-export const deleteUser = (input: UserTypeDelete, headers: Headers) =>
+export const deleteUser = (
+  input: UserTypeDelete,
+  headers: Headers,
+  jwtUserId?: string
+) =>
   Effect.gen(function* () {
     const safeValues = userDeleteSchema.safeParse(input);
     if (!safeValues.success) {
@@ -15,7 +19,7 @@ export const deleteUser = (input: UserTypeDelete, headers: Headers) =>
       });
     }
 
-    const currentUser = yield* fetchCurrentUser(headers);
+    const currentUser = yield* fetchCurrentUser(headers, jwtUserId);
     if (currentUser === null) {
       return yield* new UserRepositoryError({
         cause: null,

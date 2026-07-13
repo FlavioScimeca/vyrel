@@ -5,20 +5,17 @@ import RelayPlugin from "@pothos/plugin-relay";
 import ScopeAuthPlugin from "@pothos/plugin-scope-auth";
 import ValidationPlugin from "@pothos/plugin-validation";
 import WithInputPlugin from "@pothos/plugin-with-input";
-import type { AuthClaims } from "@vyrel/auth/lib/verify-bearer";
 import { db } from "@vyrel/db";
 import { relations } from "@vyrel/db/relations";
-import type { Session, User } from "better-auth";
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { DateTimeResolver, JSONResolver } from "graphql-scalars";
+import type { GraphQLContext } from "./context";
 import { GraphQLFile } from "./scalars/file";
 import { GraphQLURL } from "./scalars/url";
 
 type DrizzleRelations = typeof relations;
 
-export interface PothosContext {
-  session: { user: User; session: Session } | null;
-}
+export type { GraphQLContext as PothosContext } from "./context";
 
 type PothosTypes = {
   Connection: {
@@ -50,11 +47,7 @@ type PothosTypes = {
       Input: string;
     };
   };
-  Context: {
-    user?: AuthClaims;
-    /** Original request headers (cookies) for Better Auth `auth.api.*` calls. */
-    headers: Headers;
-  };
+  Context: GraphQLContext;
 };
 
 export const builder = new SchemaBuilder<PothosTypes>({
@@ -78,7 +71,7 @@ export const builder = new SchemaBuilder<PothosTypes>({
   },
   scopeAuth: {
     authScopes: (ctx) => ({
-      authenticated: Boolean(ctx?.user),
+      authenticated: ctx.isAuthenticated,
     }),
     treatErrorsAsUnauthorized: true,
   },

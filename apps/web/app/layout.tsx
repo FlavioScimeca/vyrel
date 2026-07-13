@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 
 import "./index.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ApolloProvider } from "@/graphql/apollo/provider";
 import { cn } from "@/lib/utils";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -41,7 +42,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <TooltipProvider>{children}</TooltipProvider>{" "}
+        <ApolloProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ApolloProvider>
       </body>
     </html>
   );
