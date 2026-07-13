@@ -1,41 +1,37 @@
-import { env } from "@vyrel/env/web";
 import type { NextRequest } from "next/server";
 
-const TRAILING_SLASH = /\/$/;
+import { createEdenClient } from "@/lib/eden-client";
 
 type SessionResponse = {
   session: { id: string } | null;
   user: { id: string } | null;
 } | null;
 
-function authApiUrl(path: string): string {
-  return `${env.NEXT_PUBLIC_SERVER_URL.replace(TRAILING_SLASH, "")}/api/auth${path}`;
-}
-
-function requestHeaders(request: NextRequest): HeadersInit {
+function requestHeaders(request: NextRequest): HeadersInit | undefined {
   const cookie = request.headers.get("cookie");
 
   if (cookie === null || cookie.length === 0) {
-    return {};
+    return;
   }
 
   return { cookie };
 }
 
+const noStoreFetch = { cache: "no-store" } as const;
+
 async function fetchSession(
   request: NextRequest
 ): Promise<SessionResponse | "error"> {
+  const client = createEdenClient(requestHeaders(request));
+
   try {
-    const response = await fetch(authApiUrl("/get-session"), {
-      cache: "no-store",
-      headers: requestHeaders(request),
+    const { data, error, status } = await client.api.auth["get-session"].get({
+      fetch: noStoreFetch,
     });
 
-    if (!response.ok) {
+    if (error !== null || status >= 400) {
       return null;
     }
-
-    const data = (await response.json()) as SessionResponse;
 
     if (data?.session === null || data?.session === undefined) {
       return null;
@@ -76,22 +72,24 @@ export async function fetchHasOrganizationMembership(
     return null;
   }
 
+  const client = createEdenClient(requestHeaders(request));
+
   try {
-    const response = await fetch(authApiUrl("/organization/list"), {
-      cache: "no-store",
-      headers: requestHeaders(request),
-    });
+    const { data, error, status } = await client.api.auth.organization.list.get(
+      {
+        fetch: noStoreFetch,
+      }
+    );
 
-    if (response.status === 401) {
+    if (status === 401 || error !== null) {
       return null;
     }
 
-    if (!response.ok) {
+    if (status >= 400) {
       return null;
     }
 
-    const organizations = (await response.json()) as unknown[];
-    return organizations.length > 0;
+    return data.length > 0;
   } catch {
     return null;
   }
