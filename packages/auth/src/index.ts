@@ -3,6 +3,7 @@ import { db } from "@vyrel/db";
 import {
   account,
   invitation,
+  jwks,
   member,
   organization,
   session,
@@ -19,8 +20,8 @@ export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,
-      sameSite: "none",
-      secure: true,
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+      secure: env.NODE_ENV === "production",
     },
   },
   database: drizzleAdapter(db, {
@@ -29,6 +30,7 @@ export const auth = betterAuth({
     schema: {
       account,
       invitation,
+      jwks,
       member,
       organization,
       session,

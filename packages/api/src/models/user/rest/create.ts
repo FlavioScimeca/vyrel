@@ -37,7 +37,6 @@ export const userCreateRest = new Elysia({ name: "user-create-rest" })
         email: t.String({ format: "email" }),
         name: t.String({ minLength: 1 }),
         password: t.String({ minLength: 8 }),
-        printifyToken: t.String({ minLength: 1 }),
       }),
       detail: {
         description:

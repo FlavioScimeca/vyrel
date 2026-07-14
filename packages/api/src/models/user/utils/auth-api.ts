@@ -25,7 +25,6 @@ export type AuthUser = {
   imageFull?: string | null;
   imagePlaceholder?: string | null;
   imageAssetId?: string | null;
-  printifyToken: string;
   createdAt: Date;
   updatedAt: Date;
 };

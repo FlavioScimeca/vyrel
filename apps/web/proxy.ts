@@ -7,8 +7,10 @@ import {
 } from "@/lib/proxy-auth";
 import {
   defaultRouteForOrganization,
+  isAuthApiRoute,
   isOnboardingRoute,
   isPublicRoute,
+  shouldBypassAuthGuard,
 } from "@/lib/proxy-routes";
 
 function redirect(request: NextRequest, pathname: string) {
@@ -34,22 +36,19 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated = await isRequestAuthenticated(request);
 
   if (!isAuthenticated) {
-    if (isPublicRoute(pathname)) {
+    if (shouldBypassAuthGuard(pathname)) {
       return NextResponse.next();
     }
 
     return redirectToAuth(request);
   }
 
-  const hasOrganization = await fetchHasOrganizationMembership(request);
-
-  if (hasOrganization === null) {
-    if (isPublicRoute(pathname)) {
-      return NextResponse.next();
-    }
-
-    return redirectToAuth(request);
+  if (isAuthApiRoute(pathname)) {
+    return NextResponse.next();
   }
+
+  const hasOrganization =
+    (await fetchHasOrganizationMembership(request)) ?? false;
 
   if (isPublicRoute(pathname)) {
     return redirect(request, defaultRouteForOrganization(hasOrganization));
