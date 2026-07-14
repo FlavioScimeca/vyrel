@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -158,14 +158,13 @@ function SignInForm({
   formId: string;
   onSuccess: () => Promise<void>;
 }) {
-  const [pending, setPending] = useState(false);
   const form = useForm<SignInFormValues>({
     defaultValues: signInDefaultValues,
     resolver: zodResolver(signInFormSchema),
   });
+  const pending = form.formState.isSubmitting;
 
   const onSubmit = form.handleSubmit(async (values) => {
-    setPending(true);
     form.clearErrors("root");
 
     const { error } = await authClient.signIn.email({
@@ -177,14 +176,15 @@ function SignInForm({
       form.setError("root", {
         message: error.message ?? "Unable to sign in.",
       });
-      setPending(false);
       return;
     }
 
     try {
       await onSuccess();
-    } finally {
-      setPending(false);
+    } catch (err) {
+      form.setError("root", {
+        message: err instanceof Error ? err.message : "Unable to sign in.",
+      });
     }
   });
 
@@ -237,14 +237,14 @@ function SignUpForm({
   formId: string;
   onSuccess: () => Promise<void>;
 }) {
-  const [pending, setPending] = useState(false);
   const form = useForm<SignUpFormValues>({
     defaultValues: signUpDefaultValues,
     resolver: zodResolver(signUpFormSchema),
   });
 
+  const pending = form.formState.isSubmitting;
+
   const onSubmit = form.handleSubmit(async (values) => {
-    setPending(true);
     form.clearErrors("root");
 
     const { error } = await authClient.signUp.email({
@@ -257,14 +257,16 @@ function SignUpForm({
       form.setError("root", {
         message: error.message ?? "Unable to create account.",
       });
-      setPending(false);
       return;
     }
 
     try {
       await onSuccess();
-    } finally {
-      setPending(false);
+    } catch (err) {
+      form.setError("root", {
+        message:
+          err instanceof Error ? err.message : "Unable to create account.",
+      });
     }
   });
 

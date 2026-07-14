@@ -29,11 +29,6 @@ export function shouldBypassAuthGuard(pathname: string): boolean {
   return isPublicRoute(pathname) || isAuthApiRoute(pathname);
 }
 
-/** Any app route outside public pages and onboarding (i.e. under `(authenticated)`). */
-function _isAuthenticatedRoute(pathname: string): boolean {
-  return !(isPublicRoute(pathname) || isOnboardingRoute(pathname));
-}
-
 export function defaultRouteForOrganization(hasOrganization: boolean): string {
   return hasOrganization ? DEFAULT_APP_ROUTE : ONBOARDING_ROUTE;
 }
