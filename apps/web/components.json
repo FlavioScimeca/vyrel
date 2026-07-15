@@ -22,6 +22,7 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@threecn": "https://threecn.dev/r/{name}.json"
+    "@threecn": "https://threecn.dev/r/{name}.json",
+    "@blocks-so": "https://blocks.so/r/{name}.json"
   }
 }

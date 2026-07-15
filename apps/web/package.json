@@ -49,6 +49,7 @@
     "dotenv": "catalog:",
     "effect": "catalog:",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.42.2",
     "gql.tada": "^1.11.2",
     "graphql": "catalog:",
     "input-otp": "^1.4.2",
