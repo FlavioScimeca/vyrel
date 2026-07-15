@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         destination: `${serverUrl}/api/users`,
         source: "/api/users",
       },
+      {
+        destination: `${serverUrl}/api/organizations`,
+        source: "/api/organizations",
+      },
     ];
   },
 };

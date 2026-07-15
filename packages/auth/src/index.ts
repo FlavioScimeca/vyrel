@@ -42,7 +42,30 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
-    organizationPlugin(),
+    organizationPlugin({
+      schema: {
+        organization: {
+          additionalFields: {
+            imageAssetId: {
+              required: false,
+              type: "string",
+            },
+            imageFull: {
+              required: false,
+              type: "string",
+            },
+            imagePlaceholder: {
+              required: false,
+              type: "string",
+            },
+            imageThumb: {
+              required: false,
+              type: "string",
+            },
+          },
+        },
+      },
+    }),
     jwt({
       jwt: {
         expirationTime: JWT_EXPIRATION_TIME,

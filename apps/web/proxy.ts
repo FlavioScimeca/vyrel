@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { hasSessionCookie, resolveOrganizationAccess } from "@/lib/proxy-auth";
 import {
   defaultRouteForOrganization,
-  isAuthApiRoute,
+  isBackendApiRoute,
   isOnboardingRoute,
   isPublicRoute,
   shouldBypassAuthGuard,
@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     return redirectToAuth(request);
   }
 
-  if (isAuthApiRoute(pathname)) {
+  if (isBackendApiRoute(pathname)) {
     return NextResponse.next();
   }
 
