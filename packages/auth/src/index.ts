@@ -50,4 +50,24 @@ export const auth = betterAuth({
     }),
   ],
   trustedOrigins: [env.CORS_ORIGIN],
+  user: {
+    additionalFields: {
+      imageAssetId: {
+        required: false,
+        type: "string",
+      },
+      imageFull: {
+        required: false,
+        type: "string",
+      },
+      imagePlaceholder: {
+        required: false,
+        type: "string",
+      },
+      imageThumb: {
+        required: false,
+        type: "string",
+      },
+    },
+  },
 });

@@ -9,11 +9,6 @@ export const signInFormSchema = userCreateSchema.pick({
 });
 
 export const signUpFormSchema = userCreateSchema
-  .pick({
-    email: true,
-    name: true,
-    password: true,
-  })
   .extend({
     confirmPassword: z
       .string()

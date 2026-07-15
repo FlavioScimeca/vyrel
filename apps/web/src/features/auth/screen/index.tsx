@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { SignUpAvatarField } from "@/features/auth/components/sign-up-avatar-field";
+import { createAccount } from "@/features/auth/create-account";
 import {
   type AuthMode,
   parseAuthMode,
@@ -247,15 +249,16 @@ function SignUpForm({
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
 
-    const { error } = await authClient.signUp.email({
+    const result = await createAccount({
+      avatar: values.avatar,
       email: values.email,
       name: values.name,
       password: values.password,
     });
 
-    if (error) {
+    if (!result.ok) {
       form.setError("root", {
-        message: error.message ?? "Unable to create account.",
+        message: result.message,
       });
       return;
     }
@@ -270,6 +273,7 @@ function SignUpForm({
     }
   });
 
+  const avatarError = form.formState.errors.avatar;
   const nameError = form.formState.errors.name;
   const emailError = form.formState.errors.email;
   const passwordError = form.formState.errors.password;
@@ -278,6 +282,15 @@ function SignUpForm({
   return (
     <form className="flex flex-col gap-4" id={formId} onSubmit={onSubmit}>
       <FieldGroup>
+        <SignUpAvatarField
+          clearErrors={form.clearErrors}
+          control={form.control}
+          error={avatarError}
+          formId={formId}
+          isSubmitting={pending}
+          setError={form.setError}
+        />
+
         <Field data-invalid={nameError !== undefined}>
           <FieldLabel htmlFor={`${formId}-name`}>Name</FieldLabel>
           <Input

@@ -22,10 +22,9 @@ export const createUser = (input: UserTypeCreate, requestHeaders: Headers) =>
       });
     }
 
-    const { avatar, callbackURL, email, name, password } = safeValues.data;
+    const { avatar, email, name, password } = safeValues.data;
     const signUp = yield* signUpEmail(
       {
-        callbackURL,
         email,
         name,
         password,

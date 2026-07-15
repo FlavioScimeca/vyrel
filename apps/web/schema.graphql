@@ -38,7 +38,6 @@ scalar URL
 """Update the current authenticated user profile."""
 input UpdateUser {
   avatar: File
-  callbackURL: URL
   name: String
 }
 

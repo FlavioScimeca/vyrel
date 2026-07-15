@@ -21,7 +21,6 @@ export const userCreateSchema = userInsertSchema
       .custom<File>((value) => value instanceof File)
       .optional()
       .meta({ pothosType: "File" }),
-    callbackURL: z.url().optional().meta({ pothosType: "URL" }),
     email: z.email("Enter a valid email address"),
     name: z.string().trim().min(1, "Name is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
@@ -30,7 +29,6 @@ export const userCreateSchema = userInsertSchema
 export const userUpdateSchema = userCreateSchema
   .pick({
     avatar: true,
-    callbackURL: true,
     name: true,
   })
   .partial({

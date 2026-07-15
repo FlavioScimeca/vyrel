@@ -19,6 +19,7 @@ describe("proxy-routes", () => {
   it("bypasses auth guard for auth API routes", () => {
     expect(shouldBypassAuthGuard("/api/auth/sign-in/email")).toBe(true);
     expect(shouldBypassAuthGuard("/api/auth/get-session")).toBe(true);
+    expect(shouldBypassAuthGuard("/api/users")).toBe(true);
     expect(shouldBypassAuthGuard("/dashboard")).toBe(false);
   });
 

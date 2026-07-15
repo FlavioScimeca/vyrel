@@ -1,5 +1,6 @@
 const AUTH_ROUTE_PREFIX = "/auth";
 const AUTH_API_ROUTE_PREFIX = "/api/auth";
+const USER_CREATE_API_ROUTE = "/api/users";
 const ONBOARDING_ROUTE = "/onboarding";
 const DEFAULT_APP_ROUTE = "/dashboard";
 
@@ -17,6 +18,10 @@ export function isAuthApiRoute(pathname: string): boolean {
   );
 }
 
+function isUserCreateApiRoute(pathname: string): boolean {
+  return pathname === USER_CREATE_API_ROUTE;
+}
+
 export function isOnboardingRoute(pathname: string): boolean {
   return pathname === ONBOARDING_ROUTE;
 }
@@ -26,7 +31,11 @@ export function isPublicRoute(pathname: string): boolean {
 }
 
 export function shouldBypassAuthGuard(pathname: string): boolean {
-  return isPublicRoute(pathname) || isAuthApiRoute(pathname);
+  return (
+    isPublicRoute(pathname) ||
+    isAuthApiRoute(pathname) ||
+    isUserCreateApiRoute(pathname)
+  );
 }
 
 export function defaultRouteForOrganization(hasOrganization: boolean): string {
