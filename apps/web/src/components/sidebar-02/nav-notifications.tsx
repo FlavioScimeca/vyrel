@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -40,20 +41,22 @@ export function NotificationsPopover({
         <IconBell className="size-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="my-6 w-80" side="right">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {notifications.map(({ id, avatar, fallback, text, time }) => (
-          <DropdownMenuItem className="flex items-start gap-3" key={id}>
-            <Avatar className="size-8">
-              <AvatarImage alt="Avatar" src={avatar} />
-              <AvatarFallback>{fallback}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium text-sm">{text}</span>
-              <span className="text-muted-foreground text-xs">{time}</span>
-            </div>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {notifications.map(({ id, avatar, fallback, text, time }) => (
+            <DropdownMenuItem className="flex items-start gap-3" key={id}>
+              <Avatar className="size-8">
+                <AvatarImage alt="Avatar" src={avatar} />
+                <AvatarFallback>{fallback}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">{text}</span>
+                <span className="text-muted-foreground text-xs">{time}</span>
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="justify-center text-muted-foreground text-sm hover:text-primary">
           View all notifications

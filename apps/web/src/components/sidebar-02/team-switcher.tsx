@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -84,17 +85,19 @@ export function TeamSwitcher({ teams }: { teams: Team[] }) {
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >
-            <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Teams
-            </DropdownMenuLabel>
-            {teams.map((team, index) => (
-              <TeamDropdownItem
-                index={index}
-                key={team.name}
-                onSelect={setActiveTeam}
-                team={team}
-              />
-            ))}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-muted-foreground text-xs">
+                Teams
+              </DropdownMenuLabel>
+              {teams.map((team, index) => (
+                <TeamDropdownItem
+                  index={index}
+                  key={team.name}
+                  onSelect={setActiveTeam}
+                  team={team}
+                />
+              ))}
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 p-2">
               <div className="flex size-6 items-center justify-center rounded-md border bg-background">

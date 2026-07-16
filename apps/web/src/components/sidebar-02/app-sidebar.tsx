@@ -20,8 +20,8 @@ import { motion } from "framer-motion";
 import { VyrelLogo } from "@/components/logo";
 import type { Route } from "@/components/sidebar-02/nav-main";
 import DashboardNavigation from "@/components/sidebar-02/nav-main";
+import { NavManagement } from "@/components/sidebar-02/nav-management";
 import { NotificationsPopover } from "@/components/sidebar-02/nav-notifications";
-import { TeamSwitcher } from "@/components/sidebar-02/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -170,12 +170,6 @@ const dashboardRoutes: Route[] = [
   },
 ];
 
-const teams = [
-  { id: "1", name: "Alpha Inc.", logo: VyrelLogo, plan: "Free" },
-  { id: "2", name: "Beta Corp.", logo: VyrelLogo, plan: "Free" },
-  { id: "3", name: "Gamma Tech", logo: VyrelLogo, plan: "Free" },
-];
-
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -217,7 +211,7 @@ export function DashboardSidebar() {
         <DashboardNavigation routes={dashboardRoutes} />
       </SidebarContent>
       <SidebarFooter className="px-2">
-        <TeamSwitcher teams={teams} />
+        <NavManagement />
       </SidebarFooter>
     </Sidebar>
   );
