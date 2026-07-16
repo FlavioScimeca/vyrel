@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 
 import "./index.css";
+import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApolloProvider } from "@/graphql/apollo/provider";
 import { cn } from "@/lib/utils";
@@ -42,9 +43,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ApolloProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </ApolloProvider>
+        <ThemeProvider>
+          <ApolloProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </ApolloProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

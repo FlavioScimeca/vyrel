@@ -1,14 +1,13 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import {
-  fetchHasOrganizationMembership,
-  isRequestAuthenticated,
-} from "@/lib/proxy-auth";
+import { hasSessionCookie, resolveOrganizationAccess } from "@/lib/proxy-auth";
 import {
   defaultRouteForOrganization,
+  isBackendApiRoute,
   isOnboardingRoute,
   isPublicRoute,
+  shouldBypassAuthGuard,
 } from "@/lib/proxy-routes";
 
 function redirect(request: NextRequest, pathname: string) {
@@ -31,20 +30,23 @@ function redirectToAuth(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isAuthenticated = await isRequestAuthenticated(request);
-
-  if (!isAuthenticated) {
-    if (isPublicRoute(pathname)) {
+  if (!hasSessionCookie(request)) {
+    if (shouldBypassAuthGuard(pathname)) {
       return NextResponse.next();
     }
 
     return redirectToAuth(request);
   }
 
-  const hasOrganization = await fetchHasOrganizationMembership(request);
+  if (isBackendApiRoute(pathname)) {
+    return NextResponse.next();
+  }
 
-  if (hasOrganization === null) {
-    if (isPublicRoute(pathname)) {
+  const { hasOrganizationAccess, isAuthenticated } =
+    await resolveOrganizationAccess(request);
+
+  if (!isAuthenticated) {
+    if (shouldBypassAuthGuard(pathname)) {
       return NextResponse.next();
     }
 
@@ -52,18 +54,21 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isPublicRoute(pathname)) {
-    return redirect(request, defaultRouteForOrganization(hasOrganization));
+    return redirect(
+      request,
+      defaultRouteForOrganization(hasOrganizationAccess)
+    );
   }
 
   if (isOnboardingRoute(pathname)) {
-    if (hasOrganization) {
+    if (hasOrganizationAccess) {
       return redirect(request, "/dashboard");
     }
 
     return NextResponse.next();
   }
 
-  if (!hasOrganization) {
+  if (!hasOrganizationAccess) {
     return redirect(request, "/onboarding");
   }
 

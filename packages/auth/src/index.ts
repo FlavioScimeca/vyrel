@@ -3,6 +3,7 @@ import { db } from "@vyrel/db";
 import {
   account,
   invitation,
+  jwks,
   member,
   organization,
   session,
@@ -19,8 +20,8 @@ export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,
-      sameSite: "none",
-      secure: true,
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+      secure: env.NODE_ENV === "production",
     },
   },
   database: drizzleAdapter(db, {
@@ -29,6 +30,7 @@ export const auth = betterAuth({
     schema: {
       account,
       invitation,
+      jwks,
       member,
       organization,
       session,
@@ -40,7 +42,30 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
-    organizationPlugin(),
+    organizationPlugin({
+      schema: {
+        organization: {
+          additionalFields: {
+            imageAssetId: {
+              required: false,
+              type: "string",
+            },
+            imageFull: {
+              required: false,
+              type: "string",
+            },
+            imagePlaceholder: {
+              required: false,
+              type: "string",
+            },
+            imageThumb: {
+              required: false,
+              type: "string",
+            },
+          },
+        },
+      },
+    }),
     jwt({
       jwt: {
         expirationTime: JWT_EXPIRATION_TIME,
@@ -48,4 +73,24 @@ export const auth = betterAuth({
     }),
   ],
   trustedOrigins: [env.CORS_ORIGIN],
+  user: {
+    additionalFields: {
+      imageAssetId: {
+        required: false,
+        type: "string",
+      },
+      imageFull: {
+        required: false,
+        type: "string",
+      },
+      imagePlaceholder: {
+        required: false,
+        type: "string",
+      },
+      imageThumb: {
+        required: false,
+        type: "string",
+      },
+    },
+  },
 });

@@ -31,7 +31,8 @@
     ]
   },
   "javascript": {
-    "globals": ["Bun", "defineBackground", "defineContentScript", "browser"]
+    "globals": ["Bun", "defineBackground", "defineContentScript", "browser"],
+    "experimentalEmbeddedSnippetsEnabled": true
   },
   "linter": {
     "domains": {

@@ -38,7 +38,6 @@ export type UpdateAuthUserBody = {
   imagePlaceholder?: string | null;
   imageThumb?: string | null;
   name?: string;
-  printifyToken?: string;
 };
 
 export type DeleteAuthUserInput = {
@@ -49,9 +48,7 @@ export type DeleteAuthUserInput = {
 
 type SignUpResponseBody = {
   token: string | null;
-  user: AuthUserProfile & {
-    printifyToken?: string;
-  };
+  user: AuthUserProfile;
 };
 
 function sanitizeUser(value: SignUpResponseBody["user"]): AuthUserProfile {

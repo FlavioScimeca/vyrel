@@ -1,7 +1,25 @@
+"""Create a task in an organization the caller belongs to."""
+input CreateTask {
+  description: String
+  image: File
+  organizationId: String!
+  title: String!
+}
+
 """
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
 """
 scalar DateTime
+
+"""Delete an organization the caller belongs to."""
+input DeleteOrganization {
+  organizationId: String!
+}
+
+"""Delete a task in an organization the caller belongs to."""
+input DeleteTask {
+  taskId: String!
+}
 
 """Delete the current authenticated user account."""
 input DeleteUser {
@@ -19,15 +37,56 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 scalar JSON
 
 type Mutation {
+  createTask(input: CreateTask!): Task
+  deleteOrganization(input: DeleteOrganization!): String
+  deleteTask(input: DeleteTask!): String
   deleteUser(input: DeleteUser!): String
+  updateOrganization(input: UpdateOrganization!): Organization
+  updateTask(input: UpdateTask!): Task
   updateUser(input: UpdateUser!): User
+}
+
+"""Organization model"""
+type Organization {
+  createdAt: DateTime!
+  imageFull: String
+  imageThumb: String
+  logo: String
+  metadata: String
+  name: String!
+  slug: String!
 }
 
 type Query {
   health: String
 
+  """Get an organization by id"""
+  organization(id: ID!): Organization
+
+  """List organizations for the authenticated user"""
+  organizations: [Organization!]!
+
+  """Get a task by id"""
+  task(id: ID!): Task
+
+  """List tasks for an organization the caller belongs to"""
+  tasks(organizationId: ID!): [Task!]!
+
   """Get a user by id"""
   user(id: ID!): User
+}
+
+"""Task model"""
+type Task {
+  createdAt: DateTime!
+  createdById: String!
+  description: String
+  id: ID!
+  imageFull: String
+  imageThumb: String
+  organizationId: String!
+  title: String!
+  updatedAt: DateTime!
 }
 
 """
@@ -35,10 +94,25 @@ A field whose value conforms to the standard URL format as specified in RFC3986:
 """
 scalar URL
 
+"""Update an organization the caller belongs to."""
+input UpdateOrganization {
+  logo: File
+  name: String
+  organizationId: String!
+  slug: String
+}
+
+"""Update a task in an organization the caller belongs to."""
+input UpdateTask {
+  description: String
+  image: File
+  taskId: String!
+  title: String
+}
+
 """Update the current authenticated user profile."""
 input UpdateUser {
   avatar: File
-  callbackURL: URL
   name: String
 }
 
