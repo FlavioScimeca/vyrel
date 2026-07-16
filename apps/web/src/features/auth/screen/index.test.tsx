@@ -1,22 +1,20 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthMode } from "@/features/auth/form.schema";
 import { AuthForm, AuthScreen } from "./index";
 
 const mocks = vi.hoisted(() => ({
   createAccount: vi.fn(),
-  replace: vi.fn(),
   search: "",
   signInEmail: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
@@ -40,8 +38,24 @@ function AuthFormHarness({
   onSuccess: () => Promise<void>;
 }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const switchToSignIn = useCallback(() => {
+    setMode("signin");
+  }, []);
+  const switchToSignUp = useCallback(() => {
+    setMode("signup");
+  }, []);
 
-  return <AuthForm mode={mode} onModeChange={setMode} onSuccess={onSuccess} />;
+  return (
+    <>
+      <button onClick={switchToSignIn} type="button">
+        Switch to sign in
+      </button>
+      <button onClick={switchToSignUp} type="button">
+        Switch to sign up
+      </button>
+      <AuthForm mode={mode} onSuccess={onSuccess} />
+    </>
+  );
 }
 
 afterEach(() => {
@@ -51,15 +65,13 @@ afterEach(() => {
 beforeEach(() => {
   mocks.createAccount.mockReset();
   mocks.createAccount.mockResolvedValue({ ok: true });
-  mocks.replace.mockReset();
   mocks.search = "";
   mocks.signInEmail.mockReset();
   mocks.signInEmail.mockResolvedValue({ error: null });
 });
 
 describe("AuthScreen", () => {
-  it("shows sign in fields by default and keeps mode in the URL", async () => {
-    const user = userEvent.setup();
+  it("shows sign in fields by default and links to sign up mode", () => {
     const view = render(<AuthScreen />);
 
     expect(screen.getByText("Welcome back")).toBeVisible();
@@ -69,11 +81,12 @@ describe("AuthScreen", () => {
       "current-password"
     );
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: "Sign up" }));
-    expect(mocks.replace).toHaveBeenCalledWith("/auth?mode=signup", {
-      scroll: false,
-    });
+    expect(
+      screen.getByRole("link", { name: "Register a new account" })
+    ).toHaveAttribute("href", "/auth?mode=signup");
+    expect(
+      screen.getByRole("link", { name: "Forgot password?" })
+    ).toHaveAttribute("href", "/auth/reset-password");
 
     mocks.search = "mode=signup";
     view.rerender(<AuthScreen />);
@@ -81,6 +94,12 @@ describe("AuthScreen", () => {
     expect(screen.getByText("Create an account")).toBeVisible();
     expect(screen.getByLabelText("Name")).toBeVisible();
     expect(screen.getByLabelText("Confirm password")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Log in to an existing account" })
+    ).toHaveAttribute("href", "/auth");
+    expect(
+      screen.queryByRole("link", { name: "Forgot password?" })
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -91,15 +110,15 @@ describe("AuthForm", () => {
 
     await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "password123");
-    await user.click(screen.getByRole("tab", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Switch to sign up" }));
 
     expect(screen.getByLabelText("Email")).toHaveValue("person@example.com");
     expect(screen.getByLabelText("Password")).toHaveValue("password123");
 
     await user.type(screen.getByLabelText("Name"), "Test Person");
     await user.type(screen.getByLabelText("Confirm password"), "password123");
-    await user.click(screen.getByRole("tab", { name: "Sign in" }));
-    await user.click(screen.getByRole("tab", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Switch to sign in" }));
+    await user.click(screen.getByRole("button", { name: "Switch to sign up" }));
 
     expect(screen.getByLabelText("Email")).toHaveValue("person@example.com");
     expect(screen.getByLabelText("Password")).toHaveValue("password123");
@@ -114,8 +133,8 @@ describe("AuthForm", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("Name is required")).toBeVisible();
 
-    await user.click(screen.getByRole("tab", { name: "Sign in" }));
-    await user.click(screen.getByRole("tab", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Switch to sign in" }));
+    await user.click(screen.getByRole("button", { name: "Switch to sign up" }));
 
     expect(screen.queryByText("Name is required")).not.toBeInTheDocument();
   });
@@ -174,31 +193,5 @@ describe("AuthForm", () => {
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("Invalid credentials")).toBeVisible();
-  });
-
-  it("disables mode switching while a submission is pending", async () => {
-    let finishSignIn: (result: { error: { message: string } | null }) => void =
-      () => undefined;
-    mocks.signInEmail.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishSignIn = resolve;
-        })
-    );
-    const user = userEvent.setup();
-    render(<AuthFormHarness onSuccess={vi.fn()} />);
-
-    await user.type(screen.getByLabelText("Email"), "person@example.com");
-    await user.type(screen.getByLabelText("Password"), "password123");
-    await user.click(screen.getByRole("button", { name: "Sign in" }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "Sign in" })).toBeDisabled();
-      expect(screen.getByRole("tab", { name: "Sign up" })).toBeDisabled();
-    });
-
-    act(() => {
-      finishSignIn({ error: { message: "Stopped" } });
-    });
   });
 });

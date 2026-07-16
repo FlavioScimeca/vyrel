@@ -3,19 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Route } from "next";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { VyrelLogo } from "@/components/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Field,
   FieldError,
@@ -24,6 +17,10 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  AuthPageBackdrop,
+  AuthVisualPanel,
+} from "@/features/auth/components/auth-visual-panel";
 import { SignUpAvatarField } from "@/features/auth/components/sign-up-avatar-field";
 import { createAccount } from "@/features/auth/create-account";
 import {
@@ -36,31 +33,34 @@ import {
 } from "@/features/auth/form.schema";
 import { resolvePostAuthRedirect } from "@/features/auth/resolve-post-auth-redirect";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 const AUTH_FORM_ID = "auth-form";
+const LINK_CLASS =
+  "text-muted-foreground text-sm hover:text-foreground hover:underline";
+
+function buildAuthModeHref(
+  mode: AuthMode,
+  searchParams: URLSearchParams
+): Route {
+  const params = new URLSearchParams(searchParams.toString());
+
+  if (mode === "signup") {
+    params.set("mode", "signup");
+  } else {
+    params.delete("mode");
+  }
+
+  const query = params.toString();
+  return (query.length > 0 ? `/auth?${query}` : "/auth") as Route;
+}
 
 export function AuthScreen() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const mode = parseAuthMode(searchParams.get("mode"));
-
-  const setMode = useCallback(
-    (nextMode: AuthMode) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (nextMode === "signup") {
-        params.set("mode", "signup");
-      } else {
-        params.delete("mode");
-      }
-
-      const query = params.toString();
-      router.replace(query.length > 0 ? `/auth?${query}` : "/auth", {
-        scroll: false,
-      });
-    },
-    [router, searchParams]
-  );
+  const isSignUp = mode === "signup";
+  const signInHref = buildAuthModeHref("signin", searchParams);
+  const signUpHref = buildAuthModeHref("signup", searchParams);
 
   const onAuthSuccess = useCallback(async () => {
     const destination = await resolvePostAuthRedirect(searchParams.get("next"));
@@ -68,97 +68,87 @@ export function AuthScreen() {
   }, [searchParams]);
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="font-heading text-2xl tracking-tight">
-            {mode === "signin" ? "Welcome back" : "Create an account"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "signin"
-              ? "Sign in to continue to Vyrel."
-              : "Enter your details to get started."}
-          </CardDescription>
-        </CardHeader>
+    <div className="relative min-h-svh bg-background text-foreground">
+      <AuthPageBackdrop />
+      <div className="relative mx-auto flex min-h-svh max-w-[1440px] items-stretch p-4 md:p-10 lg:p-16">
+        <div
+          className={cn(
+            "relative grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-foreground/10",
+            isSignUp
+              ? "lg:grid-cols-[1fr_minmax(440px,560px)]"
+              : "lg:grid-cols-[minmax(440px,560px)_1fr]"
+          )}
+        >
+          <div
+            className={cn(
+              "relative flex min-h-[680px] flex-col overflow-y-auto bg-card text-foreground",
+              isSignUp ? "lg:order-2" : "lg:order-1"
+            )}
+          >
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
+              <div className="flex items-center justify-center">
+                <VyrelLogo className="size-10" />
+              </div>
 
-        <CardContent className="flex flex-col gap-6">
-          <AuthForm
-            mode={mode}
-            onModeChange={setMode}
-            onSuccess={onAuthSuccess}
-          />
-        </CardContent>
+              <div className="mt-12 flex flex-col gap-1.5">
+                <h1 className="font-heading font-semibold text-2xl tracking-tight">
+                  {isSignUp ? "Create an account" : "Welcome back"}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {isSignUp
+                    ? "Enter your details to get started."
+                    : "Sign in to continue to Vyrel."}
+                </p>
+              </div>
 
-        <CardFooter className="justify-center">
-          {mode === "signin" ? (
-            <Link
-              className="text-muted-foreground text-sm hover:text-foreground"
-              href={"/auth/reset-password" as Route}
-            >
-              Forgot your password?
-            </Link>
-          ) : null}
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
+              <div className="mt-6">
+                <AuthForm mode={mode} onSuccess={onAuthSuccess} />
+              </div>
 
-function AuthModeSwitch({
-  disabled,
-  mode,
-  onModeChange,
-}: {
-  disabled: boolean;
-  mode: AuthMode;
-  onModeChange: (mode: AuthMode) => void;
-}) {
-  const selectSignIn = useCallback(() => {
-    onModeChange("signin");
-  }, [onModeChange]);
+              <div className="mt-5 flex items-baseline justify-between gap-4 text-sm">
+                {isSignUp ? (
+                  <Link
+                    className={LINK_CLASS}
+                    href={signInHref}
+                    replace
+                    scroll={false}
+                  >
+                    Log in to an existing account
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      className={LINK_CLASS}
+                      href={signUpHref}
+                      replace
+                      scroll={false}
+                    >
+                      Register a new account
+                    </Link>
+                    <Link
+                      className={LINK_CLASS}
+                      href={"/auth/reset-password" as Route}
+                    >
+                      Forgot password?
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
-  const selectSignUp = useCallback(() => {
-    onModeChange("signup");
-  }, [onModeChange]);
-
-  return (
-    <div
-      className="grid grid-cols-2 rounded-none border border-border p-1"
-      role="tablist"
-    >
-      <Button
-        aria-selected={mode === "signin"}
-        className="w-full"
-        disabled={disabled}
-        onClick={selectSignIn}
-        role="tab"
-        type="button"
-        variant={mode === "signin" ? "secondary" : "ghost"}
-      >
-        Sign in
-      </Button>
-      <Button
-        aria-selected={mode === "signup"}
-        className="w-full"
-        disabled={disabled}
-        onClick={selectSignUp}
-        role="tab"
-        type="button"
-        variant={mode === "signup" ? "secondary" : "ghost"}
-      >
-        Sign up
-      </Button>
+          <AuthVisualPanel className={isSignUp ? "lg:order-1" : "lg:order-2"} />
+        </div>
+      </div>
     </div>
   );
 }
 
 export function AuthForm({
   mode,
-  onModeChange,
   onSuccess,
 }: {
   mode: AuthMode;
-  onModeChange: (mode: AuthMode) => void;
   onSuccess: () => Promise<void>;
 }) {
   const form = useForm<AuthFormValues>({
@@ -183,23 +173,6 @@ export function AuthForm({
         : { ...signUpDefaultValues, email, password }
     );
   }, [form, mode]);
-
-  const changeMode = useCallback(
-    (nextMode: AuthMode) => {
-      if (nextMode === mode) {
-        return;
-      }
-
-      const { email, password } = form.getValues();
-      form.reset(
-        nextMode === "signin"
-          ? { ...signInDefaultValues, email, password }
-          : { ...signUpDefaultValues, email, password }
-      );
-      onModeChange(nextMode);
-    },
-    [form, mode, onModeChange]
-  );
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -255,12 +228,6 @@ export function AuthForm({
 
   return (
     <FormProvider {...form}>
-      <AuthModeSwitch
-        disabled={pending}
-        mode={mode}
-        onModeChange={changeMode}
-      />
-
       <form
         className="flex flex-col gap-4"
         id={AUTH_FORM_ID}
