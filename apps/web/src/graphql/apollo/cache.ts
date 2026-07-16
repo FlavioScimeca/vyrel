@@ -7,6 +7,9 @@ export function createApolloCache(): InMemoryCache {
       Organization: {
         keyFields: ["slug"],
       },
+      Task: {
+        keyFields: ["id"],
+      },
       // User has no `id` in the public schema; email is stable for normalization.
       User: {
         keyFields: ["email"],

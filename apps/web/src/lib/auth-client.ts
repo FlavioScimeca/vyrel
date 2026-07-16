@@ -2,11 +2,7 @@ import { env } from "@vyrel/env/web";
 import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-type AuthClient = ReturnType<typeof createAuthClient>;
-
-let authClientInstance: AuthClient | undefined;
-
-function createWebAuthClient(): AuthClient {
+function createWebAuthClient() {
   return createAuthClient({
     baseURL:
       typeof window === "undefined"
@@ -15,6 +11,10 @@ function createWebAuthClient(): AuthClient {
     plugins: [organizationClient()],
   });
 }
+
+type AuthClient = ReturnType<typeof createWebAuthClient>;
+
+let authClientInstance: AuthClient | undefined;
 
 /** Lazily created so SSR does not pin the API server origin on the client. */
 function getAuthClient(): AuthClient {

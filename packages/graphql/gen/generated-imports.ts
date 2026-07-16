@@ -2,4 +2,5 @@
 // Do not edit it by hand.
 import '../../api/src/models/health.graphql';
 import '../../api/src/models/organization/graphql/organization.graphql';
+import '../../api/src/models/task/graphql/task.graphql';
 import '../../api/src/models/user/graphql/user.graphql';

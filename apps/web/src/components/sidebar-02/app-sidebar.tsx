@@ -4,6 +4,7 @@ import {
   IconActivity,
   IconBuilding,
   IconChartPie,
+  IconChecklist,
   IconHome,
   IconIcons,
   IconInfinity,
@@ -62,6 +63,12 @@ const dashboardRoutes: Route[] = [
     title: "Home",
     icon: <IconHome className="size-4" />,
     link: "#",
+  },
+  {
+    id: "tasks",
+    title: "Tasks",
+    icon: <IconChecklist className="size-4" />,
+    link: "/dashboard/tasks",
   },
   {
     id: "products",

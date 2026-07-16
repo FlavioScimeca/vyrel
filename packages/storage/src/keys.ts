@@ -90,3 +90,13 @@ export function organizationPlaceholderObjectKeys(): {
     thumbKey: `assets/org/placeholder/thumb.${storageKeyLayout.extensions.thumb}`,
   };
 }
+
+export function taskImageObjectKeys(taskId: string): {
+  thumbKey: string;
+  fullKey: string;
+} {
+  return {
+    fullKey: `tasks/${taskId}/image/full.${storageKeyLayout.extensions.thumb}`,
+    thumbKey: `tasks/${taskId}/image/thumb.${storageKeyLayout.extensions.thumb}`,
+  };
+}
