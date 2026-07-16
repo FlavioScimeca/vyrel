@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,20 +27,17 @@ import { Spinner } from "@/components/ui/spinner";
 import { SignUpAvatarField } from "@/features/auth/components/sign-up-avatar-field";
 import { createAccount } from "@/features/auth/create-account";
 import {
+  type AuthFormValues,
   type AuthMode,
+  authFormSchema,
   parseAuthMode,
-  type SignInFormValues,
-  type SignUpFormValues,
   signInDefaultValues,
-  signInFormSchema,
   signUpDefaultValues,
-  signUpFormSchema,
 } from "@/features/auth/form.schema";
 import { resolvePostAuthRedirect } from "@/features/auth/resolve-post-auth-redirect";
 import { authClient } from "@/lib/auth-client";
 
-const SIGN_IN_FORM_ID = "auth-sign-in-form";
-const SIGN_UP_FORM_ID = "auth-sign-up-form";
+const AUTH_FORM_ID = "auth-form";
 
 export function AuthScreen() {
   const router = useRouter();
@@ -85,13 +82,11 @@ export function AuthScreen() {
         </CardHeader>
 
         <CardContent className="flex flex-col gap-6">
-          <AuthModeSwitch mode={mode} onModeChange={setMode} />
-
-          {mode === "signin" ? (
-            <SignInForm formId={SIGN_IN_FORM_ID} onSuccess={onAuthSuccess} />
-          ) : (
-            <SignUpForm formId={SIGN_UP_FORM_ID} onSuccess={onAuthSuccess} />
-          )}
+          <AuthForm
+            mode={mode}
+            onModeChange={setMode}
+            onSuccess={onAuthSuccess}
+          />
         </CardContent>
 
         <CardFooter className="justify-center">
@@ -110,9 +105,11 @@ export function AuthScreen() {
 }
 
 function AuthModeSwitch({
+  disabled,
   mode,
   onModeChange,
 }: {
+  disabled: boolean;
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
 }) {
@@ -132,6 +129,7 @@ function AuthModeSwitch({
       <Button
         aria-selected={mode === "signin"}
         className="w-full"
+        disabled={disabled}
         onClick={selectSignIn}
         role="tab"
         type="button"
@@ -142,6 +140,7 @@ function AuthModeSwitch({
       <Button
         aria-selected={mode === "signup"}
         className="w-full"
+        disabled={disabled}
         onClick={selectSignUp}
         role="tab"
         type="button"
@@ -153,207 +152,201 @@ function AuthModeSwitch({
   );
 }
 
-function SignInForm({
-  formId,
+export function AuthForm({
+  mode,
+  onModeChange,
   onSuccess,
 }: {
-  formId: string;
+  mode: AuthMode;
+  onModeChange: (mode: AuthMode) => void;
   onSuccess: () => Promise<void>;
 }) {
-  const form = useForm<SignInFormValues>({
-    defaultValues: signInDefaultValues,
-    resolver: zodResolver(signInFormSchema),
+  const form = useForm<AuthFormValues>({
+    defaultValues:
+      mode === "signin" ? signInDefaultValues : signUpDefaultValues,
+    resolver: zodResolver(authFormSchema),
+    shouldUnregister: true,
   });
   const pending = form.formState.isSubmitting;
+  const isSignUp = mode === "signup";
+  const submitLabel = isSignUp ? "Create account" : "Sign in";
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    form.clearErrors("root");
-
-    const { error } = await authClient.signIn.email({
-      email: values.email,
-      password: values.password,
-    });
-
-    if (error) {
-      form.setError("root", {
-        message: error.message ?? "Unable to sign in.",
-      });
+  useEffect(() => {
+    if (form.getValues("mode") === mode) {
       return;
     }
 
-    try {
-      await onSuccess();
-    } catch (err) {
-      form.setError("root", {
-        message: err instanceof Error ? err.message : "Unable to sign in.",
-      });
-    }
-  });
+    const { email, password } = form.getValues();
+    form.reset(
+      mode === "signin"
+        ? { ...signInDefaultValues, email, password }
+        : { ...signUpDefaultValues, email, password }
+    );
+  }, [form, mode]);
 
-  const emailError = form.formState.errors.email;
-  const passwordError = form.formState.errors.password;
+  const changeMode = useCallback(
+    (nextMode: AuthMode) => {
+      if (nextMode === mode) {
+        return;
+      }
 
-  return (
-    <form className="flex flex-col gap-4" id={formId} onSubmit={onSubmit}>
-      <FieldGroup>
-        <Field data-invalid={emailError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-email`}>Email</FieldLabel>
-          <Input
-            aria-invalid={emailError !== undefined}
-            autoComplete="email"
-            id={`${formId}-email`}
-            placeholder="you@example.com"
-            type="email"
-            {...form.register("email")}
-          />
-          {emailError ? <FieldError errors={[emailError]} /> : null}
-        </Field>
-
-        <Field data-invalid={passwordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-password`}>Password</FieldLabel>
-          <Input
-            aria-invalid={passwordError !== undefined}
-            autoComplete="current-password"
-            id={`${formId}-password`}
-            placeholder="Your password"
-            type="password"
-            {...form.register("password")}
-          />
-          {passwordError ? <FieldError errors={[passwordError]} /> : null}
-        </Field>
-      </FieldGroup>
-
-      <FormRootError message={form.formState.errors.root?.message} />
-
-      <Button disabled={pending} form={formId} size="lg" type="submit">
-        {pending ? <Spinner className="size-4" /> : "Sign in"}
-      </Button>
-    </form>
+      const { email, password } = form.getValues();
+      form.reset(
+        nextMode === "signin"
+          ? { ...signInDefaultValues, email, password }
+          : { ...signUpDefaultValues, email, password }
+      );
+      onModeChange(nextMode);
+    },
+    [form, mode, onModeChange]
   );
-}
-
-function SignUpForm({
-  formId,
-  onSuccess,
-}: {
-  formId: string;
-  onSuccess: () => Promise<void>;
-}) {
-  const form = useForm<SignUpFormValues>({
-    defaultValues: signUpDefaultValues,
-    resolver: zodResolver(signUpFormSchema),
-  });
-
-  const pending = form.formState.isSubmitting;
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
 
-    const result = await createAccount({
-      avatar: values.avatar,
-      email: values.email,
-      name: values.name,
-      password: values.password,
-    });
-
-    if (!result.ok) {
-      form.setError("root", {
-        message: result.message,
+    if (values.mode === "signin") {
+      const { error } = await authClient.signIn.email({
+        email: values.email,
+        password: values.password,
       });
-      return;
+
+      if (error) {
+        form.setError("root", {
+          message: error.message ?? "Unable to sign in.",
+        });
+        return;
+      }
+    } else {
+      const result = await createAccount({
+        avatar: values.avatar,
+        email: values.email,
+        name: values.name,
+        password: values.password,
+      });
+
+      if (!result.ok) {
+        form.setError("root", {
+          message: result.message,
+        });
+        return;
+      }
     }
 
     try {
       await onSuccess();
     } catch (err) {
+      const fallbackMessage =
+        values.mode === "signin"
+          ? "Unable to sign in."
+          : "Unable to create account.";
       form.setError("root", {
-        message:
-          err instanceof Error ? err.message : "Unable to create account.",
+        message: err instanceof Error ? err.message : fallbackMessage,
       });
     }
   });
 
-  const avatarError = form.formState.errors.avatar;
-  const nameError = form.formState.errors.name;
+  const nameError = form.getFieldState("name", form.formState).error;
   const emailError = form.formState.errors.email;
   const passwordError = form.formState.errors.password;
-  const confirmPasswordError = form.formState.errors.confirmPassword;
+  const confirmPasswordError = form.getFieldState(
+    "confirmPassword",
+    form.formState
+  ).error;
 
   return (
-    <form className="flex flex-col gap-4" id={formId} onSubmit={onSubmit}>
-      <FieldGroup>
-        <SignUpAvatarField
-          clearErrors={form.clearErrors}
-          control={form.control}
-          error={avatarError}
-          formId={formId}
-          isSubmitting={pending}
-          setError={form.setError}
-        />
+    <FormProvider {...form}>
+      <AuthModeSwitch
+        disabled={pending}
+        mode={mode}
+        onModeChange={changeMode}
+      />
 
-        <Field data-invalid={nameError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-name`}>Name</FieldLabel>
-          <Input
-            aria-invalid={nameError !== undefined}
-            autoComplete="name"
-            id={`${formId}-name`}
-            placeholder="John Doe"
-            type="text"
-            {...form.register("name")}
-          />
-          {nameError ? <FieldError errors={[nameError]} /> : null}
-        </Field>
+      <form
+        className="flex flex-col gap-4"
+        id={AUTH_FORM_ID}
+        onSubmit={onSubmit}
+      >
+        <input type="hidden" {...form.register("mode")} />
 
-        <Field data-invalid={emailError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-email`}>Email</FieldLabel>
-          <Input
-            aria-invalid={emailError !== undefined}
-            autoComplete="email"
-            id={`${formId}-email`}
-            placeholder="you@example.com"
-            type="email"
-            {...form.register("email")}
-          />
-          {emailError ? <FieldError errors={[emailError]} /> : null}
-        </Field>
+        <FieldGroup>
+          {isSignUp ? (
+            <>
+              <SignUpAvatarField formId={AUTH_FORM_ID} />
 
-        <Field data-invalid={passwordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-password`}>Password</FieldLabel>
-          <Input
-            aria-invalid={passwordError !== undefined}
-            autoComplete="new-password"
-            id={`${formId}-password`}
-            placeholder="Create a password"
-            type="password"
-            {...form.register("password")}
-          />
-          {passwordError ? <FieldError errors={[passwordError]} /> : null}
-        </Field>
-
-        <Field data-invalid={confirmPasswordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-confirm-password`}>
-            Confirm password
-          </FieldLabel>
-          <Input
-            aria-invalid={confirmPasswordError !== undefined}
-            autoComplete="new-password"
-            id={`${formId}-confirm-password`}
-            placeholder="Repeat your password"
-            type="password"
-            {...form.register("confirmPassword")}
-          />
-          {confirmPasswordError ? (
-            <FieldError errors={[confirmPasswordError]} />
+              <Field data-invalid={nameError !== undefined}>
+                <FieldLabel htmlFor={`${AUTH_FORM_ID}-name`}>Name</FieldLabel>
+                <Input
+                  aria-invalid={nameError !== undefined}
+                  autoComplete="name"
+                  id={`${AUTH_FORM_ID}-name`}
+                  placeholder="John Doe"
+                  type="text"
+                  {...form.register("name")}
+                />
+                {nameError ? <FieldError errors={[nameError]} /> : null}
+              </Field>
+            </>
           ) : null}
-        </Field>
-      </FieldGroup>
 
-      <FormRootError message={form.formState.errors.root?.message} />
+          <Field data-invalid={emailError !== undefined}>
+            <FieldLabel htmlFor={`${AUTH_FORM_ID}-email`}>Email</FieldLabel>
+            <Input
+              aria-invalid={emailError !== undefined}
+              autoComplete="email"
+              id={`${AUTH_FORM_ID}-email`}
+              placeholder="you@example.com"
+              type="email"
+              {...form.register("email")}
+            />
+            {emailError ? <FieldError errors={[emailError]} /> : null}
+          </Field>
 
-      <Button disabled={pending} form={formId} size="lg" type="submit">
-        {pending ? <Spinner className="size-4" /> : "Create account"}
-      </Button>
-    </form>
+          <Field data-invalid={passwordError !== undefined}>
+            <FieldLabel htmlFor={`${AUTH_FORM_ID}-password`}>
+              Password
+            </FieldLabel>
+            <Input
+              aria-invalid={passwordError !== undefined}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              id={`${AUTH_FORM_ID}-password`}
+              placeholder={isSignUp ? "Create a password" : "Your password"}
+              type="password"
+              {...form.register("password")}
+            />
+            {passwordError ? <FieldError errors={[passwordError]} /> : null}
+          </Field>
+
+          {isSignUp ? (
+            <Field data-invalid={confirmPasswordError !== undefined}>
+              <FieldLabel htmlFor={`${AUTH_FORM_ID}-confirm-password`}>
+                Confirm password
+              </FieldLabel>
+              <Input
+                aria-invalid={confirmPasswordError !== undefined}
+                autoComplete="new-password"
+                id={`${AUTH_FORM_ID}-confirm-password`}
+                placeholder="Repeat your password"
+                type="password"
+                {...form.register("confirmPassword")}
+              />
+              {confirmPasswordError ? (
+                <FieldError errors={[confirmPasswordError]} />
+              ) : null}
+            </Field>
+          ) : null}
+        </FieldGroup>
+
+        <FormRootError message={form.formState.errors.root?.message} />
+
+        <Button disabled={pending} form={AUTH_FORM_ID} size="lg" type="submit">
+          {pending ? (
+            <Spinner className="size-4" />
+          ) : (
+            <span>{submitLabel}</span>
+          )}
+        </Button>
+      </form>
+    </FormProvider>
   );
 }
 

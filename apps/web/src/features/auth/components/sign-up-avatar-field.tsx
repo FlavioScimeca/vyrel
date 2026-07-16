@@ -4,11 +4,9 @@ import { IconUser, IconX } from "@tabler/icons-react";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
-  type Control,
   type FieldError as RhfFieldError,
-  type UseFormClearErrors,
-  type UseFormSetError,
   useController,
+  useFormContext,
 } from "react-hook-form";
 
 import {
@@ -23,7 +21,7 @@ import {
 } from "@/components/ui/attachment";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import type { SignUpFormValues } from "@/features/auth/form.schema";
+import type { AuthFormValues } from "@/features/auth/form.schema";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -99,15 +97,6 @@ function renderAttachmentMedia({
   );
 }
 
-type SignUpAvatarFieldProps = {
-  clearErrors: UseFormClearErrors<SignUpFormValues>;
-  control: Control<SignUpFormValues>;
-  error?: RhfFieldError;
-  formId: string;
-  isSubmitting: boolean;
-  setError: UseFormSetError<SignUpFormValues>;
-};
-
 function AvatarAttachment({
   clearErrors,
   error,
@@ -118,14 +107,14 @@ function AvatarAttachment({
   onChange,
   setError,
 }: {
-  clearErrors: UseFormClearErrors<SignUpFormValues>;
+  clearErrors: (name: "avatar") => void;
   error?: RhfFieldError;
   file?: File;
   formId: string;
   inputId: string;
   isSubmitting: boolean;
   onChange: (value: File | undefined) => void;
-  setError: UseFormSetError<SignUpFormValues>;
+  setError: (name: "avatar", error: { message: string }) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -258,8 +247,8 @@ function AvatarAttachment({
 }
 
 type AvatarAttachmentControllerProps = Omit<
-  SignUpAvatarFieldProps,
-  "control"
+  Parameters<typeof AvatarAttachment>[0],
+  "file"
 > & {
   inputId: string;
   onChange: (value: File | undefined) => void;
@@ -290,16 +279,12 @@ function AvatarAttachmentController({
   );
 }
 
-export function SignUpAvatarField({
-  clearErrors,
-  control,
-  error,
-  formId,
-  isSubmitting,
-  setError,
-}: SignUpAvatarFieldProps) {
+export function SignUpAvatarField({ formId }: { formId: string }) {
   const inputId = useId();
+  const { clearErrors, control, formState, getFieldState, setError } =
+    useFormContext<AuthFormValues>();
   const { field } = useController({ control, name: "avatar" });
+  const { error } = getFieldState("avatar", formState);
 
   return (
     <AvatarAttachmentController
@@ -307,7 +292,7 @@ export function SignUpAvatarField({
       error={error}
       formId={formId}
       inputId={inputId}
-      isSubmitting={isSubmitting}
+      isSubmitting={formState.isSubmitting}
       onChange={field.onChange}
       setError={setError}
       value={field.value}
