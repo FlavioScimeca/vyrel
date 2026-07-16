@@ -18,6 +18,16 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
+vi.mock("framer-motion", async () => {
+  const actual =
+    await vi.importActual<typeof import("framer-motion")>("framer-motion");
+
+  return {
+    ...actual,
+    useReducedMotion: () => true,
+  };
+});
+
 vi.mock("@/features/auth/create-account", () => ({
   createAccount: mocks.createAccount,
 }));

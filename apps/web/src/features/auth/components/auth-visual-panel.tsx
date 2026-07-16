@@ -122,7 +122,7 @@ export function AuthVisualPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative hidden overflow-hidden bg-[#0a0a0c] lg:block",
+        "relative h-full min-h-[680px] overflow-hidden bg-[#0a0a0c]",
         className
       )}
     >
