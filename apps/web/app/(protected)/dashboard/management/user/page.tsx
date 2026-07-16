@@ -1,3 +1,5 @@
+import ManageUser from "@/features/dashboard/user/screen/manage-user";
+
 export default function ManagementUserPage() {
-  return <div>ManagementUserPage</div>;
+  return <ManageUser />;
 }
