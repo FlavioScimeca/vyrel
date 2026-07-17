@@ -127,16 +127,16 @@ export function HeroSection() {
                   <Image
                     alt="app screen"
                     className="relative hidden aspect-15/8 rounded-2xl bg-background dark:block"
-                    height="1440"
+                    height={720}
                     src="/mail2.png"
-                    width="2700"
+                    width={1350}
                   />
                   <Image
                     alt="app screen"
                     className="relative z-2 aspect-15/8 rounded-2xl border border-border/25 dark:hidden"
-                    height="1440"
+                    height={720}
                     src="/mail2-light.png"
-                    width="2700"
+                    width={1350}
                   />
                 </div>
               </div>

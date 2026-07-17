@@ -96,7 +96,7 @@ export const HeroHeader = () => {
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                 <Button
                   render={
-                    <Link href={"#" as Route}>
+                    <Link href={"/auth"}>
                       <span>Login</span>
                     </Link>
                   }
@@ -105,7 +105,7 @@ export const HeroHeader = () => {
                 />
                 <Button
                   render={
-                    <Link href={"#" as Route}>
+                    <Link href={"/auth?mode=signup"}>
                       <span>Sign Up</span>
                     </Link>
                   }

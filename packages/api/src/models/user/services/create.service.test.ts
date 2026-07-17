@@ -19,6 +19,8 @@ vi.mock("@vyrel/env/server", () => ({
     R2_BUCKET_NAME: "test-bucket",
     R2_SECRET_ACCESS_KEY: "test-secret-key",
     R2_SIGNED_URL_TTL_SECONDS: 3600,
+    RESEND_API_KEY: "re_test_key",
+    RESEND_FROM_EMAIL: "onboarding@resend.dev",
   },
 }));
 
@@ -87,6 +89,13 @@ describe("createUser soft-fail media", () => {
         new Headers()
       );
 
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callbackURL: "http://localhost:3001/auth/verified",
+          email: "a@b.com",
+        }),
+        expect.any(Headers)
+      );
       expect(result.setCookies).toEqual(signUpResult.setCookies);
       expect(result.mediaWarning).toBeUndefined();
       expect(uploadUserAvatar).not.toHaveBeenCalled();

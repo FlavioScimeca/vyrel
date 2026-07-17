@@ -5,8 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { type ReactNode, useCallback, useEffect } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { type ReactNode, useCallback, useEffect, useMemo } from "react";
+import {
+  type FieldErrors,
+  FormProvider,
+  type Resolver,
+  useForm,
+  useFormState,
+} from "react-hook-form";
 import { VyrelLogo } from "@/components/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -29,6 +35,7 @@ import {
   type AuthMode,
   authFormSchema,
   parseAuthMode,
+  type SignUpFormValues,
   signInDefaultValues,
   signUpDefaultValues,
 } from "@/features/auth/form.schema";
@@ -203,14 +210,24 @@ export function AuthForm({
   mode: AuthMode;
   onSuccessAction: () => Promise<void>;
 }) {
+  const isSignUp = mode === "signup";
+  const resolver = useMemo<Resolver<AuthFormValues>>(
+    () => (values, context, options) =>
+      zodResolver(authFormSchema)(
+        { ...values, mode } as AuthFormValues,
+        context,
+        options
+      ),
+    [mode]
+  );
   const form = useForm<AuthFormValues>({
     defaultValues:
       mode === "signin" ? signInDefaultValues : signUpDefaultValues,
-    resolver: zodResolver(authFormSchema),
+    resolver,
     shouldUnregister: true,
   });
-  const pending = form.formState.isSubmitting;
-  const isSignUp = mode === "signup";
+  const { errors, isSubmitting } = useFormState({ control: form.control });
+  const pending = isSubmitting;
   const submitLabel = isSignUp ? "Create account" : "Sign in";
   const prefersReducedMotion = useReducedMotion();
   const fieldTransition: MotionTransition = prefersReducedMotion
@@ -232,7 +249,8 @@ export function AuthForm({
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
-    const result = await authenticate(values);
+    const authValues = { ...values, mode } as AuthFormValues;
+    const result = await authenticate(authValues);
 
     if (!result.ok) {
       form.setError("root", { message: result.message });
@@ -242,23 +260,22 @@ export function AuthForm({
     try {
       await onSuccessAction();
     } catch (err) {
-      const fallbackMessage =
-        values.mode === "signin"
-          ? "Unable to sign in."
-          : "Unable to create account.";
+      const fallbackMessage = isSignUp
+        ? "Unable to create account."
+        : "Unable to sign in.";
       form.setError("root", {
         message: err instanceof Error ? err.message : fallbackMessage,
       });
     }
   });
 
-  const nameError = form.getFieldState("name", form.formState).error;
-  const emailError = form.formState.errors.email;
-  const passwordError = form.formState.errors.password;
-  const confirmPasswordError = form.getFieldState(
-    "confirmPassword",
-    form.formState
-  ).error;
+  const signUpErrors = isSignUp
+    ? (errors as FieldErrors<SignUpFormValues>)
+    : undefined;
+  const nameError = signUpErrors?.name;
+  const emailError = errors.email;
+  const passwordError = errors.password;
+  const confirmPasswordError = signUpErrors?.confirmPassword;
 
   return (
     <FormProvider {...form}>
@@ -267,8 +284,6 @@ export function AuthForm({
         id={AUTH_FORM_ID}
         onSubmit={onSubmit}
       >
-        <input type="hidden" {...form.register("mode")} />
-
         <FieldGroup>
           <AnimatedSignUpBlock
             prefersReducedMotion={Boolean(prefersReducedMotion)}
@@ -281,6 +296,7 @@ export function AuthForm({
                 <FieldLabel htmlFor={`${AUTH_FORM_ID}-name`}>Name</FieldLabel>
                 <Input
                   aria-invalid={nameError !== undefined}
+                  aria-required={true}
                   autoComplete="name"
                   id={`${AUTH_FORM_ID}-name`}
                   placeholder="John Doe"
@@ -344,7 +360,7 @@ export function AuthForm({
           </AnimatedSignUpBlock>
         </FieldGroup>
 
-        <FormRootError message={form.formState.errors.root?.message} />
+        <FormRootError message={errors.root?.message} />
 
         <Button disabled={pending} form={AUTH_FORM_ID} size="lg" type="submit">
           {pending ? (

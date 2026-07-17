@@ -16,6 +16,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 
+import { VerifyEmail } from "./emails/verify-email";
+import { sendEmail } from "./lib/email";
+
 export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
@@ -40,6 +43,22 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+  },
+  emailVerification: {
+    autoSignInAfterVerification: true,
+    sendOnSignUp: true,
+    sendVerificationEmail: ({ user: authUser, url }) => {
+      // Start send without awaiting so Better Auth can return immediately.
+      sendEmail({
+        react: VerifyEmail({
+          username: authUser.name,
+          verifyUrl: url,
+        }),
+        subject: "Verify your email",
+        to: authUser.email,
+      }).catch(() => undefined);
+      return Promise.resolve();
+    },
   },
   plugins: [
     organizationPlugin({

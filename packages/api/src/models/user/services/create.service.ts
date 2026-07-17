@@ -1,3 +1,4 @@
+import { env } from "@vyrel/env/server";
 import { Effect } from "effect";
 
 import {
@@ -16,6 +17,8 @@ import { uploadUserAvatar } from "./avatar.service";
 
 export type CreateUserResult = WithMediaWarning<SignUpEmailResult>;
 
+const emailVerifiedCallbackURL = `${env.CORS_ORIGIN.replace(/\/$/, "")}/auth/verified`;
+
 export const createUser = (
   input: UserTypeCreate,
   requestHeaders: Headers
@@ -32,6 +35,7 @@ export const createUser = (
     const { avatar, email, name, password } = safeValues.data;
     const signUp = yield* signUpEmail(
       {
+        callbackURL: emailVerifiedCallbackURL,
         email,
         name,
         password,
