@@ -18,11 +18,11 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
-import { VyrelLogo } from "@/components/logo";
 import type { Route } from "@/components/sidebar-02/nav-main";
 import DashboardNavigation from "@/components/sidebar-02/nav-main";
 import { NavManagement } from "@/components/sidebar-02/nav-management";
 import { NotificationsPopover } from "@/components/sidebar-02/nav-notifications";
+import { OrganizationSwitcher } from "@/components/sidebar-02/organization-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -191,14 +191,7 @@ export function DashboardSidebar() {
             : "flex-row items-center justify-between"
         )}
       >
-        <a className="flex items-center gap-2" href="/">
-          <VyrelLogo className="h-8 w-8" />
-          {!isCollapsed && (
-            <span className="font-semibold text-black dark:text-white">
-              Vyrel
-            </span>
-          )}
-        </a>
+        <OrganizationSwitcher />
 
         <motion.div
           animate={{ opacity: 1 }}

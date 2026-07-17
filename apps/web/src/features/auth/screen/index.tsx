@@ -1,21 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { type ReactNode, useCallback, useEffect } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { VyrelLogo } from "@/components/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Field,
   FieldError,
@@ -24,46 +18,64 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  AuthPageBackdrop,
+  AuthVisualPanel,
+} from "@/features/auth/components/auth-visual-panel";
 import { SignUpAvatarField } from "@/features/auth/components/sign-up-avatar-field";
 import { createAccount } from "@/features/auth/create-account";
 import {
+  type AuthFormValues,
   type AuthMode,
+  authFormSchema,
   parseAuthMode,
-  type SignInFormValues,
-  type SignUpFormValues,
   signInDefaultValues,
-  signInFormSchema,
   signUpDefaultValues,
-  signUpFormSchema,
 } from "@/features/auth/form.schema";
 import { resolvePostAuthRedirect } from "@/features/auth/resolve-post-auth-redirect";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
-const SIGN_IN_FORM_ID = "auth-sign-in-form";
-const SIGN_UP_FORM_ID = "auth-sign-up-form";
+const AUTH_FORM_ID = "auth-form";
+const LINK_CLASS =
+  "text-muted-foreground text-sm hover:text-foreground hover:underline";
+
+const SHELL_EASE = [0.22, 1, 0.36, 1] as const;
+
+type MotionTransition = {
+  duration: number;
+  ease?: typeof SHELL_EASE;
+};
+
+function buildAuthModeHref(
+  mode: AuthMode,
+  searchParams: URLSearchParams
+): Route {
+  const params = new URLSearchParams(searchParams.toString());
+
+  if (mode === "signup") {
+    params.set("mode", "signup");
+  } else {
+    params.delete("mode");
+  }
+
+  const query = params.toString();
+  return (query.length > 0 ? `/auth?${query}` : "/auth") as Route;
+}
 
 export function AuthScreen() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const mode = parseAuthMode(searchParams.get("mode"));
-
-  const setMode = useCallback(
-    (nextMode: AuthMode) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (nextMode === "signup") {
-        params.set("mode", "signup");
-      } else {
-        params.delete("mode");
-      }
-
-      const query = params.toString();
-      router.replace(query.length > 0 ? `/auth?${query}` : "/auth", {
-        scroll: false,
-      });
-    },
-    [router, searchParams]
-  );
+  const isSignUp = mode === "signup";
+  const signInHref = buildAuthModeHref("signin", searchParams);
+  const signUpHref = buildAuthModeHref("signup", searchParams);
+  const prefersReducedMotion = useReducedMotion();
+  const shellTransition: MotionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.45, ease: SHELL_EASE };
+  const fadeTransition: MotionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.2, ease: SHELL_EASE };
 
   const onAuthSuccess = useCallback(async () => {
     const destination = await resolvePostAuthRedirect(searchParams.get("next"));
@@ -71,289 +83,347 @@ export function AuthScreen() {
   }, [searchParams]);
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="font-heading text-2xl tracking-tight">
-            {mode === "signin" ? "Welcome back" : "Create an account"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "signin"
-              ? "Sign in to continue to Vyrel."
-              : "Enter your details to get started."}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-6">
-          <AuthModeSwitch mode={mode} onModeChange={setMode} />
-
-          {mode === "signin" ? (
-            <SignInForm formId={SIGN_IN_FORM_ID} onSuccess={onAuthSuccess} />
-          ) : (
-            <SignUpForm formId={SIGN_UP_FORM_ID} onSuccess={onAuthSuccess} />
+    <div className="relative min-h-svh bg-background text-foreground">
+      <AuthPageBackdrop />
+      <div className="relative mx-auto flex min-h-svh max-w-[1440px] items-stretch p-4 md:p-10 lg:p-16">
+        <div
+          className={cn(
+            "relative grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-foreground/10",
+            isSignUp
+              ? "lg:grid-cols-[1fr_minmax(440px,560px)]"
+              : "lg:grid-cols-[minmax(440px,560px)_1fr]"
           )}
-        </CardContent>
+        >
+          <motion.div
+            className={cn(
+              "relative flex min-h-[680px] flex-col overflow-y-auto bg-card text-foreground",
+              isSignUp ? "lg:order-2" : "lg:order-1"
+            )}
+            layout={!prefersReducedMotion}
+            transition={shellTransition}
+          >
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10 lg:py-14">
+              <div className="flex items-center justify-center">
+                <VyrelLogo className="size-10" />
+              </div>
 
-        <CardFooter className="justify-center">
-          {mode === "signin" ? (
-            <Link
-              className="text-muted-foreground text-sm hover:text-foreground"
-              href={"/auth/reset-password" as Route}
-            >
-              Forgot your password?
-            </Link>
-          ) : null}
-        </CardFooter>
-      </Card>
+              <div className="mt-12">
+                <AnimatePresence initial={false} mode="wait">
+                  <motion.div
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col gap-1.5"
+                    exit={
+                      prefersReducedMotion ? undefined : { opacity: 0, y: -6 }
+                    }
+                    initial={
+                      prefersReducedMotion ? false : { opacity: 0, y: 6 }
+                    }
+                    key={mode}
+                    transition={fadeTransition}
+                  >
+                    <h1 className="font-heading font-semibold text-2xl tracking-tight">
+                      {isSignUp ? "Create an account" : "Welcome back"}
+                    </h1>
+                    <p className="text-muted-foreground text-sm">
+                      {isSignUp
+                        ? "Enter your details to get started."
+                        : "Sign in to continue to Vyrel."}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              <div className="mt-6">
+                <AuthForm mode={mode} onSuccess={onAuthSuccess} />
+              </div>
+
+              <div className="mt-5">
+                <AnimatePresence initial={false} mode="wait">
+                  <motion.div
+                    animate={{ opacity: 1 }}
+                    className="flex items-baseline justify-between gap-4 text-sm"
+                    exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0 }}
+                    key={mode}
+                    transition={fadeTransition}
+                  >
+                    {isSignUp ? (
+                      <Link
+                        className={LINK_CLASS}
+                        href={signInHref}
+                        replace
+                        scroll={false}
+                      >
+                        Log in to an existing account
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          className={LINK_CLASS}
+                          href={signUpHref}
+                          replace
+                          scroll={false}
+                        >
+                          Register a new account
+                        </Link>
+                        <Link
+                          className={LINK_CLASS}
+                          href={"/auth/reset-password" as Route}
+                        >
+                          Forgot password?
+                        </Link>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className={cn(
+              "relative hidden min-h-[680px] overflow-hidden lg:block",
+              isSignUp ? "lg:order-1" : "lg:order-2"
+            )}
+            layout={!prefersReducedMotion}
+            transition={shellTransition}
+          >
+            <AuthVisualPanel className="h-full" />
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function AuthModeSwitch({
+export function AuthForm({
   mode,
-  onModeChange,
-}: {
-  mode: AuthMode;
-  onModeChange: (mode: AuthMode) => void;
-}) {
-  const selectSignIn = useCallback(() => {
-    onModeChange("signin");
-  }, [onModeChange]);
-
-  const selectSignUp = useCallback(() => {
-    onModeChange("signup");
-  }, [onModeChange]);
-
-  return (
-    <div
-      className="grid grid-cols-2 rounded-none border border-border p-1"
-      role="tablist"
-    >
-      <Button
-        aria-selected={mode === "signin"}
-        className="w-full"
-        onClick={selectSignIn}
-        role="tab"
-        type="button"
-        variant={mode === "signin" ? "secondary" : "ghost"}
-      >
-        Sign in
-      </Button>
-      <Button
-        aria-selected={mode === "signup"}
-        className="w-full"
-        onClick={selectSignUp}
-        role="tab"
-        type="button"
-        variant={mode === "signup" ? "secondary" : "ghost"}
-      >
-        Sign up
-      </Button>
-    </div>
-  );
-}
-
-function SignInForm({
-  formId,
   onSuccess,
 }: {
-  formId: string;
+  mode: AuthMode;
   onSuccess: () => Promise<void>;
 }) {
-  const form = useForm<SignInFormValues>({
-    defaultValues: signInDefaultValues,
-    resolver: zodResolver(signInFormSchema),
+  const form = useForm<AuthFormValues>({
+    defaultValues:
+      mode === "signin" ? signInDefaultValues : signUpDefaultValues,
+    resolver: zodResolver(authFormSchema),
+    shouldUnregister: true,
   });
   const pending = form.formState.isSubmitting;
+  const isSignUp = mode === "signup";
+  const submitLabel = isSignUp ? "Create account" : "Sign in";
+  const prefersReducedMotion = useReducedMotion();
+  const fieldTransition: MotionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.25, ease: SHELL_EASE };
+
+  useEffect(() => {
+    if (form.getValues("mode") === mode) {
+      return;
+    }
+
+    const { email, password } = form.getValues();
+    form.reset(
+      mode === "signin"
+        ? { ...signInDefaultValues, email, password }
+        : { ...signUpDefaultValues, email, password }
+    );
+  }, [form, mode]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
+    const result = await authenticate(values);
 
+    if (!result.ok) {
+      form.setError("root", { message: result.message });
+      return;
+    }
+
+    try {
+      await onSuccess();
+    } catch (err) {
+      const fallbackMessage =
+        values.mode === "signin"
+          ? "Unable to sign in."
+          : "Unable to create account.";
+      form.setError("root", {
+        message: err instanceof Error ? err.message : fallbackMessage,
+      });
+    }
+  });
+
+  const nameError = form.getFieldState("name", form.formState).error;
+  const emailError = form.formState.errors.email;
+  const passwordError = form.formState.errors.password;
+  const confirmPasswordError = form.getFieldState(
+    "confirmPassword",
+    form.formState
+  ).error;
+
+  return (
+    <FormProvider {...form}>
+      <form
+        className="flex flex-col gap-4"
+        id={AUTH_FORM_ID}
+        onSubmit={onSubmit}
+      >
+        <input type="hidden" {...form.register("mode")} />
+
+        <FieldGroup>
+          <AnimatedSignUpBlock
+            prefersReducedMotion={Boolean(prefersReducedMotion)}
+            show={isSignUp}
+            transition={fieldTransition}
+          >
+            <div className="flex flex-col gap-4">
+              <SignUpAvatarField formId={AUTH_FORM_ID} />
+              <Field data-invalid={nameError !== undefined}>
+                <FieldLabel htmlFor={`${AUTH_FORM_ID}-name`}>Name</FieldLabel>
+                <Input
+                  aria-invalid={nameError !== undefined}
+                  autoComplete="name"
+                  id={`${AUTH_FORM_ID}-name`}
+                  placeholder="John Doe"
+                  type="text"
+                  {...form.register("name")}
+                />
+                {nameError ? <FieldError errors={[nameError]} /> : null}
+              </Field>
+            </div>
+          </AnimatedSignUpBlock>
+
+          <Field data-invalid={emailError !== undefined}>
+            <FieldLabel htmlFor={`${AUTH_FORM_ID}-email`}>Email</FieldLabel>
+            <Input
+              aria-invalid={emailError !== undefined}
+              autoComplete="email"
+              id={`${AUTH_FORM_ID}-email`}
+              placeholder="you@example.com"
+              type="email"
+              {...form.register("email")}
+            />
+            {emailError ? <FieldError errors={[emailError]} /> : null}
+          </Field>
+
+          <Field data-invalid={passwordError !== undefined}>
+            <FieldLabel htmlFor={`${AUTH_FORM_ID}-password`}>
+              Password
+            </FieldLabel>
+            <Input
+              aria-invalid={passwordError !== undefined}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              id={`${AUTH_FORM_ID}-password`}
+              placeholder={isSignUp ? "Create a password" : "Your password"}
+              type="password"
+              {...form.register("password")}
+            />
+            {passwordError ? <FieldError errors={[passwordError]} /> : null}
+          </Field>
+
+          <AnimatedSignUpBlock
+            prefersReducedMotion={Boolean(prefersReducedMotion)}
+            show={isSignUp}
+            transition={fieldTransition}
+          >
+            <Field data-invalid={confirmPasswordError !== undefined}>
+              <FieldLabel htmlFor={`${AUTH_FORM_ID}-confirm-password`}>
+                Confirm password
+              </FieldLabel>
+              <Input
+                aria-invalid={confirmPasswordError !== undefined}
+                autoComplete="new-password"
+                id={`${AUTH_FORM_ID}-confirm-password`}
+                placeholder="Repeat your password"
+                type="password"
+                {...form.register("confirmPassword")}
+              />
+              {confirmPasswordError ? (
+                <FieldError errors={[confirmPasswordError]} />
+              ) : null}
+            </Field>
+          </AnimatedSignUpBlock>
+        </FieldGroup>
+
+        <FormRootError message={form.formState.errors.root?.message} />
+
+        <Button disabled={pending} form={AUTH_FORM_ID} size="lg" type="submit">
+          {pending ? (
+            <Spinner className="size-4" />
+          ) : (
+            <AnimatePresence initial={false} mode="wait">
+              <motion.span
+                animate={{ opacity: 1 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                initial={prefersReducedMotion ? false : { opacity: 0 }}
+                key={submitLabel}
+                transition={fieldTransition}
+              >
+                {submitLabel}
+              </motion.span>
+            </AnimatePresence>
+          )}
+        </Button>
+      </form>
+    </FormProvider>
+  );
+}
+
+async function authenticate(
+  values: AuthFormValues
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (values.mode === "signin") {
     const { error } = await authClient.signIn.email({
       email: values.email,
       password: values.password,
     });
 
     if (error) {
-      form.setError("root", {
-        message: error.message ?? "Unable to sign in.",
-      });
-      return;
+      return { message: error.message ?? "Unable to sign in.", ok: false };
     }
 
-    try {
-      await onSuccess();
-    } catch (err) {
-      form.setError("root", {
-        message: err instanceof Error ? err.message : "Unable to sign in.",
-      });
-    }
+    return { ok: true };
+  }
+
+  const result = await createAccount({
+    avatar: values.avatar,
+    email: values.email,
+    name: values.name,
+    password: values.password,
   });
 
-  const emailError = form.formState.errors.email;
-  const passwordError = form.formState.errors.password;
+  if (!result.ok) {
+    return { message: result.message, ok: false };
+  }
 
-  return (
-    <form className="flex flex-col gap-4" id={formId} onSubmit={onSubmit}>
-      <FieldGroup>
-        <Field data-invalid={emailError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-email`}>Email</FieldLabel>
-          <Input
-            aria-invalid={emailError !== undefined}
-            autoComplete="email"
-            id={`${formId}-email`}
-            placeholder="you@example.com"
-            type="email"
-            {...form.register("email")}
-          />
-          {emailError ? <FieldError errors={[emailError]} /> : null}
-        </Field>
-
-        <Field data-invalid={passwordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-password`}>Password</FieldLabel>
-          <Input
-            aria-invalid={passwordError !== undefined}
-            autoComplete="current-password"
-            id={`${formId}-password`}
-            placeholder="Your password"
-            type="password"
-            {...form.register("password")}
-          />
-          {passwordError ? <FieldError errors={[passwordError]} /> : null}
-        </Field>
-      </FieldGroup>
-
-      <FormRootError message={form.formState.errors.root?.message} />
-
-      <Button disabled={pending} form={formId} size="lg" type="submit">
-        {pending ? <Spinner className="size-4" /> : "Sign in"}
-      </Button>
-    </form>
-  );
+  return { ok: true };
 }
 
-function SignUpForm({
-  formId,
-  onSuccess,
+function AnimatedSignUpBlock({
+  children,
+  prefersReducedMotion,
+  show,
+  transition,
 }: {
-  formId: string;
-  onSuccess: () => Promise<void>;
+  children: ReactNode;
+  prefersReducedMotion: boolean;
+  show: boolean;
+  transition: MotionTransition;
 }) {
-  const form = useForm<SignUpFormValues>({
-    defaultValues: signUpDefaultValues,
-    resolver: zodResolver(signUpFormSchema),
-  });
-
-  const pending = form.formState.isSubmitting;
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    form.clearErrors("root");
-
-    const result = await createAccount({
-      avatar: values.avatar,
-      email: values.email,
-      name: values.name,
-      password: values.password,
-    });
-
-    if (!result.ok) {
-      form.setError("root", {
-        message: result.message,
-      });
-      return;
-    }
-
-    try {
-      await onSuccess();
-    } catch (err) {
-      form.setError("root", {
-        message:
-          err instanceof Error ? err.message : "Unable to create account.",
-      });
-    }
-  });
-
-  const avatarError = form.formState.errors.avatar;
-  const nameError = form.formState.errors.name;
-  const emailError = form.formState.errors.email;
-  const passwordError = form.formState.errors.password;
-  const confirmPasswordError = form.formState.errors.confirmPassword;
-
   return (
-    <form className="flex flex-col gap-4" id={formId} onSubmit={onSubmit}>
-      <FieldGroup>
-        <SignUpAvatarField
-          clearErrors={form.clearErrors}
-          control={form.control}
-          error={avatarError}
-          formId={formId}
-          isSubmitting={pending}
-          setError={form.setError}
-        />
-
-        <Field data-invalid={nameError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-name`}>Name</FieldLabel>
-          <Input
-            aria-invalid={nameError !== undefined}
-            autoComplete="name"
-            id={`${formId}-name`}
-            placeholder="John Doe"
-            type="text"
-            {...form.register("name")}
-          />
-          {nameError ? <FieldError errors={[nameError]} /> : null}
-        </Field>
-
-        <Field data-invalid={emailError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-email`}>Email</FieldLabel>
-          <Input
-            aria-invalid={emailError !== undefined}
-            autoComplete="email"
-            id={`${formId}-email`}
-            placeholder="you@example.com"
-            type="email"
-            {...form.register("email")}
-          />
-          {emailError ? <FieldError errors={[emailError]} /> : null}
-        </Field>
-
-        <Field data-invalid={passwordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-password`}>Password</FieldLabel>
-          <Input
-            aria-invalid={passwordError !== undefined}
-            autoComplete="new-password"
-            id={`${formId}-password`}
-            placeholder="Create a password"
-            type="password"
-            {...form.register("password")}
-          />
-          {passwordError ? <FieldError errors={[passwordError]} /> : null}
-        </Field>
-
-        <Field data-invalid={confirmPasswordError !== undefined}>
-          <FieldLabel htmlFor={`${formId}-confirm-password`}>
-            Confirm password
-          </FieldLabel>
-          <Input
-            aria-invalid={confirmPasswordError !== undefined}
-            autoComplete="new-password"
-            id={`${formId}-confirm-password`}
-            placeholder="Repeat your password"
-            type="password"
-            {...form.register("confirmPassword")}
-          />
-          {confirmPasswordError ? (
-            <FieldError errors={[confirmPasswordError]} />
-          ) : null}
-        </Field>
-      </FieldGroup>
-
-      <FormRootError message={form.formState.errors.root?.message} />
-
-      <Button disabled={pending} form={formId} size="lg" type="submit">
-        {pending ? <Spinner className="size-4" /> : "Create account"}
-      </Button>
-    </form>
+    <AnimatePresence initial={false}>
+      {show ? (
+        <motion.div
+          animate={{ opacity: 1, height: "auto" }}
+          className="overflow-hidden"
+          exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+          key="signup-block"
+          transition={transition}
+        >
+          {children}
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
 

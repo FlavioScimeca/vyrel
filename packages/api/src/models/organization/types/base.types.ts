@@ -3,7 +3,6 @@ import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
 import z from "zod/v4";
 
 export const organizationQuerySchema = createSelectSchema(organization).omit({
-  id: true,
   imageAssetId: true,
   imageFull: true,
   imageThumb: true,

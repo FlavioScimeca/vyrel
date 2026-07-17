@@ -49,6 +49,7 @@ type Mutation {
 """Organization model"""
 type Organization {
   createdAt: DateTime!
+  id: ID!
   imageFull: String
   imageThumb: String
   logo: String

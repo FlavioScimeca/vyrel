@@ -3,11 +3,13 @@
 import {
   IconBuilding,
   IconChevronRight,
+  IconLogout,
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
 import type { Route as NextRoute } from "next";
 import Link from "next/link";
+import { useCallback } from "react";
 import { ThemeModeSwitch } from "@/components/sidebar-02/theme-mode-switch";
 import {
   DropdownMenu,
@@ -24,6 +26,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/auth-client";
 
 const managementLinks = [
   {
@@ -40,6 +43,11 @@ const managementLinks = [
 
 export function NavManagement() {
   const { isMobile } = useSidebar();
+
+  const handleSignOut = useCallback(async () => {
+    await authClient.signOut();
+    window.location.assign("/auth");
+  }, []);
 
   return (
     <SidebarMenu>
@@ -86,6 +94,16 @@ export function NavManagement() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <ThemeModeSwitch />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 p-2 text-red-500"
+              onClick={handleSignOut}
+            >
+              <div className="flex size-6 items-center justify-center rounded-sm border">
+                <IconLogout className="size-4 shrink-0" />
+              </div>
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
