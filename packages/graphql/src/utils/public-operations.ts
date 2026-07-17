@@ -75,7 +75,10 @@ export function isPublicGraphqlOperation(
     return true;
   }
 
-  if (options.allowIntrospection && isIntrospectionQueryOperation(operation)) {
+  if (
+    options.allowIntrospection === true &&
+    isIntrospectionQueryOperation(operation)
+  ) {
     return true;
   }
 

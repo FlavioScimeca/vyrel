@@ -134,7 +134,7 @@ export function AuthScreen() {
               </div>
 
               <div className="mt-6">
-                <AuthForm mode={mode} onSuccess={onAuthSuccess} />
+                <AuthForm mode={mode} onSuccessAction={onAuthSuccess} />
               </div>
 
               <div className="mt-5">
@@ -198,10 +198,10 @@ export function AuthScreen() {
 
 export function AuthForm({
   mode,
-  onSuccess,
+  onSuccessAction,
 }: {
   mode: AuthMode;
-  onSuccess: () => Promise<void>;
+  onSuccessAction: () => Promise<void>;
 }) {
   const form = useForm<AuthFormValues>({
     defaultValues:
@@ -240,7 +240,7 @@ export function AuthForm({
     }
 
     try {
-      await onSuccess();
+      await onSuccessAction();
     } catch (err) {
       const fallbackMessage =
         values.mode === "signin"

@@ -63,7 +63,7 @@ function AuthFormHarness({
       <button onClick={switchToSignUp} type="button">
         Switch to sign up
       </button>
-      <AuthForm mode={mode} onSuccess={onSuccess} />
+      <AuthForm mode={mode} onSuccessAction={onSuccess} />
     </>
   );
 }

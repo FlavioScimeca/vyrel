@@ -91,5 +91,8 @@ export function finishOrganizationCreate(
 
   return {
     organization: result.organization,
+    ...(result.mediaWarning === undefined
+      ? {}
+      : { mediaWarning: result.mediaWarning }),
   };
 }

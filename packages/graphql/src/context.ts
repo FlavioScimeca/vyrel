@@ -20,6 +20,8 @@ export function resolveActorUserId(
   return context.session?.user.id ?? context.user?.id;
 }
 
+// Yoga context factory must return a Promise; Effect would not fit this boundary.
+// @effect-diagnostics-next-line effect/asyncFunction:off
 export async function createGraphqlContext(
   request: Request
 ): Promise<GraphQLContext> {
