@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -50,16 +49,13 @@ type EditTaskDialogProps = {
 export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [updateTask, { loading: mutationPending }] = useUpdateTaskMutation(
-    organizationId,
-    {
-      description: item.description,
-      id: item.id,
-      imageFull: item.imageFull,
-      imageThumb: item.imageThumb,
-      title: item.title,
-    }
-  );
+  const [updateTask] = useUpdateTaskMutation(organizationId, {
+    description: item.description,
+    id: item.id,
+    imageFull: item.imageFull,
+    imageThumb: item.imageThumb,
+    title: item.title,
+  });
 
   const form = useForm<EditTaskFormValues>({
     defaultValues: {
@@ -69,7 +65,7 @@ export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
     resolver: zodResolver(editTaskFormSchema),
   });
 
-  const pending = form.formState.isSubmitting || mutationPending;
+  const pending = form.formState.isSubmitting;
 
   useEffect(() => {
     if (open) {
@@ -90,44 +86,31 @@ export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
     [form]
   );
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     form.clearErrors("root");
 
-    try {
-      const result = await updateTask({
-        variables: {
-          input: {
-            description:
-              values.description !== undefined && values.description.length > 0
-                ? values.description
-                : undefined,
-            image: values.image,
-            taskId: item.id,
-            title: values.title,
-          },
+    updateTask({
+      variables: {
+        input: {
+          description:
+            values.description !== undefined && values.description.length > 0
+              ? values.description
+              : undefined,
+          image: values.image,
+          taskId: item.id,
+          title: values.title,
         },
-      });
+      },
+    }).catch(() => {
+      // Errors surface via the mutation onError toast.
+    });
 
-      if (result.error !== undefined) {
-        form.setError("root", {
-          message: result.error.message || "Unable to update task.",
-        });
-        return;
-      }
-
-      handleOpenChange(false);
-    } catch (error) {
-      form.setError("root", {
-        message:
-          error instanceof Error ? error.message : "Unable to update task.",
-      });
-    }
+    handleOpenChange(false);
   });
 
   const imageError = form.formState.errors.image;
   const titleError = form.formState.errors.title;
   const descriptionError = form.formState.errors.description;
-  const rootError = form.formState.errors.root?.message;
   const existingImageUrl = item.imageThumb ?? item.imageFull;
 
   return (
@@ -191,12 +174,6 @@ export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
               ) : null}
             </Field>
           </FieldGroup>
-
-          {rootError !== undefined && rootError.length > 0 ? (
-            <Alert variant="destructive">
-              <AlertDescription>{rootError}</AlertDescription>
-            </Alert>
-          ) : null}
         </form>
 
         <DialogFooter>

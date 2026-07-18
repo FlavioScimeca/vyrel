@@ -4,7 +4,6 @@ import { IconTrash } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
 import { useCallback, useState } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +16,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
@@ -33,39 +31,24 @@ export function DeleteTaskDialog({
 }: DeleteTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [deleteTask, { loading }] = useDeleteTaskMutation(organizationId);
+  const [deleteTask] = useDeleteTaskMutation(organizationId);
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (!nextOpen) {
-      setErrorMessage(null);
-    }
   }, []);
 
-  const handleDelete = useCallback(async () => {
-    setErrorMessage(null);
-
-    try {
-      const result = await deleteTask({
-        variables: {
-          input: {
-            taskId: item.id,
-          },
+  const handleDelete = useCallback(() => {
+    deleteTask({
+      variables: {
+        input: {
+          taskId: item.id,
         },
-      });
+      },
+    }).catch(() => {
+      // Errors surface via the mutation onError toast.
+    });
 
-      if (result.error !== undefined) {
-        setErrorMessage(result.error.message || "Unable to delete task.");
-        return;
-      }
-
-      handleOpenChange(false);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to delete task."
-      );
-    }
+    handleOpenChange(false);
   }, [deleteTask, handleOpenChange, item.id]);
 
   return (
@@ -86,20 +69,10 @@ export function DeleteTaskDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {errorMessage === null ? null : (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={loading}
-            onClick={handleDelete}
-            variant="destructive"
-          >
-            {loading ? <Spinner className="size-4" /> : "Delete"}
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} variant="destructive">
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

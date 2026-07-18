@@ -7,7 +7,6 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import type z from "zod/v4";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,14 +46,13 @@ type CreateTaskDialogProps = {
 
 export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
-  const [createTask, { loading: mutationPending }] =
-    useCreateTaskMutation(organizationId);
+  const [createTask] = useCreateTaskMutation(organizationId);
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
   });
 
-  const pending = form.formState.isSubmitting || mutationPending;
+  const pending = form.formState.isSubmitting;
 
   const resetForm = useCallback(() => {
     form.reset(createTaskDefaultValues);
@@ -71,44 +69,31 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
     [resetForm]
   );
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     form.clearErrors("root");
 
-    try {
-      const result = await createTask({
-        variables: {
-          input: {
-            description:
-              values.description !== undefined && values.description.length > 0
-                ? values.description
-                : undefined,
-            image: values.image,
-            organizationId,
-            title: values.title,
-          },
+    createTask({
+      variables: {
+        input: {
+          description:
+            values.description !== undefined && values.description.length > 0
+              ? values.description
+              : undefined,
+          image: values.image,
+          organizationId,
+          title: values.title,
         },
-      });
+      },
+    }).catch(() => {
+      // Errors surface via the mutation onError toast.
+    });
 
-      if (result.error !== undefined) {
-        form.setError("root", {
-          message: result.error.message || "Unable to create task.",
-        });
-        return;
-      }
-
-      handleOpenChange(false);
-    } catch (error) {
-      form.setError("root", {
-        message:
-          error instanceof Error ? error.message : "Unable to create task.",
-      });
-    }
+    handleOpenChange(false);
   });
 
   const imageError = form.formState.errors.image;
   const titleError = form.formState.errors.title;
   const descriptionError = form.formState.errors.description;
-  const rootError = form.formState.errors.root?.message;
 
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>
@@ -173,12 +158,6 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
               ) : null}
             </Field>
           </FieldGroup>
-
-          {rootError !== undefined && rootError.length > 0 ? (
-            <Alert variant="destructive">
-              <AlertDescription>{rootError}</AlertDescription>
-            </Alert>
-          ) : null}
         </form>
 
         <DialogFooter>

@@ -14,7 +14,7 @@ import {
   removeTaskFromList,
   updateTaskInList,
 } from "@/features/dashboard/task/graphql/task-cache";
-import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import type { OptimisticTaskExisting } from "@/features/dashboard/task/graphql/types";
 
 export function useCreateTaskMutation(organizationId: string) {
   return useMutation(CreateTaskDocument, {
@@ -36,20 +36,14 @@ export function useCreateTaskMutation(organizationId: string) {
         return;
       }
 
-      prependTaskToList(cache, organizationId, task as TaskListItemRef);
+      prependTaskToList(cache, organizationId, task);
     },
   });
 }
 
 export function useUpdateTaskMutation(
   organizationId: string,
-  existingTask: {
-    description: string | null;
-    id: string;
-    imageFull: string | null;
-    imageThumb: string | null;
-    title: string;
-  }
+  existingTask: OptimisticTaskExisting
 ) {
   return useMutation(UpdateTaskDocument, {
     onCompleted: () => {
@@ -76,7 +70,7 @@ export function useUpdateTaskMutation(
         return;
       }
 
-      updateTaskInList(cache, organizationId, task as TaskListItemRef);
+      updateTaskInList(cache, organizationId, task);
     },
   });
 }

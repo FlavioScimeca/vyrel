@@ -3,15 +3,41 @@ import { readFragment } from "gql.tada";
 
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
-import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import type {
+  ListTasksData,
+  ListTasksItem,
+  OptimisticTaskInput,
+  TaskListItemRef,
+} from "@/features/dashboard/task/graphql/types";
 
-type OptimisticTaskInput = {
-  description?: string | null;
-  id?: string;
-  imageFull?: string | null;
-  imageThumb?: string | null;
-  title: string;
-};
+type ModifyTaskList = (tasks: readonly ListTasksItem[]) => ListTasksItem[];
+
+function readTaskId(item: ListTasksItem): string {
+  return readFragment(TaskListItemFragment, item).id;
+}
+
+function modifyTaskList(
+  cache: ApolloCache,
+  organizationId: string,
+  modify: ModifyTaskList
+): void {
+  cache.updateQuery(
+    {
+      query: ListTasksDocument,
+      variables: { organizationId },
+    },
+    (data: ListTasksData | null | undefined) => {
+      if (data === null || data === undefined) {
+        return data;
+      }
+
+      return {
+        ...data,
+        tasks: modify(data.tasks),
+      };
+    }
+  );
+}
 
 /** Build a temporary TaskListItem-shaped object for optimistic UI. */
 export function buildOptimisticTask(
@@ -34,51 +60,22 @@ export function buildOptimisticTask(
 export function prependTaskToList(
   cache: ApolloCache,
   organizationId: string,
-  task: TaskListItemRef
+  task: ListTasksItem
 ): void {
-  cache.updateQuery(
-    {
-      query: ListTasksDocument,
-      variables: { organizationId },
-    },
-    (data) => {
-      if (data === null || data === undefined) {
-        return data;
-      }
-
-      return {
-        ...data,
-        tasks: [task, ...data.tasks],
-      };
-    }
-  );
+  modifyTaskList(cache, organizationId, (tasks) => [task, ...tasks]);
 }
 
 export function updateTaskInList(
   cache: ApolloCache,
   organizationId: string,
-  task: TaskListItemRef
+  task: ListTasksItem
 ): void {
-  const updated = readFragment(TaskListItemFragment, task);
+  const updatedId = readTaskId(task);
 
-  cache.updateQuery(
-    {
-      query: ListTasksDocument,
-      variables: { organizationId },
-    },
-    (data) => {
-      if (data === null || data === undefined) {
-        return data;
-      }
-
-      return {
-        ...data,
-        tasks: data.tasks.map((existing) => {
-          const item = readFragment(TaskListItemFragment, existing);
-          return item.id === updated.id ? task : existing;
-        }),
-      };
-    }
+  modifyTaskList(cache, organizationId, (tasks) =>
+    tasks.map((existing) =>
+      readTaskId(existing) === updatedId ? task : existing
+    )
   );
 }
 
@@ -87,24 +84,8 @@ export function removeTaskFromList(
   organizationId: string,
   taskId: string
 ): void {
-  cache.updateQuery(
-    {
-      query: ListTasksDocument,
-      variables: { organizationId },
-    },
-    (data) => {
-      if (data === null || data === undefined) {
-        return data;
-      }
-
-      return {
-        ...data,
-        tasks: data.tasks.filter((existing) => {
-          const item = readFragment(TaskListItemFragment, existing);
-          return item.id !== taskId;
-        }),
-      };
-    }
+  modifyTaskList(cache, organizationId, (tasks) =>
+    tasks.filter((existing) => readTaskId(existing) !== taskId)
   );
 
   const normalizedId = cache.identify({ __typename: "Task", id: taskId });
