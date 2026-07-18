@@ -29,6 +29,8 @@ env:
   R2_BUCKET_NAME: ci-placeholder-r2-bucket
   R2_SECRET_ACCESS_KEY: ci-placeholder-r2-secret-access-key
   NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+  RESEND_API_KEY: ci-placeholder-resend-api-key
+  RESEND_FROM_EMAIL: ci-placeholder-resend-from-email
 
 jobs:
   ci:
