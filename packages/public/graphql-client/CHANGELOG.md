@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.1.1
+
+### Patch Changes
+
+- 1e33ed4: added a small change in the readme of graphql-client package
+
 ## 0.1.0
 
 ### Minor Changes
