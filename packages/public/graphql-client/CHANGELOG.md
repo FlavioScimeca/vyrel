@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.1.2
+
+### Patch Changes
+
+- f60bae3: test readme for package @vyrel/graphql-client
+
 ## 0.1.1
 
 ### Patch Changes
