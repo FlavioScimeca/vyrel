@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.1.3
+
+### Patch Changes
+
+- 489f5b1: fix the weakmap
+
 ## 0.1.2
 
 ### Patch Changes
