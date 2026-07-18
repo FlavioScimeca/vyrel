@@ -11,6 +11,10 @@ const types = [
 
 const scopes = [
   { value: "morph", name: "🧬 morph      Public morph package" },
+  {
+    value: "graphql-client",
+    name: "🧬 graphql-client      Public graphql-client package",
+  },
   { value: "web", name: "🌐 web         Frontend app" },
   { value: "server", name: "🖥️ server      Backend API server" },
   { value: "docs", name: "📚 docs         Documentation" },
