@@ -8,5 +8,6 @@ export const TaskListItemFragment = graphql(`
     imageFull
     imageThumb
     title
+    updatedAt
   }
 `);

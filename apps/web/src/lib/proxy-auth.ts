@@ -1,26 +1,35 @@
 import type { NextRequest } from "next/server";
 
 import { createEdenClient } from "@/lib/eden-client";
+import {
+  fetchSessionWithCookie,
+  type SessionResponse,
+} from "@/lib/server-session";
 
 /** Better Auth default session cookie name (httpOnly). */
 export const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
 
 const noStoreFetch = { cache: "no-store" } as const;
 
-type SessionResponse = {
-  session: { activeOrganizationId: string | null; id: string } | null;
-  user: { id: string } | null;
-};
-
 export type OrganizationAccess = {
   hasOrganizationAccess: boolean;
   isAuthenticated: boolean;
 };
 
-function requestHeaders(request: NextRequest): HeadersInit | undefined {
+function requestCookieHeader(request: NextRequest): string | undefined {
   const cookie = request.headers.get("cookie");
 
   if (cookie === null || cookie.length === 0) {
+    return;
+  }
+
+  return cookie;
+}
+
+function requestHeaders(request: NextRequest): HeadersInit | undefined {
+  const cookie = requestCookieHeader(request);
+
+  if (cookie === undefined) {
     return;
   }
 
@@ -35,29 +44,13 @@ export function hasSessionCookie(request: NextRequest): boolean {
 async function fetchSession(
   request: NextRequest
 ): Promise<SessionResponse | null> {
-  const client = createEdenClient(requestHeaders(request));
+  const cookie = requestCookieHeader(request);
 
-  try {
-    const { data, error, status } = await client.api.auth["get-session"].get({
-      fetch: noStoreFetch,
-    });
-
-    if (error !== null || status >= 400) {
-      return null;
-    }
-
-    if (data?.session === null || data?.session === undefined) {
-      return null;
-    }
-
-    if (data.user === null || data.user === undefined) {
-      return null;
-    }
-
-    return data as SessionResponse;
-  } catch {
+  if (cookie === undefined) {
     return null;
   }
+
+  return await fetchSessionWithCookie(cookie);
 }
 
 async function fetchOrganizationCount(request: NextRequest): Promise<number> {

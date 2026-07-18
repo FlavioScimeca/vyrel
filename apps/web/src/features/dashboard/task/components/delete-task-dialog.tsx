@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation } from "@apollo/client/react";
 import { IconTrash } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
 import { useCallback, useState } from "react";
@@ -20,19 +19,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
-import { DeleteTaskDocument } from "@/features/dashboard/task/graphql/mutations";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 type DeleteTaskDialogProps = {
-  onDeleted?: () => void;
+  organizationId: string;
   task: TaskListItemRef;
 };
 
-export function DeleteTaskDialog({ onDeleted, task }: DeleteTaskDialogProps) {
+export function DeleteTaskDialog({
+  organizationId,
+  task,
+}: DeleteTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [deleteTask, { loading }] = useMutation(DeleteTaskDocument);
+  const [deleteTask, { loading }] = useDeleteTaskMutation(organizationId);
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -59,13 +61,12 @@ export function DeleteTaskDialog({ onDeleted, task }: DeleteTaskDialogProps) {
       }
 
       handleOpenChange(false);
-      onDeleted?.();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to delete task."
       );
     }
-  }, [deleteTask, handleOpenChange, item.id, onDeleted]);
+  }, [deleteTask, handleOpenChange, item.id]);
 
   return (
     <AlertDialog onOpenChange={handleOpenChange} open={open}>

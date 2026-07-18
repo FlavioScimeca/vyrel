@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 
 import "./index.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApolloProvider } from "@/graphql/apollo/provider";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ApolloProvider>
             <TooltipProvider>{children}</TooltipProvider>
+            <Toaster />
           </ApolloProvider>
         </ThemeProvider>
       </body>

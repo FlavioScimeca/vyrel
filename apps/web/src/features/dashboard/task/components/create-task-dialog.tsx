@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { taskCreateSchema } from "@vyrel/api/models/task/types/base.types";
@@ -29,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
-import { CreateTaskDocument } from "@/features/dashboard/task/graphql/mutations";
+import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
 
@@ -43,17 +42,13 @@ const createTaskDefaultValues: CreateTaskFormValues = {
 const CREATE_TASK_FORM_ID = "create-task-form";
 
 type CreateTaskDialogProps = {
-  onCreated?: () => void;
   organizationId: string;
 };
 
-export function CreateTaskDialog({
-  onCreated,
-  organizationId,
-}: CreateTaskDialogProps) {
+export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const [createTask, { loading: mutationPending }] =
-    useMutation(CreateTaskDocument);
+    useCreateTaskMutation(organizationId);
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
@@ -102,7 +97,6 @@ export function CreateTaskDialog({
       }
 
       handleOpenChange(false);
-      onCreated?.();
     } catch (error) {
       form.setError("root", {
         message:

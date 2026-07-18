@@ -26,21 +26,21 @@ import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 const WHITESPACE_PATTERN = /\s+/;
 
 type TaskListProps = {
-  onChanged?: () => void;
+  organizationId: string;
   tasks: readonly TaskListItemRef[];
 };
 
-function formatCreatedAt(createdAt: string): string {
+function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
-  }).format(new Date(createdAt));
+  }).format(new Date(value));
 }
 
 function TaskCard({
-  onChanged,
+  organizationId,
   task,
 }: {
-  onChanged?: () => void;
+  organizationId: string;
   task: TaskListItemRef;
 }) {
   const item = readFragment(TaskListItemFragment, task);
@@ -50,6 +50,7 @@ function TaskCard({
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
+  const wasUpdated = item.updatedAt !== item.createdAt;
 
   return (
     <Card>
@@ -79,20 +80,22 @@ function TaskCard({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <EditTaskDialog onUpdated={onChanged} task={task} />
-          <DeleteTaskDialog onDeleted={onChanged} task={task} />
+          <EditTaskDialog organizationId={organizationId} task={task} />
+          <DeleteTaskDialog organizationId={organizationId} task={task} />
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground text-sm">
-          Created {formatCreatedAt(item.createdAt)}
+          {wasUpdated
+            ? `Updated ${formatDate(item.updatedAt)}`
+            : `Created ${formatDate(item.createdAt)}`}
         </p>
       </CardContent>
     </Card>
   );
 }
 
-export function TaskList({ onChanged, tasks }: TaskListProps) {
+export function TaskList({ organizationId, tasks }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <Empty className="border">
@@ -114,7 +117,9 @@ export function TaskList({ onChanged, tasks }: TaskListProps) {
       {tasks.map((task) => {
         const item = readFragment(TaskListItemFragment, task);
 
-        return <TaskCard key={item.id} onChanged={onChanged} task={task} />;
+        return (
+          <TaskCard key={item.id} organizationId={organizationId} task={task} />
+        );
       })}
     </div>
   );

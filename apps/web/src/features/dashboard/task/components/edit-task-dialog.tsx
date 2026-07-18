@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPencil } from "@tabler/icons-react";
 import { taskUpdateSchema } from "@vyrel/api/models/task/types/base.types";
@@ -31,8 +30,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
-import { UpdateTaskDocument } from "@/features/dashboard/task/graphql/mutations";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import { useUpdateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 const editTaskFormSchema = taskUpdateSchema.omit({ taskId: true }).extend({
   title: z.string().trim().min(1, "Title is required"),
@@ -44,15 +43,23 @@ type EditTaskFormValues = z.infer<typeof editTaskFormSchema>;
 const EDIT_TASK_FORM_ID = "edit-task-form";
 
 type EditTaskDialogProps = {
-  onUpdated?: () => void;
+  organizationId: string;
   task: TaskListItemRef;
 };
 
-export function EditTaskDialog({ onUpdated, task }: EditTaskDialogProps) {
+export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [updateTask, { loading: mutationPending }] =
-    useMutation(UpdateTaskDocument);
+  const [updateTask, { loading: mutationPending }] = useUpdateTaskMutation(
+    organizationId,
+    {
+      description: item.description,
+      id: item.id,
+      imageFull: item.imageFull,
+      imageThumb: item.imageThumb,
+      title: item.title,
+    }
+  );
 
   const form = useForm<EditTaskFormValues>({
     defaultValues: {
@@ -109,7 +116,6 @@ export function EditTaskDialog({ onUpdated, task }: EditTaskDialogProps) {
       }
 
       handleOpenChange(false);
-      onUpdated?.();
     } catch (error) {
       form.setError("root", {
         message:
@@ -122,6 +128,7 @@ export function EditTaskDialog({ onUpdated, task }: EditTaskDialogProps) {
   const titleError = form.formState.errors.title;
   const descriptionError = form.formState.errors.description;
   const rootError = form.formState.errors.root?.message;
+  const existingImageUrl = item.imageThumb ?? item.imageFull;
 
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>
@@ -148,6 +155,7 @@ export function EditTaskDialog({ onUpdated, task }: EditTaskDialogProps) {
               clearErrors={form.clearErrors}
               control={form.control}
               error={imageError}
+              existingImageUrl={existingImageUrl}
               formId={EDIT_TASK_FORM_ID}
               isSubmitting={pending}
               setError={form.setError}
