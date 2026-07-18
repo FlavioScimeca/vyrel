@@ -25,7 +25,11 @@ export interface GraphqlClientRegistry {
   >;
 }
 
-const registries = new WeakMap<object, GraphqlClientRegistry>();
+const registryProperty = Symbol.for("@vyrel/graphql-client/registry");
+
+type ConfiguredApolloCache = ApolloCache & {
+  [registryProperty]?: GraphqlClientRegistry;
+};
 
 export const defineGraphqlClientRegistry = <
   const TRegistry extends GraphqlClientRegistry,
@@ -37,14 +41,19 @@ export const configureGraphqlClientCache = <TCache extends ApolloCache>(
   cache: TCache,
   registry: GraphqlClientRegistry
 ): TCache => {
-  registries.set(cache, registry);
+  Object.defineProperty(cache, registryProperty, {
+    configurable: true,
+    enumerable: false,
+    value: registry,
+    writable: true,
+  });
   return cache;
 };
 
 export const getGraphqlClientRegistry = (
   cache: ApolloCache
 ): GraphqlClientRegistry => {
-  const registry = registries.get(cache);
+  const registry = (cache as ConfiguredApolloCache)[registryProperty];
   if (registry === undefined) {
     throw new Error(
       "The Apollo cache is not configured with the generated @vyrel/graphql-client registry."

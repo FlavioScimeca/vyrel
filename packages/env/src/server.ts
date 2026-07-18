@@ -29,6 +29,6 @@ export const env = createEnv({
     R2_SECRET_ACCESS_KEY: z.string().min(1),
     R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
     RESEND_API_KEY: z.string().min(1),
-    RESEND_FROM_EMAIL: z.email(),
+    RESEND_FROM_EMAIL: z.string().min(1),
   },
 });

@@ -1,22 +1,6 @@
 "use client";
 
-import {
-  IconActivity,
-  IconBuilding,
-  IconChartPie,
-  IconChecklist,
-  IconHome,
-  IconIcons,
-  IconInfinity,
-  IconLink,
-  IconPackage,
-  IconPercentage,
-  IconSettings,
-  IconShoppingBag,
-  IconSparkles,
-  IconTrendingUp,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconChecklist, IconHome, IconWallet } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import type { Route } from "@/components/sidebar-02/nav-main";
 import DashboardNavigation from "@/components/sidebar-02/nav-main";
@@ -62,7 +46,7 @@ const dashboardRoutes: Route[] = [
     id: "home",
     title: "Home",
     icon: <IconHome className="size-4" />,
-    link: "#",
+    link: "/dashboard",
   },
   {
     id: "tasks",
@@ -71,108 +55,14 @@ const dashboardRoutes: Route[] = [
     link: "/dashboard/tasks",
   },
   {
-    id: "products",
-    title: "Products",
-    icon: <IconPackage className="size-4" />,
-    link: "#",
-    subs: [
-      {
-        title: "Catalogue",
-        link: "#",
-        icon: <IconPackage className="size-4" />,
-      },
-      {
-        title: "Checkout Links",
-        link: "#",
-        icon: <IconLink className="size-4" />,
-      },
-      {
-        title: "Discounts",
-        link: "#",
-        icon: <IconPercentage className="size-4" />,
-      },
-    ],
-  },
-  {
-    id: "usage-billing",
-    title: "Usage Billing",
-    icon: <IconChartPie className="size-4" />,
-    link: "#",
-    subs: [
-      {
-        title: "Meters",
-        link: "#",
-        icon: <IconChartPie className="size-4" />,
-      },
-      {
-        title: "Events",
-        link: "#",
-        icon: <IconActivity className="size-4" />,
-      },
-    ],
-  },
-  {
-    id: "benefits",
-    title: "Benefits",
-    icon: <IconSparkles className="size-4" />,
-    link: "#",
-  },
-  {
-    id: "customers",
-    title: "Customers",
-    icon: <IconUsers className="size-4" />,
-    link: "#",
-  },
-  {
-    id: "sales",
-    title: "Sales",
-    icon: <IconShoppingBag className="size-4" />,
-    link: "#",
-    subs: [
-      {
-        title: "Orders",
-        link: "#",
-        icon: <IconShoppingBag className="size-4" />,
-      },
-      {
-        title: "Subscriptions",
-        link: "#",
-        icon: <IconInfinity className="size-4" />,
-      },
-    ],
-  },
-  {
-    id: "storefront",
-    title: "Storefront",
-    icon: <IconBuilding className="size-4" />,
-    link: "#",
-  },
-  {
-    id: "analytics",
-    title: "Analytics",
-    icon: <IconTrendingUp className="size-4" />,
-    link: "#",
-  },
-  {
     id: "finance",
     title: "Finance",
-    icon: <IconIcons className="size-4" />,
+    icon: <IconWallet className="size-4" />,
     link: "#",
     subs: [
       { title: "Incoming", link: "#" },
       { title: "Outgoing", link: "#" },
       { title: "Payout Account", link: "#" },
-    ],
-  },
-  {
-    id: "settings",
-    title: "Settings",
-    icon: <IconSettings className="size-4" />,
-    link: "#",
-    subs: [
-      { title: "General", link: "#" },
-      { title: "Webhooks", link: "#" },
-      { title: "Custom Fields", link: "#" },
     ],
   },
 ];

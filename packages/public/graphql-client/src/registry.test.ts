@@ -46,6 +46,9 @@ describe("generated runtime registry", () => {
     );
 
     expect(getGraphqlClientRegistry(configuredCache)).toBe(registry);
+    expect(
+      Reflect.get(configuredCache, Symbol.for("@vyrel/graphql-client/registry"))
+    ).toBe(registry);
     expect(() => getGraphqlClientRegistry(new InMemoryCache())).toThrow(
       "is not configured"
     );
