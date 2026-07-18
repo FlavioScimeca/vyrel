@@ -52,7 +52,10 @@ vyrel/
 │   ├── api/         # API layer (domain resolvers, auth context)
 │   ├── auth/        # Authentication
 │   ├── db/          # Database schema
-│   └── graphql/     # GraphQL infrastructure (Pothos, Yoga)
+│   ├── graphql/     # GraphQL infrastructure (Pothos, Yoga)
+│   └── public/
+│       ├── graphql-client/ # Apollo optimistic CRUD and schema metadata codegen
+│       └── morph/          # Drizzle/Zod/Pothos model bridge
 ```
 
 ## Common Commands
@@ -64,6 +67,10 @@ vyrel/
 - `bun db:push` - Push database schema
 - `bun db:studio` - Open database UI
 - `bun graphql:schema` - Generate GraphQL SDL for the web app
+- `bun run --cwd apps/web gql:client` - Run GraphQL Codegen for the gql.tada fragment, canonical CRUD and schema registries
+- `bun run --cwd apps/web gql:client:watch` - Regenerate the GraphQL client registry as documents change
+- `bun run --cwd packages/public/graphql-client validate` - Validate GraphQL client types, lint, exports and tests
+- `bun run --cwd packages/public/graphql-client size` - Report GraphQL client bundle and publish sizes
 
 ## Maintenance
 

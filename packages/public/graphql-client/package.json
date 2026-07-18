@@ -1,0 +1,114 @@
+{
+  "name": "@vyrel/graphql-client",
+  "version": "0.0.1",
+  "description": "Type-safe, operation-driven GraphQL mutations and optimistic cache updates for Apollo React",
+  "keywords": [
+    "apollo",
+    "graphql",
+    "optimistic-ui",
+    "react",
+    "typescript"
+  ],
+  "homepage": "https://github.com/FlavioScimeca/vyrel/tree/main/packages/public/graphql-client",
+  "bugs": {
+    "url": "https://github.com/FlavioScimeca/vyrel/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FlavioScimeca/vyrel.git",
+    "directory": "packages/public/graphql-client"
+  },
+  "license": "MIT",
+  "author": "Flavio Scimeca",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cache": {
+      "types": "./dist/cache.d.ts",
+      "import": "./dist/cache.js"
+    },
+    "./codegen": {
+      "types": "./dist/codegen.d.ts",
+      "import": "./dist/codegen.js"
+    },
+    "./codegen-plugin": {
+      "types": "./dist/codegen-plugin.d.ts",
+      "import": "./dist/codegen-plugin.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun run script/compiler.ts",
+    "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
+    "build:verified": "bun run script/build.ts",
+    "check": "ultracite check",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "fix": "ultracite fix",
+    "format": "ultracite fix",
+    "knip": "knip",
+    "lint": "ultracite check",
+    "prepublishOnly": "bun run build:verified",
+    "size": "bun run script/size.ts",
+    "test": "vitest run --passWithNoTests",
+    "validate": "bun run script/verify.ts"
+  },
+  "devDependencies": {
+    "@apollo/client": "^4.2.6",
+    "@testing-library/react": "^16.3.2",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vyrel/config": "workspace:*",
+    "graphql": "catalog:",
+    "jsdom": "catalog:",
+    "knip": "^6.25.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "7.9.2",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@apollo/client": "^4.2.6",
+    "graphql": "^16.0.0",
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./cache": {
+        "types": "./dist/cache.d.ts",
+        "import": "./dist/cache.js"
+      },
+      "./codegen": {
+        "types": "./dist/codegen.d.ts",
+        "import": "./dist/codegen.js"
+      },
+      "./codegen-plugin": {
+        "types": "./dist/codegen-plugin.d.ts",
+        "import": "./dist/codegen-plugin.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  }
+}

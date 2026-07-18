@@ -1,12 +1,15 @@
 import { InMemoryCache } from "@apollo/client-integration-nextjs";
+import { configureGraphqlClientCache } from "@vyrel/graphql-client/cache";
+import {
+  graphqlClientRegistry,
+  graphqlClientTypePolicies,
+} from "@/graphql/generated/client-schema";
 
 /** Shared Apollo cache config for RSC and client runtimes. */
 export function createApolloCache(): InMemoryCache {
-  return new InMemoryCache({
+  const cache = new InMemoryCache({
     typePolicies: {
-      Organization: {
-        keyFields: ["slug"],
-      },
+      ...graphqlClientTypePolicies,
       Query: {
         fields: {
           tasks: {
@@ -14,13 +17,8 @@ export function createApolloCache(): InMemoryCache {
           },
         },
       },
-      Task: {
-        keyFields: ["id"],
-      },
-      // User has no `id` in the public schema; email is stable for normalization.
-      User: {
-        keyFields: ["email"],
-      },
     },
   });
+
+  return configureGraphqlClientCache(cache, graphqlClientRegistry);
 }

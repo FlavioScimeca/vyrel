@@ -21,17 +21,13 @@ import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 type DeleteTaskDialogProps = {
-  organizationId: string;
   task: TaskListItemRef;
 };
 
-export function DeleteTaskDialog({
-  organizationId,
-  task,
-}: DeleteTaskDialogProps) {
+export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [deleteTask] = useDeleteTaskMutation(organizationId);
+  const [deleteTask] = useDeleteTaskMutation();
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);

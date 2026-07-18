@@ -58,7 +58,7 @@ function TasksListPanel({ organizationId }: { organizationId: string }) {
     );
   }
 
-  return <TaskList organizationId={organizationId} tasks={data?.tasks ?? []} />;
+  return <TaskList tasks={data?.tasks ?? []} />;
 }
 
 export default function TasksScreen({
