@@ -1,35 +1,69 @@
 import { describe, expect, it } from "vitest";
-import { authFormSchema } from "./form.schema";
+import { signInFormSchema, signUpFormSchema } from "./form.schema";
 
 const validCredentials = {
   email: "person@example.com",
   password: "password123",
 };
 
-describe("authFormSchema", () => {
+describe("signInFormSchema", () => {
   it("accepts sign in credentials without sign up fields", () => {
-    const result = authFormSchema.safeParse({
+    const result = signInFormSchema.safeParse(validCredentials);
+
+    expect(result.success).toBe(true);
+  });
+
+  it("ignores extra sign up-only fields", () => {
+    const result = signInFormSchema.safeParse({
       ...validCredentials,
-      mode: "signin",
+      confirmPassword: "different123",
+      name: "",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it("requires sign up fields", () => {
-    const result = authFormSchema.safeParse({
-      ...validCredentials,
-      mode: "signup",
+  it("rejects an empty email", () => {
+    const result = signInFormSchema.safeParse({
+      email: "",
+      password: "password123",
     });
 
     expect(result.success).toBe(false);
   });
+});
+
+describe("signUpFormSchema", () => {
+  it("requires sign up fields", () => {
+    const result = signUpFormSchema.safeParse(validCredentials);
+
+    expect(result.success).toBe(false);
+  });
+
+  it("requires a name", () => {
+    const result = signUpFormSchema.safeParse({
+      ...validCredentials,
+      confirmPassword: "password123",
+      name: "",
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      return;
+    }
+
+    expect(result.error.issues).toContainEqual(
+      expect.objectContaining({
+        message: "Name is required",
+        path: ["name"],
+      })
+    );
+  });
 
   it("rejects mismatched sign up passwords", () => {
-    const result = authFormSchema.safeParse({
+    const result = signUpFormSchema.safeParse({
       ...validCredentials,
       confirmPassword: "different123",
-      mode: "signup",
       name: "Test Person",
     });
 
@@ -46,26 +80,13 @@ describe("authFormSchema", () => {
     );
   });
 
-  it("ignores sign up-only validation when signing in", () => {
-    const result = authFormSchema.safeParse({
+  it("accepts a complete sign up payload", () => {
+    const result = signUpFormSchema.safeParse({
       ...validCredentials,
-      confirmPassword: "different123",
-      mode: "signin",
-      name: "",
+      confirmPassword: "password123",
+      name: "Test Person",
     });
 
     expect(result.success).toBe(true);
-  });
-
-  it.each([
-    {},
-    { mode: "reset" },
-  ])("rejects a missing or invalid mode", (modeValue) => {
-    const result = authFormSchema.safeParse({
-      ...validCredentials,
-      ...modeValue,
-    });
-
-    expect(result.success).toBe(false);
   });
 });

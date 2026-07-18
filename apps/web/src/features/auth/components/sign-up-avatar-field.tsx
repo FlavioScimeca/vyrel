@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/attachment";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import type { AuthFormValues } from "@/features/auth/form.schema";
+import type { SignUpFormValues } from "@/features/auth/form.schema";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -282,7 +282,7 @@ function AvatarAttachmentController({
 export function SignUpAvatarField({ formId }: { formId: string }) {
   const inputId = useId();
   const { clearErrors, control, formState, getFieldState, setError } =
-    useFormContext<AuthFormValues>();
+    useFormContext<SignUpFormValues>();
   const { field } = useController({ control, name: "avatar" });
   const { error } = getFieldState("avatar", formState);
 
