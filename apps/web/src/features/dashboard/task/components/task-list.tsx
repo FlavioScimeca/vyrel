@@ -26,7 +26,6 @@ import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 const WHITESPACE_PATTERN = /\s+/;
 
 type TaskListProps = {
-  organizationId: string;
   tasks: readonly TaskListItemRef[];
 };
 
@@ -36,13 +35,7 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function TaskCard({
-  organizationId,
-  task,
-}: {
-  organizationId: string;
-  task: TaskListItemRef;
-}) {
+function TaskCard({ task }: { task: TaskListItemRef }) {
   const item = readFragment(TaskListItemFragment, task);
   const imageSrc = item.imageThumb ?? item.imageFull;
   const initials = item.title
@@ -80,8 +73,8 @@ function TaskCard({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <EditTaskDialog organizationId={organizationId} task={task} />
-          <DeleteTaskDialog organizationId={organizationId} task={task} />
+          <EditTaskDialog task={task} />
+          <DeleteTaskDialog task={task} />
         </div>
       </CardHeader>
       <CardContent>
@@ -95,7 +88,7 @@ function TaskCard({
   );
 }
 
-export function TaskList({ organizationId, tasks }: TaskListProps) {
+export function TaskList({ tasks }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <Empty className="border">
@@ -117,9 +110,7 @@ export function TaskList({ organizationId, tasks }: TaskListProps) {
       {tasks.map((task) => {
         const item = readFragment(TaskListItemFragment, task);
 
-        return (
-          <TaskCard key={item.id} organizationId={organizationId} task={task} />
-        );
+        return <TaskCard key={item.id} task={task} />;
       })}
     </div>
   );

@@ -42,14 +42,13 @@ type EditTaskFormValues = z.infer<typeof editTaskFormSchema>;
 const EDIT_TASK_FORM_ID = "edit-task-form";
 
 type EditTaskDialogProps = {
-  organizationId: string;
   task: TaskListItemRef;
 };
 
-export function EditTaskDialog({ organizationId, task }: EditTaskDialogProps) {
+export function EditTaskDialog({ task }: EditTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [updateTask] = useUpdateTaskMutation(organizationId, {
+  const [updateTask] = useUpdateTaskMutation({
     description: item.description,
     id: item.id,
     imageFull: item.imageFull,

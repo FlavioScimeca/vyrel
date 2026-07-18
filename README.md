@@ -35,6 +35,7 @@ apps/web       Next.js frontend
 apps/server    Elysia API
 packages/      api, auth, db, graphql, …
 packages/public/morph   @vyrel/morph (published to npm)
+packages/public/graphql-client   @vyrel/graphql-client (published to npm)
 ```
 
 ## Contributing

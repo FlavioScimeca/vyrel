@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/index.ts",
+    "src/cache.ts",
+    "src/codegen.ts",
+    "src/codegen-plugin.ts",
+    "script/*.ts"
+  ],
+  "project": ["src/**/*.ts", "script/**/*.ts"]
+}

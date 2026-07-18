@@ -7,6 +7,7 @@ This folder stores [Changesets](https://github.com/changesets/changesets) — on
 Add a changeset when your PR changes a **public** package:
 
 - `packages/public/morph` → `@vyrel/morph`
+- `packages/public/graphql-client` → `@vyrel/graphql-client`
 
 Private apps and internal packages are ignored (see `config.json` → `ignore`).
 

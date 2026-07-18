@@ -46,7 +46,7 @@ type CreateTaskDialogProps = {
 
 export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
-  const [createTask] = useCreateTaskMutation(organizationId);
+  const [createTask] = useCreateTaskMutation();
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),

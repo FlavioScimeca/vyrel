@@ -2,9 +2,10 @@
 
 Vyrel is a **private** monorepo. Only packages under `packages/public/*` are published to npm.
 
-Today the public package is:
+Today the public packages are:
 
 - `@vyrel/morph` → `packages/public/morph`
+- `@vyrel/graphql-client` → `packages/public/graphql-client`
 
 Everything else (`apps/*`, `packages/*`) stays private and is never published.
 
