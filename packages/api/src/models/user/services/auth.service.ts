@@ -1,23 +1,19 @@
 import { auth } from "@vyrel/auth";
-import { APIError } from "better-auth/api";
 import { Effect } from "effect";
+import z from "zod/v4";
 
+import {
+  type AuthUserProfile,
+  authUserProfileSchema,
+} from "../types/base.types";
 import { mapAuthApiFailure } from "../utils/auth-api";
-import { UserRepositoryError, UserValidationError } from "../utils/errors";
+import {
+  type UserForbiddenError,
+  UserRepositoryError,
+  UserValidationError,
+} from "../utils/errors";
+import { readResponseJson } from "../utils/response-json";
 import { readSetCookieHeaders } from "../utils/session-headers";
-
-export type AuthUserProfile = {
-  createdAt: Date;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  imageAssetId: string | null;
-  imageFull: string | null;
-  imagePlaceholder: string | null;
-  imageThumb: string | null;
-  name: string;
-  updatedAt: Date;
-};
 
 export type SignUpEmailInput = {
   callbackURL?: string;
@@ -46,50 +42,61 @@ export type DeleteAuthUserInput = {
   token?: string;
 };
 
-type SignUpResponseBody = {
-  token: string | null;
-  user: AuthUserProfile;
-};
+const signUpSuccessSchema = z.object({
+  token: z.string().nullable(),
+  user: authUserProfileSchema,
+});
 
-function sanitizeUser(value: SignUpResponseBody["user"]): AuthUserProfile {
-  return {
-    createdAt: value.createdAt,
-    email: value.email,
-    emailVerified: value.emailVerified,
-    id: value.id,
-    imageAssetId: value.imageAssetId ?? null,
-    imageFull: value.imageFull ?? null,
-    imagePlaceholder: value.imagePlaceholder ?? null,
-    imageThumb: value.imageThumb ?? null,
-    name: value.name,
-    updatedAt: value.updatedAt,
-  };
-}
+const signUpErrorSchema = z.object({
+  message: z.string().optional(),
+});
 
-function mapSignUpFailure(cause: unknown): UserValidationError {
-  if (cause instanceof APIError) {
-    return new UserValidationError({
-      cause,
-      message: cause.message ?? "Unable to create account.",
-    });
+const invalidSignUpResponse = (cause: unknown) =>
+  new UserRepositoryError({
+    cause,
+    message: "Sign-up succeeded but the response was invalid.",
+  });
+
+const decodeSignUpResponse = (
+  response: Response,
+  body: unknown
+): Effect.Effect<
+  SignUpEmailResult,
+  UserRepositoryError | UserValidationError
+> => {
+  if (!response.ok) {
+    const parsed = signUpErrorSchema.safeParse(body);
+    return Effect.fail(
+      new UserValidationError({
+        message: parsed.success
+          ? (parsed.data.message ?? "Unable to create account.")
+          : "Unable to create account.",
+      })
+    );
   }
 
-  return new UserValidationError({
-    cause,
-    message: "Unable to create account.",
+  const parsed = signUpSuccessSchema.safeParse(body);
+  if (!parsed.success) {
+    return Effect.fail(invalidSignUpResponse(parsed.error));
+  }
+
+  return Effect.succeed({
+    setCookies: readSetCookieHeaders(response),
+    token: parsed.data.token,
+    user: parsed.data.user,
   });
-}
+};
 
 export const signUpEmail = (
   input: SignUpEmailInput,
   headers: Headers
 ): Effect.Effect<
   SignUpEmailResult,
-  UserRepositoryError | UserValidationError
+  UserForbiddenError | UserRepositoryError | UserValidationError
 > =>
   Effect.gen(function* () {
-    const signUpResponse = yield* Effect.tryPromise({
-      catch: (cause) => mapSignUpFailure(cause),
+    const response = yield* Effect.tryPromise({
+      catch: (cause) => mapAuthApiFailure(cause, "Unable to create account."),
       try: () =>
         auth.api.signUpEmail({
           asResponse: true,
@@ -98,41 +105,18 @@ export const signUpEmail = (
         }),
     });
 
-    const signUpBody = (yield* Effect.tryPromise({
-      catch: (cause) =>
-        new UserRepositoryError({
-          cause,
-          message: "Sign-up succeeded but the response was invalid.",
-        }),
-      try: () =>
-        signUpResponse.json() as Promise<
-          SignUpResponseBody | { message?: string }
-        >,
-    })) as SignUpResponseBody | { message?: string };
-
-    if (!signUpResponse.ok) {
-      return yield* new UserValidationError({
-        message:
-          "message" in signUpBody && typeof signUpBody.message === "string"
-            ? signUpBody.message
-            : "Unable to create account.",
-      });
-    }
-
-    const signUpPayload = signUpBody as SignUpResponseBody;
-
-    return {
-      setCookies: readSetCookieHeaders(signUpResponse),
-      token: signUpPayload.token,
-      user: sanitizeUser(signUpPayload.user),
-    };
+    const body = yield* readResponseJson(response, invalidSignUpResponse);
+    return yield* decodeSignUpResponse(response, body);
   });
 
 export const updateAuthUser = (
   body: UpdateAuthUserBody,
   headers: Headers,
   fallbackMessage = "Unable to update user."
-) =>
+): Effect.Effect<
+  Awaited<ReturnType<typeof auth.api.updateUser>>,
+  UserForbiddenError | UserRepositoryError | UserValidationError
+> =>
   Effect.tryPromise({
     catch: (cause) => mapAuthApiFailure(cause, fallbackMessage),
     try: () =>
@@ -146,7 +130,10 @@ export const deleteAuthUser = (
   input: DeleteAuthUserInput,
   headers: Headers,
   userId: string
-) =>
+): Effect.Effect<
+  Awaited<ReturnType<typeof auth.api.deleteUser>>,
+  UserForbiddenError | UserRepositoryError | UserValidationError
+> =>
   Effect.tryPromise({
     catch: (cause) =>
       mapAuthApiFailure(cause, `Unable to delete user ${userId}.`),

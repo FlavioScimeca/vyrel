@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { taskCreateSchema } from "@vyrel/api/models/task/types/base.types";
@@ -8,7 +7,6 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import type z from "zod/v4";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
-import { CreateTaskDocument } from "@/features/dashboard/task/graphql/mutations";
+import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
 
@@ -43,23 +41,18 @@ const createTaskDefaultValues: CreateTaskFormValues = {
 const CREATE_TASK_FORM_ID = "create-task-form";
 
 type CreateTaskDialogProps = {
-  onCreated?: () => void;
   organizationId: string;
 };
 
-export function CreateTaskDialog({
-  onCreated,
-  organizationId,
-}: CreateTaskDialogProps) {
+export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
-  const [createTask, { loading: mutationPending }] =
-    useMutation(CreateTaskDocument);
+  const [createTask] = useCreateTaskMutation(organizationId);
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
   });
 
-  const pending = form.formState.isSubmitting || mutationPending;
+  const pending = form.formState.isSubmitting;
 
   const resetForm = useCallback(() => {
     form.reset(createTaskDefaultValues);
@@ -76,45 +69,31 @@ export function CreateTaskDialog({
     [resetForm]
   );
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     form.clearErrors("root");
 
-    try {
-      const result = await createTask({
-        variables: {
-          input: {
-            description:
-              values.description !== undefined && values.description.length > 0
-                ? values.description
-                : undefined,
-            image: values.image,
-            organizationId,
-            title: values.title,
-          },
+    createTask({
+      variables: {
+        input: {
+          description:
+            values.description !== undefined && values.description.length > 0
+              ? values.description
+              : undefined,
+          image: values.image,
+          organizationId,
+          title: values.title,
         },
-      });
+      },
+    }).catch(() => {
+      // Errors surface via the mutation onError toast.
+    });
 
-      if (result.error !== undefined) {
-        form.setError("root", {
-          message: result.error.message || "Unable to create task.",
-        });
-        return;
-      }
-
-      handleOpenChange(false);
-      onCreated?.();
-    } catch (error) {
-      form.setError("root", {
-        message:
-          error instanceof Error ? error.message : "Unable to create task.",
-      });
-    }
+    handleOpenChange(false);
   });
 
   const imageError = form.formState.errors.image;
   const titleError = form.formState.errors.title;
   const descriptionError = form.formState.errors.description;
-  const rootError = form.formState.errors.root?.message;
 
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>
@@ -179,12 +158,6 @@ export function CreateTaskDialog({
               ) : null}
             </Field>
           </FieldGroup>
-
-          {rootError !== undefined && rootError.length > 0 ? (
-            <Alert variant="destructive">
-              <AlertDescription>{rootError}</AlertDescription>
-            </Alert>
-          ) : null}
         </form>
 
         <DialogFooter>

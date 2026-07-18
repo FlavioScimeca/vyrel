@@ -2,6 +2,7 @@
   "extends": "@vyrel/config/tsconfig.base.json",
   "compilerOptions": {
     "strictNullChecks": true,
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "@effect/language-service",

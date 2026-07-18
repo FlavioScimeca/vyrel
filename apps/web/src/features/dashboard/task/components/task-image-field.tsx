@@ -70,6 +70,7 @@ type TaskImageFieldProps<T extends TaskImageFormValues> = {
   clearErrors: UseFormClearErrors<T>;
   control: Control<T>;
   error?: RhfFieldError;
+  existingImageUrl?: string | null;
   formId: string;
   isSubmitting: boolean;
   setError: UseFormSetError<T>;
@@ -79,6 +80,7 @@ export function TaskImageField<T extends TaskImageFormValues>({
   clearErrors,
   control,
   error,
+  existingImageUrl,
   formId,
   isSubmitting,
   setError,
@@ -91,6 +93,11 @@ export function TaskImageField<T extends TaskImageFormValues>({
   const file = field.value as File | undefined;
   const validationMessage = error?.message;
   const hasFile = file !== undefined;
+  const hasExistingImage =
+    !hasFile &&
+    existingImageUrl !== null &&
+    existingImageUrl !== undefined &&
+    existingImageUrl.length > 0;
 
   useEffect(() => {
     if (file === undefined) {
@@ -123,7 +130,7 @@ export function TaskImageField<T extends TaskImageFormValues>({
     if (validationMessage !== undefined) {
       return "error" as const;
     }
-    if (hasFile) {
+    if (hasFile || hasExistingImage) {
       return "done" as const;
     }
     return "idle" as const;
@@ -190,11 +197,49 @@ export function TaskImageField<T extends TaskImageFormValues>({
       );
     }
 
+    if (hasExistingImage) {
+      return (
+        <AttachmentMedia variant="image">
+          <Image
+            alt="Current task image"
+            className="aspect-square size-full object-cover"
+            height={PREVIEW_IMAGE_SIZE}
+            src={existingImageUrl}
+            unoptimized
+            width={PREVIEW_IMAGE_SIZE}
+          />
+        </AttachmentMedia>
+      );
+    }
+
     return (
       <AttachmentMedia>
         <IconPhoto />
       </AttachmentMedia>
     );
+  })();
+
+  const title = (() => {
+    if (hasFile) {
+      return file.name;
+    }
+    if (hasExistingImage) {
+      return "Current image";
+    }
+    return "Add image";
+  })();
+
+  const description = (() => {
+    if (validationMessage !== undefined) {
+      return validationMessage;
+    }
+    if (hasFile) {
+      return formatFileMeta(file);
+    }
+    if (hasExistingImage) {
+      return "Optional · leave unchanged or upload a new image";
+    }
+    return "Optional · PNG, JPG, WebP, or GIF up to 5 MB";
   })();
 
   return (
@@ -213,13 +258,8 @@ export function TaskImageField<T extends TaskImageFormValues>({
       <Attachment className="w-full" state={attachmentState}>
         {media}
         <AttachmentContent>
-          <AttachmentTitle>{hasFile ? file.name : "Add image"}</AttachmentTitle>
-          <AttachmentDescription>
-            {validationMessage ??
-              (hasFile
-                ? formatFileMeta(file)
-                : "Optional · PNG, JPG, WebP, or GIF up to 5 MB")}
-          </AttachmentDescription>
+          <AttachmentTitle>{title}</AttachmentTitle>
+          <AttachmentDescription>{description}</AttachmentDescription>
         </AttachmentContent>
         {hasFile ? (
           <AttachmentActions>

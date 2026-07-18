@@ -69,7 +69,7 @@ export const assertOrganizationMember = (
         );
       }
 
-      return Effect.succeed(undefined);
+      return Effect.void;
     })
   );
 

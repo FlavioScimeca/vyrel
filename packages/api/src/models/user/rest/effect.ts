@@ -89,5 +89,8 @@ export function finishUserCreate(
   return {
     token: result.token,
     user: result.user,
+    ...(result.mediaWarning === undefined
+      ? {}
+      : { mediaWarning: result.mediaWarning }),
   };
 }

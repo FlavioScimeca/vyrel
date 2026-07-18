@@ -46,7 +46,10 @@ export function normalizeUserRecord(
   };
 }
 
-export function mapAuthApiFailure(cause: unknown, fallbackMessage: string) {
+export function mapAuthApiFailure(
+  cause: unknown,
+  fallbackMessage: string
+): UserForbiddenError | UserRepositoryError | UserValidationError {
   if (cause instanceof APIError) {
     if (cause.status === "FORBIDDEN" || cause.status === "UNAUTHORIZED") {
       return new UserForbiddenError({

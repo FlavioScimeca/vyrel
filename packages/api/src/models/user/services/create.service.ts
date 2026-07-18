@@ -1,7 +1,12 @@
+import { env } from "@vyrel/env/server";
 import { Effect } from "effect";
 
+import {
+  afterCreateAttachMedia,
+  type WithMediaWarning,
+} from "../../../lib/after-create-attach-media";
 import { type UserTypeCreate, userCreateSchema } from "../types/base.types";
-import { UserValidationError } from "../utils/errors";
+import { type UserError, UserValidationError } from "../utils/errors";
 import { mergeSessionHeaders } from "../utils/session-headers";
 import {
   type SignUpEmailResult,
@@ -10,9 +15,14 @@ import {
 } from "./auth.service";
 import { uploadUserAvatar } from "./avatar.service";
 
-export type CreateUserResult = SignUpEmailResult;
+export type CreateUserResult = WithMediaWarning<SignUpEmailResult>;
 
-export const createUser = (input: UserTypeCreate, requestHeaders: Headers) =>
+const emailVerifiedCallbackURL = `${env.CORS_ORIGIN.replace(/\/$/, "")}/auth/verified`;
+
+export const createUser = (
+  input: UserTypeCreate,
+  requestHeaders: Headers
+): Effect.Effect<CreateUserResult, UserError> =>
   Effect.gen(function* () {
     const safeValues = userCreateSchema.safeParse(input);
     if (!safeValues.success) {
@@ -25,6 +35,7 @@ export const createUser = (input: UserTypeCreate, requestHeaders: Headers) =>
     const { avatar, email, name, password } = safeValues.data;
     const signUp = yield* signUpEmail(
       {
+        callbackURL: emailVerifiedCallbackURL,
         email,
         name,
         password,
@@ -36,24 +47,29 @@ export const createUser = (input: UserTypeCreate, requestHeaders: Headers) =>
       return signUp satisfies CreateUserResult;
     }
 
-    const imageFields = yield* uploadUserAvatar(signUp.user.id, avatar);
-    const sessionHeaders = mergeSessionHeaders(
-      requestHeaders,
-      signUp.setCookies
-    );
+    return yield* afterCreateAttachMedia(
+      signUp,
+      Effect.gen(function* () {
+        const imageFields = yield* uploadUserAvatar(signUp.user.id, avatar);
+        const sessionHeaders = mergeSessionHeaders(
+          requestHeaders,
+          signUp.setCookies
+        );
 
-    yield* updateAuthUser(
-      imageFields,
-      sessionHeaders,
-      "Unable to save avatar."
-    );
+        yield* updateAuthUser(
+          imageFields,
+          sessionHeaders,
+          "Unable to save avatar."
+        );
 
-    return {
-      setCookies: signUp.setCookies,
-      token: signUp.token,
-      user: {
-        ...signUp.user,
-        ...imageFields,
-      },
-    } satisfies CreateUserResult;
+        return {
+          setCookies: signUp.setCookies,
+          token: signUp.token,
+          user: {
+            ...signUp.user,
+            ...imageFields,
+          },
+        } satisfies SignUpEmailResult;
+      })
+    );
   });

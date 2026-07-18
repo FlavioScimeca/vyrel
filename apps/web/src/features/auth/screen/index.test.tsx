@@ -6,7 +6,8 @@ import userEvent from "@testing-library/user-event";
 import { useCallback, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthMode } from "@/features/auth/form.schema";
-import { AuthForm, AuthScreen } from "./index";
+import { AuthForm } from "./auth-form";
+import { AuthScreen } from "./index";
 
 const mocks = vi.hoisted(() => ({
   createAccount: vi.fn(),
@@ -63,7 +64,7 @@ function AuthFormHarness({
       <button onClick={switchToSignUp} type="button">
         Switch to sign up
       </button>
-      <AuthForm mode={mode} onSuccess={onSuccess} />
+      <AuthForm mode={mode} onSuccessAction={onSuccess} />
     </>
   );
 }
@@ -134,6 +135,17 @@ describe("AuthForm", () => {
     expect(screen.getByLabelText("Password")).toHaveValue("password123");
     expect(screen.getByLabelText("Name")).toHaveValue("");
     expect(screen.getByLabelText("Confirm password")).toHaveValue("");
+  });
+
+  it("requires a name when creating an account", async () => {
+    const user = userEvent.setup();
+    render(<AuthFormHarness initialMode="signup" onSuccess={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+    expect(await screen.findByText("Name is required")).toBeVisible();
+    expect(
+      screen.queryByText("Invalid input: expected string, received undefined")
+    ).not.toBeInTheDocument();
   });
 
   it("clears sign up validation errors when changing modes", async () => {

@@ -4,30 +4,70 @@ import { useQuery } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
+import { TasksListSkeleton } from "@/features/dashboard/task/components/tasks-list-skeleton";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import { authClient } from "@/lib/auth-client";
 
-export default function TasksScreen() {
-  const { data: sessionData, isPending: sessionPending } =
-    authClient.useSession();
-  const organizationId = sessionData?.session.activeOrganizationId ?? null;
+type TasksScreenProps = {
+  initialOrganizationId: string | null;
+};
 
+function TasksListErrorFallback({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <Alert variant="destructive">
+      <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <span>{message}</span>
+        <Button onClick={onRetry} size="sm" variant="outline">
+          Retry
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function TasksListPanel({ organizationId }: { organizationId: string }) {
   const { data, error, loading, refetch } = useQuery(ListTasksDocument, {
-    skip: organizationId === null || organizationId.length === 0,
-    variables: {
-      organizationId: organizationId ?? "",
-    },
+    variables: { organizationId },
   });
 
-  const handleTaskChanged = useCallback(() => {
-    refetch();
+  const handleRetry = useCallback(() => {
+    refetch().catch(() => {
+      // Error surfaces via the query `error` state.
+    });
   }, [refetch]);
 
-  const tasks = data?.tasks ?? [];
-  const isLoading = sessionPending || (organizationId !== null && loading);
+  if (loading && data === undefined) {
+    return <TasksListSkeleton />;
+  }
+
+  if (error !== undefined) {
+    return (
+      <TasksListErrorFallback
+        message={error.message || "Unable to load tasks. Please try again."}
+        onRetry={handleRetry}
+      />
+    );
+  }
+
+  return <TaskList organizationId={organizationId} tasks={data?.tasks ?? []} />;
+}
+
+export default function TasksScreen({
+  initialOrganizationId,
+}: TasksScreenProps) {
+  const { data: sessionData } = authClient.useSession();
+  const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
+  const organizationId = sessionOrgId ?? initialOrganizationId;
+  const hasOrganization = organizationId !== null && organizationId.length > 0;
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -38,44 +78,21 @@ export default function TasksScreen() {
             Track work for your active organization.
           </p>
         </div>
-        {organizationId !== null && organizationId.length > 0 ? (
-          <CreateTaskDialog
-            onCreated={handleTaskChanged}
-            organizationId={organizationId}
-          />
+        {hasOrganization ? (
+          <CreateTaskDialog organizationId={organizationId} />
         ) : null}
       </header>
 
-      {organizationId === null || organizationId.length === 0 ? (
+      {hasOrganization ? null : (
         <Alert>
           <AlertDescription>
             Select an active organization to view and create tasks.
           </AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
-      {isLoading ? (
-        <div className="flex flex-1 items-center justify-center py-16">
-          <Spinner className="size-6" />
-        </div>
-      ) : null}
-
-      {!isLoading &&
-      organizationId !== null &&
-      organizationId.length > 0 &&
-      error !== undefined ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            Unable to load tasks. Please try again.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {!isLoading &&
-      organizationId !== null &&
-      organizationId.length > 0 &&
-      error === undefined ? (
-        <TaskList onChanged={handleTaskChanged} tasks={tasks} />
+      {hasOrganization ? (
+        <TasksListPanel key={organizationId} organizationId={organizationId} />
       ) : null}
     </div>
   );

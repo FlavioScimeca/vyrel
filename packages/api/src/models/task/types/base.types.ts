@@ -45,6 +45,7 @@ export const taskDeleteSchema = z.object({
   taskId: z.string().min(1, "Task id is required"),
 });
 
+export type TaskTypeQuery = z.infer<typeof taskQuerySchema>;
 export type TaskTypeCreate = z.infer<typeof taskCreateSchema>;
 export type TaskTypeUpdate = z.infer<typeof taskUpdateSchema>;
 export type TaskTypeDelete = z.infer<typeof taskDeleteSchema>;

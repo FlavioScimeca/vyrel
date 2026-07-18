@@ -2,7 +2,15 @@ import { user } from "@vyrel/db/schema";
 import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
 import z from "zod/v4";
 
-export const userQuerySchema = createSelectSchema(user).omit({
+export const userSelectSchema = createSelectSchema(user);
+
+/** Same columns as `userSelectSchema`, but accepts ISO date strings from JSON bodies. */
+export const authUserProfileSchema = userSelectSchema.extend({
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+export const userQuerySchema = userSelectSchema.omit({
   id: true,
   imageAssetId: true,
   imageFull: true,
@@ -41,6 +49,7 @@ export const userDeleteSchema = z.object({
   token: z.string().optional(),
 });
 
+export type AuthUserProfile = z.infer<typeof authUserProfileSchema>;
 export type UserTypeUpdate = z.infer<typeof userUpdateSchema>;
 export type UserTypeDelete = z.infer<typeof userDeleteSchema>;
 export type UserTypeCreate = z.infer<typeof userCreateSchema>;
