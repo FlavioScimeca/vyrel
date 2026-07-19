@@ -1,0 +1,7 @@
+{
+  "title": "Getting Started",
+  "description": "Install, configure, and run Vyrel locally.",
+  "pages": ["installation", "environment", "commands"],
+  "pagesIndex": "installation",
+  "defaultOpen": true
+}

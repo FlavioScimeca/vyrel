@@ -1,0 +1,77 @@
+---
+title: Technology Stack
+description: The libraries Vyrel uses and the responsibility each one owns.
+---
+
+This page describes how dependencies are used in Vyrel, not their full external
+APIs.
+
+## Workspace and runtime
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Bun | Runtime, package manager, test runner foundation, image processing, S3 client, and binary compilation |
+| TypeScript | Shared type system across browser, server, GraphQL, validation, and generated artifacts |
+| Turborepo | Workspace task ordering, filtering, caching, and persistent development processes |
+
+## Frontend
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Next.js and React | App Router pages, layouts, server components, and client UI |
+| Tailwind CSS | Styling for the web and docs applications |
+| shadcn/Base UI | Accessible UI primitives and generated application components |
+| Apollo Client | GraphQL transport, normalized cache, React hooks, and optimistic layers |
+| gql.tada | Type-safe GraphQL document authoring from generated schema types |
+| TanStack Form | Typed form state in application features |
+| TanStack Query and Zustand | Installed state/data tools available to web features; Apollo owns GraphQL server state |
+| Motion and Framer Motion | Landing/auth/sidebar animation and reduced-motion-aware transitions |
+| React Three Fiber/Drei | Three.js-based visual components |
+| Storybook | Isolated web component development |
+
+## Backend and contracts
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Elysia | Bun HTTP server and plugin composition |
+| Effect | Typed services, dependency layers, failures, and async workflows |
+| GraphQL Yoga | GraphQL HTTP execution, uploads, APQ, GraphiQL, and plugins |
+| Pothos | Programmatic GraphQL schema builder |
+| Zod | Domain input validation and inferred types |
+| GraphQL Code Generator | Scans gql.tada documents and runs Vyrel's client registry plugin |
+
+## Data and authentication
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Drizzle ORM | SQLite schema definitions, queries, relations, and migrations |
+| libSQL/Turso | SQLite-compatible local and remote database access |
+| Better Auth | Email/password accounts, sessions, organizations, and JWT issuance |
+| `@t3-oss/env-*` | Runtime validation for public and server environment variables |
+
+## Infrastructure
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Bun `S3Client` / Cloudflare R2 | Object upload, download, deletion, and signed URLs |
+| Resend and React Email | Better Auth verification mail and reusable email templates |
+| BullMQ | Queue and worker scaffolding for email/notification jobs; not started by the server entrypoint |
+| LogTape | Structured application and GraphQL logging |
+| evlog | A separate server helper currently present but not wired into `app.ts` |
+| Vercel AI SDK | Installed in server/web manifests; no active AI request path is currently registered |
+
+## Testing, quality, and delivery
+
+| Technology | Role in Vyrel |
+| --- | --- |
+| Vitest and Effect Vitest | Unit and service tests |
+| Playwright | Browser automation configuration |
+| Testing Library | React behavior tests |
+| MSW | Browser and server request mocks |
+| Ultracite/Biome | Formatting and static code-quality rules |
+| Knip and Syncpack | Unused-code/dependency checks and dependency consistency |
+| Changesets | Versioning and publishing public packages |
+| Commitlint and Husky | Commit conventions and local quality hooks |
+| GitHub Actions | Preflight CI and npm release automation |
+| tsdown | Server and public-package compilation |
+| WXT | Browser-extension development and packaging |

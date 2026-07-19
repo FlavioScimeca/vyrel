@@ -1,0 +1,11 @@
+{
+  "title": "Contributing",
+  "description": "Development, quality, versioning, and release workflows.",
+  "pages": [
+    "development-workflow",
+    "testing-and-quality",
+    "commits-and-changesets",
+    "releases-and-ci"
+  ],
+  "pagesIndex": "development-workflow"
+}

@@ -1,0 +1,9 @@
+{
+  "title": "@vyrel/graphql-client",
+  "pages": [
+    "index",
+    "setup-and-codegen",
+    "optimistic-mutations",
+    "architecture-and-limits"
+  ]
+}

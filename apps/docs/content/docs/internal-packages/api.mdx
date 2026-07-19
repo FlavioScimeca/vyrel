@@ -1,0 +1,73 @@
+---
+title: Domain API
+description: The @vyrel/api domain modules, Effect services, transport adapters, and media orchestration.
+---
+
+`@vyrel/api` owns application-domain behavior. It currently implements user,
+organization, and task domains plus a public GraphQL health field.
+
+## Module shape
+
+Each mature domain follows the same broad structure:
+
+```text
+models/<domain>/
+├── graphql/        Pothos objects, queries, mutations, Effect adapters
+├── rest/           Elysia adapters where HTTP-specific behavior is needed
+├── services/       Effect services and dependency layers
+├── types/          Zod schemas and inferred TypeScript types
+└── utils/          authorization, validation, response, and domain errors
+```
+
+This is a convention rather than generated scaffolding. A domain can expose
+only the transports it needs.
+
+## Domains
+
+| Domain | GraphQL | REST | Notable behavior |
+| --- | --- | --- | --- |
+| User | Read, update, delete | Create | Better Auth user creation, avatar validation and storage |
+| Organization | Read, update, delete | Create | Better Auth organization API, membership checks, logo handling |
+| Task | Read/list, create, update, delete | None | Organization authorization, filters, optional task image handling |
+
+Create user and organization use REST because they need Better Auth response
+headers/cookies and optional multipart media. Task mutations remain GraphQL.
+
+## Effect service boundary
+
+Business programs return typed Effect failures rather than throwing transport
+responses. Service layers supply data access, authentication, and media
+dependencies. GraphQL and REST adapters execute those programs and map tagged
+domain errors into their protocol-specific result.
+
+Examples of explicit failures include not-found, validation, forbidden,
+repository, media, and HTTP/auth API errors.
+
+## Validation
+
+Base Zod schemas derive from Drizzle tables through `drizzle-orm/zod`, then omit
+server-owned fields and refine create/update inputs. Extra schemas describe
+lookup IDs and task list filters. File validators independently constrain MIME
+type, extension, byte size, and dimensions before optimization.
+
+## Authorization
+
+Domain helpers resolve the actor from session or JWT context, verify
+organization membership, and fetch only records accessible to that actor.
+Authorization stays in the service/domain layer even when a route is protected
+globally.
+
+## Media orchestration
+
+User avatars, organization logos, and task images are validated, converted into
+WebP thumb/full variants, uploaded to object storage, and reflected in database
+or Better Auth records. The `afterCreateAttachMedia` helper deliberately treats
+post-create attachment as best effort: a failed attachment returns the created
+result with `mediaWarning` so already-issued auth cookies are preserved.
+
+## Exports and consumers
+
+The package root currently exports no symbols. Consumers use declared wildcard
+subpaths such as `@vyrel/api/models/...` and `@vyrel/api/context`. The Elysia
+server imports REST adapters, while generated GraphQL imports load domain schema
+registration modules for their side effects.

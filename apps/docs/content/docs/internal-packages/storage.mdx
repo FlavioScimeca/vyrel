@@ -1,0 +1,47 @@
+---
+title: Storage Package
+description: Cloudflare R2-compatible object operations, keys, URLs, and failures.
+---
+
+`@vyrel/storage` wraps Bun's S3-compatible client for Cloudflare R2. Its source
+is consumed by the domain media services.
+
+## Client configuration
+
+The client is created lazily from the account ID, access key, secret key, and
+bucket. Its endpoint is the account's R2 S3-compatible endpoint. A single client
+instance is reused after initialization.
+
+## Object operations
+
+| Operation | Result/failure behavior |
+| --- | --- |
+| `uploadObject` | Writes bytes/stream, stats the object, and returns key plus optional ETag |
+| `downloadObject` | Returns stream, content type, and content length |
+| `downloadObjectAsBuffer` | Checks existence and returns a typed not-found failure |
+| `deleteObject` / `deleteObjects` | Deletes one or many keys through Effect |
+| `objectExists` | Typed existence check |
+| Signed URL helpers | Presign upload/download operations with configured TTL |
+| `getPublicObjectUrl` | Build custom-domain or R2 development URLs |
+
+Promise failures are converted to `ObjectStorageError` with operation and cause.
+Missing buffered downloads use a separate `ObjectNotFoundError`.
+
+## Key layout
+
+`keys.ts` centralizes paths for user avatars, organization logos, task images,
+and placeholder/design assets. User, organization, and task media each use
+`thumb` and `full` WebP variants. Domain services should call these builders
+rather than concatenate storage paths.
+
+## Placeholder asset
+
+The package includes an organization placeholder PNG and an Effect that reads
+it with Bun. Organization creation can upload or attach the placeholder when no
+custom logo is supplied.
+
+## Export shape
+
+The package root is currently empty. Consumers import declared subpaths such as
+`@vyrel/storage/object-storage`, `@vyrel/storage/keys`, and
+`@vyrel/storage/errors`. These are internal APIs and can evolve with consumers.

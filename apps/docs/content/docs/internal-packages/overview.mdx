@@ -1,0 +1,43 @@
+---
+title: Internal Packages Overview
+description: Private package boundaries and consumption rules.
+---
+
+Internal packages are private workspaces under `packages/*`. They let multiple
+applications share infrastructure and domain behavior without turning the
+repository into one undifferentiated application.
+
+<Cards>
+  <Card href="/docs/internal-packages/api" title="Domain API">
+    Users, organizations, tasks, validation, services, GraphQL, REST, and media.
+  </Card>
+  <Card href="/docs/internal-packages/auth" title="Authentication">
+    Better Auth, organizations, sessions, JWTs, and verification email.
+  </Card>
+  <Card href="/docs/internal-packages/database" title="Database">
+    Drizzle schemas, relations, and libSQL access.
+  </Card>
+  <Card href="/docs/internal-packages/graphql" title="GraphQL">
+    Pothos schema construction and GraphQL Yoga execution.
+  </Card>
+  <Card href="/docs/internal-packages/environment-and-constants" title="Environment and constants">
+    Runtime validation and server/browser-specific constants.
+  </Card>
+  <Card href="/docs/internal-packages/storage" title="Storage">
+    R2 object operations, keys, signed URLs, and typed failures.
+  </Card>
+</Cards>
+
+## Stability
+
+These package names make ownership explicit, but they are not public
+compatibility contracts. Internal exports can change with their consumers in
+the same pull request. Public packages use a separate release and semantic
+versioning process.
+
+## Import policy
+
+Consume an internal package through the exports declared in its
+`package.json`. Most internal packages use source exports and do not need a
+separate build. The package must be listed as a `workspace:*` dependency of the
+consumer so Turborepo can understand the relationship.

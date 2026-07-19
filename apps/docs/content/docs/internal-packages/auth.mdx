@@ -1,0 +1,55 @@
+---
+title: Authentication Package
+description: Better Auth configuration, sessions, organizations, JWTs, and email verification.
+---
+
+`@vyrel/auth` exports the configured Better Auth `auth` instance. The Elysia
+server mounts its handler; the GraphQL context also uses its server API.
+
+## Server configuration
+
+- Drizzle adapter with the SQLite provider and explicit auth schema tables.
+- Email/password authentication enabled.
+- Email verification sent on sign-up with automatic sign-in after verification.
+- Organization plugin with optional image asset/full/placeholder/thumb fields.
+- JWT plugin with a one-day expiration.
+- Matching optional media fields on users.
+- `CORS_ORIGIN` registered as a trusted origin.
+
+Cookies are HTTP-only. In production they are secure and use `SameSite=None`;
+outside production they use `SameSite=Lax` without the secure flag.
+
+## Database integration
+
+The package passes `user`, `session`, `account`, `verification`, `jwks`,
+`organization`, `member`, and `invitation` tables to the Better Auth Drizzle
+adapter. Schema ownership remains in `@vyrel/db`.
+
+## Session and bearer authentication
+
+Two identities can reach GraphQL:
+
+- a Better Auth session resolved from request headers/cookies;
+- a bearer JWT verified against Better Auth JWKS.
+
+`verify-bearer.ts` validates issuer and audience against `BETTER_AUTH_URL` and
+uses a ten-hour JWKS cache TTL. The GraphQL context prefers the session user ID
+when both identities exist.
+
+## Email verification
+
+The verification callback renders a React Email template and sends it with the
+shared Resend client. The send starts asynchronously so sign-up does not wait
+for the provider response. The current callback swallows delivery rejection;
+operations that need delivery guarantees should add an explicit workflow.
+
+## Web client
+
+The browser client is configured in `apps/web`, not this server package. It uses
+Better Auth's React client and organization plugin APIs while server components
+perform server-side session retrieval.
+
+<Callout title="Authorization is layered">
+  An authenticated session does not imply access to every organization or task.
+  Domain services still verify membership and resource ownership.
+</Callout>

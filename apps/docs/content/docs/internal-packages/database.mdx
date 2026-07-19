@@ -1,0 +1,53 @@
+---
+title: Database Package
+description: libSQL connectivity, Drizzle schemas, relations, and database workflows.
+---
+
+`@vyrel/db` owns persistence. It creates a libSQL client from `DATABASE_URL` and
+`DATABASE_AUTH_TOKEN`, then constructs a Drizzle database with typed relations
+and a LogTape-compatible query logger.
+
+## Schema groups
+
+| File | Tables |
+| --- | --- |
+| `auth.schema.ts` | `user`, `session`, `account`, `verification`, `jwks` |
+| `organization.schema.ts` | `organization`, `member`, `invitation` |
+| `task.schema.ts` | `task` |
+
+The schema barrel re-exports these table definitions. Relations connect users
+to sessions/accounts/memberships/tasks, organizations to members/invitations/
+tasks, and tasks to their creator and organization.
+
+## Media columns
+
+Users, organizations, and tasks include the identifiers and derived URLs needed
+by their media flows. Better Auth's additional field configuration mirrors the
+user and organization columns it manages.
+
+## Commands
+
+| Script | Behavior |
+| --- | --- |
+| `db:local` | Start `turso dev --db-file local.db` |
+| `db:generate` | Generate migration files with Drizzle Kit |
+| `db:migrate` | Apply migrations with Drizzle Kit |
+| `db:push` | Synchronize schema directly for local iteration |
+| `db:studio` | Open Drizzle Studio |
+
+The root scripts filter these tasks to `@vyrel/db`.
+
+## Change workflow
+
+1. Change the appropriate schema file.
+2. Update `relations.ts` when relationship shape changes.
+3. Update derived domain Zod schemas and GraphQL selections.
+4. Generate and review a migration for durable changes, or use `db:push` only
+   for disposable local iteration.
+5. Regenerate the GraphQL schema and web artifacts when exposed fields change.
+
+<Callout title="Schema source of truth">
+  Never edit generated GraphQL client artifacts to reflect a database change.
+  Propagate the change through Drizzle, domain Zod schemas, Pothos, and the
+  documented generation pipeline.
+</Callout>

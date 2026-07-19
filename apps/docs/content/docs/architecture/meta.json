@@ -1,0 +1,13 @@
+{
+  "title": "Architecture",
+  "description": "Cross-cutting request, data, authentication, and infrastructure flows.",
+  "pages": [
+    "request-lifecycle",
+    "graphql-workflow",
+    "authentication",
+    "data-and-validation",
+    "media-and-storage",
+    "jobs-email-and-logging"
+  ],
+  "pagesIndex": "request-lifecycle"
+}

@@ -1,0 +1,73 @@
+---
+title: GraphQL Workflow
+description: From Drizzle and Zod models to Pothos SDL, gql.tada documents, and Apollo cache metadata.
+---
+
+GraphQL artifacts move in one direction from server schema to client documents
+and generated cache metadata.
+
+```text
+Drizzle tables
+  -> drizzle-orm/zod schemas
+  -> domain Zod create/update/filter schemas
+  -> @vyrel/morph
+  -> Pothos fields, inputs, and arguments
+  -> builder.toSchema()
+  -> apps/web/schema.graphql
+  -> gql.tada schema typing
+  -> typed feature documents
+  -> GraphQL Code Generator
+  -> generated client schema, type policies, and CRUD registry
+  -> Apollo cache and optimistic hooks
+```
+
+## Server schema registration
+
+Every `*.graphql.ts` domain module registers Pothos fields when imported. The
+collection script scans `@vyrel/api/models`, sorts matching files, and writes a
+generated import list. The final schema imports that list before calling
+`builder.toSchema()`.
+
+This preserves domain-local schema files without maintaining a manual central
+barrel.
+
+## Schema and document typing
+
+`bun run graphql:schema` prints the current server schema for `apps/web`.
+gql.tada uses that schema to type `graphql(...)` documents and fragment results.
+Feature documents follow export naming conventions such as
+`TaskListItemFragment` and `ListTasksDocument`.
+
+## Vyrel client codegen
+
+GraphQL Code Generator parses the schema and all web documents, then runs
+`@vyrel/graphql-client/codegen-plugin`. The plugin generates:
+
+- fragment type augmentation;
+- complete schema metadata and scalar mappings;
+- Apollo type policies and configured key fields;
+- canonical collection definitions;
+- CRUD mutation associations;
+- mutation-variable to collection-variable bindings.
+
+Generation fails when a convention is ambiguous rather than silently choosing
+an unsafe list or field.
+
+## Cache registration
+
+The web cache constructs `InMemoryCache` with generated type policies, merges
+explicit app-specific field policies, and calls
+`configureGraphqlClientCache(cache, graphqlClientRegistry)` once. Runtime hooks
+then read the registry attached to that cache.
+
+## Change checklist
+
+After changing a database field or GraphQL operation:
+
+```bash
+bun run graphql:schema
+bun run --cwd apps/web gql:generate
+bun run --cwd apps/web gql:client
+```
+
+Review generated diffs; never repair them by hand.

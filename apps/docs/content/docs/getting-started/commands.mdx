@@ -1,0 +1,77 @@
+---
+title: Commands
+description: Root and package-level scripts used to develop, verify, and release Vyrel.
+---
+
+Run commands from the repository root unless a package directory is shown.
+
+## Development and builds
+
+| Command | Purpose |
+| --- | --- |
+| `bun run dev` | Run every workspace development task through Turborepo. |
+| `bun run dev:web` | Run only the `web` workspace and its web codegen watchers. |
+| `bun run dev:server` | Run the Elysia server with Bun hot reload. |
+| `bun run dev:docs` | Run Fumadocs on port 4000. |
+| `bun run build` | Build all workspaces with build scripts. |
+| `bun run build:docs` | Generate MDX and build only the docs workspace. |
+
+Root commands are orchestration entry points. The implementation of a task
+lives in each workspace's `package.json`; `turbo.json` describes dependency and
+cache behavior.
+
+## GraphQL generation
+
+| Command | Purpose |
+| --- | --- |
+| `bun run graphql:schema` | Build the server GraphQL SDL through `@vyrel/graphql`. |
+| `bun run --cwd apps/web gql:generate` | Generate gql.tada's schema typing output. |
+| `bun run --cwd apps/web gql:client` | Build the client helper and generate the client registry. |
+| `bun run --cwd apps/web gql:client:watch` | Regenerate the client registry when documents change. |
+
+The web workspace runs the generation sequence automatically in `predev` and
+`prebuild`.
+
+## Database
+
+| Command | Purpose |
+| --- | --- |
+| `bun run db:local` | Start a local Turso database server. |
+| `bun run db:push` | Push the current Drizzle schema directly. |
+| `bun run db:generate` | Generate a migration from schema changes. |
+| `bun run db:migrate` | Apply generated migrations. |
+| `bun run db:studio` | Open Drizzle Studio. |
+
+## Quality
+
+| Command | Purpose |
+| --- | --- |
+| `bun run lint` | Run the Ultracite checks. |
+| `bun run fix` | Apply Ultracite/Biome fixes. |
+| `bun run check-types` | Type-check participating workspaces. |
+| `bun run test` | Run workspace Vitest suites. |
+| `bun run knip` | Find unused files, dependencies, and exports. |
+| `bun run knip:cycles` | Report dependency cycles. |
+| `bun run preflight` | Run dependency lint, lint, Knip, types, build, and tests. |
+
+## Public package verification
+
+```bash
+bun run --cwd packages/public/morph validate
+bun run --cwd packages/public/graphql-client validate
+```
+
+Both public packages also provide `build:verified`, `size`, and package-local
+test/typecheck scripts.
+
+## Filtered one-off tasks
+
+Turborepo filters accept package names or directories. For example:
+
+```bash
+bunx turbo run test --filter=@vyrel/graphql-client
+bunx turbo run check-types --filter=web
+```
+
+Use package scripts for repeatable workflows. Filters are useful for focused
+local checks while iterating.

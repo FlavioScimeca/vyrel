@@ -1,0 +1,71 @@
+---
+title: Development Workflow
+description: Branch, edit, generate, verify, and review changes safely.
+---
+
+## Start from a feature branch
+
+Local hooks block commits directly on `main` and `master`. Create a focused
+branch, install dependencies, and make the required environment variables
+available before starting apps.
+
+```bash
+bun install
+bun run dev
+```
+
+Use a focused command such as `dev:web`, `dev:server`, or `dev:docs` when the
+change does not require every application.
+
+## Work at the owning layer
+
+| Change | Primary owner |
+| --- | --- |
+| Database column or relation | `@vyrel/db` |
+| Domain input, service, or authorization | `@vyrel/api` |
+| GraphQL infrastructure | `@vyrel/graphql` |
+| Auth provider/session behavior | `@vyrel/auth` |
+| Browser feature/UI | `apps/web` |
+| HTTP composition | `apps/server` |
+| Reusable schema/cache mechanics | Public package |
+
+Avoid putting domain rules in transport adapters or copying shared behavior
+between apps.
+
+## Generated artifacts
+
+Run the owning generator after changing its inputs:
+
+```bash
+bun run graphql:schema
+bun run --cwd apps/web gql:generate
+bun run --cwd apps/web gql:client
+```
+
+Fumadocs runs its generator as part of docs build and typecheck. WXT prepares
+extension types during install/typecheck. Public package builds recreate `dist`.
+
+Do not hand-edit generated artifacts.
+
+## Database changes
+
+For local experimentation, `bun run db:push` synchronizes the schema directly.
+For a durable change, run `bun run db:generate`, review the migration, and apply
+it with `bun run db:migrate`.
+
+## Before committing
+
+```bash
+bun run lint
+bun run check-types
+bun run test
+```
+
+Use `bun run preflight` before pushing. It matches the central CI gate.
+
+## Documentation updates
+
+Update this site when a change modifies workspace structure, commands,
+environment variables, architecture boundaries, public API behavior, or release
+workflow. Also update the root `AGENTS.md` when the project structure or common
+workflows change.

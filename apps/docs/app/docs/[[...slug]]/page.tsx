@@ -8,8 +8,8 @@ import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getMDXComponents } from "@/components/mdx";
-import { source } from "@/lib/source";
+import { getMDXComponents } from "../../../components/mdx";
+import { source } from "../../../lib/source";
 
 interface DocsPageProps {
   params: Promise<{

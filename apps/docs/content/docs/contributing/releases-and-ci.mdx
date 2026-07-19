@@ -1,0 +1,63 @@
+---
+title: Releases and CI
+description: Pull-request validation, version pull requests, and trusted npm publishing.
+---
+
+## Continuous integration
+
+The CI workflow runs for pull requests and pushes to `main` or `master`. It:
+
+1. checks whether public package changes require a changeset;
+2. restores the Bun dependency cache;
+3. installs the pinned Bun version and frozen lockfile;
+4. runs `bun run preflight`.
+
+CI supplies safe placeholder environment values so schema construction, tests,
+and builds can import the validated environment package without production
+credentials.
+
+Pull request titles are expected to follow the same Conventional Commit format
+as local commits.
+
+## Release lifecycle
+
+```text
+feature PR + changeset
+  -> merge to main
+  -> release workflow finds pending changesets
+  -> Changesets opens/updates "chore: version packages" PR
+  -> merge version PR
+  -> verified public-package builds
+  -> npm publish with trusted publishing/OIDC
+```
+
+The release workflow also detects a public package version that differs from npm
+and can publish that unpublished version.
+
+## Scripts
+
+| Script | Normal owner |
+| --- | --- |
+| `bun run changeset` | Developer records release intent |
+| `bun run version-packages` | Changesets version PR automation |
+| `bun run release` | CI verified build and publish |
+
+Developers normally create the changeset and let automation handle versioning
+and publishing.
+
+## Adding a public package
+
+1. Create it under `packages/public/<name>`.
+2. Configure public npm `publishConfig` and do not mark it private.
+3. Do not add it to Changesets' ignore list.
+4. Add verified build and prepublish checks.
+5. Declare explicit exports, files, peer dependencies, engine, repository, and
+   license metadata.
+6. Configure npm Trusted Publishing for the package.
+7. Update the docs navigation and release documentation.
+
+## Emergency manual publish
+
+Manual publication is a fallback only. Build and verify the package first, then
+publish from its directory. Prefer repairing the automated release path so the
+next version remains reproducible.

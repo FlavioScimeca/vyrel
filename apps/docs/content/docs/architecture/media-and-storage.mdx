@@ -1,0 +1,62 @@
+---
+title: Media and Storage
+description: Validation, WebP optimization, R2 keys, attachment, and failure behavior.
+---
+
+Vyrel supports user avatars, organization logos, and task images through domain
+services backed by `@vyrel/storage`.
+
+## Upload flow
+
+```text
+uploaded File
+  -> extension, MIME, byte, and dimension validation
+  -> Bun Image decode
+  -> thumb + full WebP variants
+  -> parallel R2 uploads
+  -> public/signed URL fields
+  -> Better Auth or Drizzle record update
+```
+
+Avatar, logo, and task-image optimizers produce 128px thumb and 512px full
+variants. The shared preview optimizer also supports larger preview output and
+a tiny data URL placeholder for design-oriented flows.
+
+## Validation
+
+Domain validators accept PNG, JPEG, WebP, and GIF where configured, check the
+file extension and MIME combination, enforce byte limits, and reject excessive
+dimensions. Bun's image decoder applies an independent decoded-pixel ceiling to
+protect memory.
+
+Validation errors are user-oriented; lower-level decode/encode errors are
+translated into actionable messages when known.
+
+## Storage keys and URLs
+
+Central key builders generate stable paths per user, organization, or task.
+Object operations use Bun's S3 client against the R2 endpoint. Downloads can be
+streamed or buffered; upload/download URLs use the configured expiration.
+
+## Create-time failure behavior
+
+User and organization creation can succeed before optional media attachment.
+`afterCreateAttachMedia` executes the attachment as best effort:
+
+- success returns the created entity with media fields;
+- failure preserves the original creation result and auth `Set-Cookie` headers;
+- the response includes a `mediaWarning` instead of converting creation into a
+  total failure.
+
+This is deliberate outcome preservation, not transactional rollback.
+
+## Delete behavior
+
+Task deletion attempts to remove associated objects, but catches storage
+deletion failure before deleting the database row. This avoids blocking domain
+deletion on orphan cleanup; it can leave objects that require later cleanup.
+
+<Callout title="No cross-service transaction" type="warn">
+  SQLite/Better Auth and R2 cannot participate in one atomic transaction. Code
+  must define compensation or warning behavior explicitly for each operation.
+</Callout>

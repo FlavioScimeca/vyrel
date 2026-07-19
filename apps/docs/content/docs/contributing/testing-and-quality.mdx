@@ -1,0 +1,71 @@
+---
+title: Testing and Quality
+description: Unit, component, browser, type, lint, dependency, and package verification.
+---
+
+Vyrel combines behavior tests with static and packaging checks.
+
+## Test tools
+
+| Tool | Use |
+| --- | --- |
+| Vitest | Unit and package tests |
+| Effect Vitest | Effect programs with typed services and failures |
+| Testing Library/jsdom | React behavior and interaction tests |
+| MSW | Browser and server network mocks |
+| Playwright | Browser-level automation infrastructure |
+| Storybook | Isolated visual/component development |
+
+Tests live beside the code they cover as `*.test.ts`, `*.test.tsx`, or matching
+spec files. Assertions belong inside `test`/`it` blocks; committed tests must not
+use `.only` or `.skip`.
+
+## Static checks
+
+```bash
+bun run lint
+bun run check-types
+bun run knip
+bun run knip:cycles
+bun run deps:lint
+```
+
+- Ultracite/Biome enforces formatting, correctness, accessibility, and common
+  performance rules.
+- TypeScript checks cross-workspace contracts.
+- Knip finds unused code and cycles.
+- Syncpack checks dependency version consistency.
+
+## Full gate
+
+```bash
+bun run preflight
+```
+
+The preflight sequence runs dependency lint, lint, Knip, cycle analysis,
+typecheck, build, and tests. The pre-push hook and GitHub Actions use the same
+entry point.
+
+## Public packages
+
+Public packages add compile, export, bundle-size, and publish-content checks.
+
+```bash
+bun run --cwd packages/public/morph validate
+bun run --cwd packages/public/graphql-client validate
+```
+
+Run the relevant validation script after changing an exported type, subpath,
+codegen behavior, or browser/runtime dependency.
+
+## Docs checks
+
+```bash
+bun run check:docs
+bun run build:docs
+bunx ultracite check apps/docs
+```
+
+The first two commands regenerate the MDX source and verify TypeScript/static
+routes. Also inspect sidebar order, search, internal links, code blocks, and both
+color themes for content-heavy changes.

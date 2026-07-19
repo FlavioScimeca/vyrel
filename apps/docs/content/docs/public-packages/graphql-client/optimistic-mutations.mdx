@@ -1,0 +1,85 @@
+---
+title: Optimistic Mutations
+description: Create, update, delete, and extend Apollo mutations with typed optimistic behavior.
+---
+
+## Create
+
+```ts
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({
+    description: input.description ?? null,
+    imageFull: null,
+    imageThumb: null,
+    title: input.title,
+  }),
+});
+```
+
+The callback supplies only domain values. The hook infers typename and response
+field, creates an `optimistic-*` ID, adds selected `createdAt`/`updatedAt`
+timestamps when absent, and prepends the entity to the generated canonical
+collection. Mutation variables are mapped to collection variables by codegen.
+
+Provide `optimisticId` when the application needs a custom temporary identity,
+or `keyField` when overriding the generated cache key.
+
+## Update
+
+```ts
+const [renameTask] = useOptimisticUpdate(UpdateTaskDocument, {
+  current: task,
+  optimistic: ({ input }) => ({
+    title: input.title ?? task.title,
+  }),
+});
+```
+
+`current` must contain every field selected by the mutation fragment. TypeScript
+enforces that complete base. The optimistic callback returns only the fields
+changed by this interaction. Apollo identifies and replaces fields on the same
+normalized entity, so an ordinary update does not rewrite list membership.
+
+## Delete
+
+```ts
+const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
+  id: ({ input }) => input.taskId,
+});
+```
+
+The callback extracts a typed ID from variables. The hook builds the scalar
+optimistic result, removes the entity from every cached argument variant of the
+canonical list, evicts its normalized record, and runs cache garbage collection.
+
+## Multiple mutation fields
+
+If a document has more than one root mutation field, pass `field` to select the
+generated registry entry used by the hook:
+
+```ts
+useOptimisticCreate(BatchDocument, {
+  field: "createTask",
+  optimistic: ({ task }) => ({ title: task.title }),
+});
+```
+
+## Apollo options and extension
+
+Normal `useMutation` options remain top-level:
+
+```ts
+useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({ title: input.title }),
+  onCompleted: () => notifySuccess(),
+  onError: (error) => notifyError(error.message),
+  refetchQueries: [DashboardDocument],
+  update: (cache, result) => {
+    // Runs after the package's built-in create behavior.
+  },
+});
+```
+
+The component that owns a query also owns exact filters and server freshness.
+Call its `refetch` after a mutation when network confirmation is required. The
+package intentionally does not reconstruct those variables or force refetches.

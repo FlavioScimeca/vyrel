@@ -1,0 +1,75 @@
+---
+title: Server Application
+description: The Bun and Elysia process that exposes GraphQL, authentication, and REST endpoints.
+---
+
+`apps/server` is the HTTP composition root. `src/index.ts` imports the configured
+Elysia app and listens on port `3000`.
+
+## Application composition
+
+`src/app.ts` constructs one chained Elysia application:
+
+```text
+CORS
+  -> GraphQL plugin
+  -> user REST plugin
+  -> organization REST plugin
+  -> Better Auth plugin
+  -> GET / health response
+```
+
+CORS allows credentialed `GET`, `POST`, and `OPTIONS` requests from
+`CORS_ORIGIN`, with `Content-Type` and `Authorization` headers.
+
+## Routes
+
+| Route | Owner | Purpose |
+| --- | --- | --- |
+| `GET /` | Server app | Returns `OK` for a basic health check |
+| `/api/graphql` | GraphQL plugin | Forwards the original request to GraphQL Yoga |
+| `GET /api/auth/get-session` | Auth plugin | Stable typed session endpoint for Eden/client checks |
+| `GET /api/auth/organization/list` | Auth plugin | Stable typed organization list endpoint |
+| `/api/auth/*` | Auth plugin | Better Auth handler for supported GET/POST methods |
+| User create REST route | `@vyrel/api` | Cookie-aware user creation with optional avatar handling |
+| Organization create REST route | `@vyrel/api` | Organization creation with optional logo handling |
+
+The GraphQL route uses `{ parse: "none" }` so Yoga receives the original body,
+including multipart uploads. It is registered directly instead of using
+`mount`, because stripping the prefix would conflict with Yoga's configured
+endpoint.
+
+## Domain calls
+
+Elysia plugins are adapters. Domain work lives in `@vyrel/api` Effect services,
+which depend on the database, auth, storage, and logging packages. GraphQL
+resolvers enter the same services through Pothos.
+
+```text
+HTTP request
+  -> Elysia route/plugin
+  -> GraphQL resolver or REST adapter
+  -> Effect program and service layer
+  -> Drizzle / Better Auth / R2
+  -> mapped HTTP or GraphQL result
+```
+
+## Build and operation
+
+- `bun run dev` starts Bun in hot-reload mode.
+- `bun run build` compiles the app with tsdown.
+- `bun run start` executes `dist/index.mjs`.
+- `bun run compile` can create a minified, sourcemapped Bun executable.
+- The Dockerfile and Vercel configuration provide alternative deployment
+  surfaces.
+
+## Scaffolded infrastructure
+
+`src/lib/queue.ts` and `src/lib/workers.ts` define BullMQ email and notification
+examples with retry, scheduling, statistics, concurrency, and rate-limit
+settings. They are not imported by the server entrypoint, and the worker bodies
+currently simulate delivery. Treat them as scaffolding, not a production job
+system.
+
+Likewise, `src/lib/logger.ts` exposes an evlog helper, while active domain and
+GraphQL structured logging uses `@vyrel/logging` and LogTape.

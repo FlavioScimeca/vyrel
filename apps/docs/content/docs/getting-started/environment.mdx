@@ -1,0 +1,89 @@
+---
+title: Environment
+description: Validated public and server-only configuration used by Vyrel.
+---
+
+Vyrel validates environment variables in `@vyrel/env`. The server schema uses
+`@t3-oss/env-core`; the web schema uses `@t3-oss/env-nextjs`. Empty strings are
+treated as missing values.
+
+<Callout title="Keep secrets private" type="warn">
+  Only `NEXT_PUBLIC_SERVER_URL` is safe for browser bundles. Never prefix a
+  database, authentication, R2, or Resend credential with `NEXT_PUBLIC_`.
+</Callout>
+
+## Authentication and HTTP
+
+| Variable | Visibility | Requirement | Consumer | Example |
+| --- | --- | --- | --- | --- |
+| `BETTER_AUTH_SECRET` | Server | Required, at least 32 characters | Better Auth signing/encryption | `replace-with-a-32-character-secret` |
+| `BETTER_AUTH_URL` | Server | Required URL | Better Auth base URL and JWT issuer/audience | `http://localhost:3000` |
+| `CORS_ORIGIN` | Server | Required URL | Elysia CORS, trusted auth origin | `http://localhost:3001` |
+| `NEXT_PUBLIC_SERVER_URL` | Public | Optional; defaults to `http://localhost:3000` | Web auth, GraphQL, and REST clients | `http://localhost:3000` |
+
+`CORS_ORIGIN` is the browser origin allowed to send credentialed requests to
+the API. It is normally the Next.js URL, not the server URL.
+
+## Database
+
+| Variable | Visibility | Requirement | Consumer | Example |
+| --- | --- | --- | --- | --- |
+| `DATABASE_URL` | Server | Required non-empty string | libSQL client and Drizzle | `file:local.db` |
+| `DATABASE_AUTH_TOKEN` | Server | Required non-empty string | Remote/local libSQL client | `local-placeholder-token` |
+
+The current server schema requires both values, including for local commands.
+Use a non-secret placeholder only when the selected local driver does not use
+the token.
+
+## Object storage and media
+
+| Variable | Visibility | Requirement/default | Consumer | Example |
+| --- | --- | --- | --- | --- |
+| `R2_ACCOUNT_ID` | Server | Required | Bun `S3Client` endpoint | `example-account` |
+| `R2_ACCESS_KEY_ID` | Server | Required | R2 authentication | `example-access-key` |
+| `R2_SECRET_ACCESS_KEY` | Server | Required | R2 authentication | `example-secret-key` |
+| `R2_BUCKET_NAME` | Server | Required | Object reads and writes | `vyrel-development` |
+| `R2_SIGNED_URL_TTL_SECONDS` | Server | Positive integer; default `3600` | Presigned upload/download URLs | `3600` |
+| `MEDIA_MAX_UPLOAD_BYTES` | Server | Positive integer; default `104857600` | GraphQL multipart upload limit | `104857600` |
+
+The R2 credentials are also required when a code path imports the complete
+server environment schema, even if that operation does not upload media.
+
+## Email
+
+| Variable | Visibility | Requirement | Consumer | Example |
+| --- | --- | --- | --- | --- |
+| `RESEND_API_KEY` | Server | Required | Resend client | `re_example` |
+| `RESEND_FROM_EMAIL` | Server | Required | Default sender | `Vyrel <dev@example.com>` |
+
+Better Auth sends the verification template through Resend after sign-up. The
+send is started without delaying the authentication response; failures are not
+currently surfaced to the caller.
+
+## Runtime, logging, and profiling
+
+| Variable | Visibility | Requirement/default | Consumer | Example |
+| --- | --- | --- | --- | --- |
+| `NODE_ENV` | Server | `development`, `production`, or `test`; default `development` | Cookies, GraphiQL, error masking, formatting | `development` |
+| `LOG_LEVEL` | Server | Required enum from `trace` through `fatal` | LogTape and the server logger | `debug` |
+| `PROFILING` | Server | Boolean; default `false` | Detailed GraphQL/SQL profiling | `false` |
+| `PROFILE_SQL_LIMIT` | Server | Positive integer; default `20` | Maximum SQL statements logged per profile | `20` |
+
+The boolean parser accepts normal boolean values and the strings `1`, `true`,
+`yes`, and `on` as true.
+
+## BullMQ variables
+
+The queue scaffold reads `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD`
+directly from `process.env`. They are not part of the validated environment
+schema. Defaults are `localhost`, `6379`, and no password. The server entrypoint
+does not currently import the queue or worker modules, so Redis is not required
+for the main API process.
+
+## Turborepo behavior
+
+The root `turbo.json` passes the validated application variables through to
+tasks. Build inputs include package-local `.env*` files. Turborepo does not load
+environment files itself: the application/runtime does. Exporting variables in
+the launching shell is the least ambiguous way to share them across filtered
+database, server, and web tasks.

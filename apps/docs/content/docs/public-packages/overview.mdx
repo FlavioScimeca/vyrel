@@ -1,0 +1,41 @@
+---
+title: Public Packages
+description: Reusable, versioned Vyrel libraries published to npm.
+---
+
+Vyrel currently publishes two MIT-licensed packages. They are built from
+`packages/public/*`, expose compiled ESM and declarations from `dist/`, and
+require a changeset for behavior changes.
+
+<Cards>
+  <Card href="/docs/public-packages/morph" title="@vyrel/morph">
+    Derive Pothos GraphQL fields, inputs, arguments, and enum registrations from
+    Zod object schemas.
+  </Card>
+  <Card href="/docs/public-packages/graphql-client" title="@vyrel/graphql-client">
+    Generate GraphQL/Apollo cache metadata and remove repetitive optimistic
+    create, update, and delete mechanics.
+  </Card>
+</Cards>
+
+## Design principles
+
+Both packages automate structural work while leaving domain decisions in the
+application:
+
+- inference must be type-safe and deterministic;
+- ambiguous mappings fail with descriptive errors;
+- underlying Pothos, Zod, GraphQL, and Apollo APIs remain available;
+- runtime bundles remain small and tree-shakeable;
+- code generation stays separate from browser entry points;
+- adoption is incremental rather than framework-wide.
+
+## Release boundary
+
+Private apps and internal packages are ignored by Changesets. Public package
+changes require a changeset unless a pull request is explicitly labeled
+`skip-changeset`. The release workflow builds and verifies publish contents
+before npm publication.
+
+Package READMEs remain concise npm entry points. These pages provide the deeper
+guides and cross-package architecture.
