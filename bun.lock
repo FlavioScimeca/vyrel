@@ -368,7 +368,7 @@
     },
     "packages/public/graphql-client": {
       "name": "@vyrel/graphql-client",
-      "version": "0.0.0",
+      "version": "0.1.4",
       "devDependencies": {
         "@apollo/client": "^4.2.6",
         "@testing-library/react": "^16.3.2",
