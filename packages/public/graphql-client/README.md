@@ -52,40 +52,6 @@ prepended automatically.
 The optimistic callback intentionally remains explicit. A generic library
 cannot safely invent a title, price, status or other domain value.
 
-### Optional server revalidation
-
-Revalidate the generated canonical collection after a successful mutation when
-server-side sorting, derived fields or related side effects may have changed it:
-
-```ts
-useOptimisticCreate(CreateTaskDocument, {
-  optimistic: ({ input }) => ({ title: input.title }),
-  revalidate: {
-    delay: 300,
-    mode: "background",
-    variables: ({ input }) => ({ organizationId: input.organizationId }),
-  },
-  onRevalidateError: (error) => notifyError(error.message),
-});
-```
-
-The optimistic result remains immediate. After the real mutation succeeds, the
-package runs `ListTasksDocument` with `fetchPolicy: "network-only"` and the
-variables generated for that exact collection, such as `organizationId` from
-`CreateTask.input.organizationId`. Revalidation does not delay the mutation
-result, and its optional error callback is separate from mutation `onError`.
-For update and delete, the same option refetches every active instance of the
-canonical collection. Apollo preserves each observer's variables, so active
-`ListTasks` queries for different organizations are refreshed correctly without
-adding `organizationId` to those mutation inputs.
-
-`delay` defaults to `0`. `variables` accepts either the collection variables
-object or a callback receiving the typed mutation variables. Its expected shape
-is generated from `ListTasksDocument`, so required keys and values are checked
-by TypeScript. On create it overrides the automatically generated mapping. On
-update and delete, omitting it keeps the active-instance strategy; providing it
-switches to one precise `network-only` collection query.
-
 ## Update on demand
 
 Each call site chooses only the fields it wants to change.
@@ -96,7 +62,6 @@ const [renameTask] = useOptimisticUpdate(UpdateTaskDocument, {
   optimistic: ({ input }) => ({
     title: input.title ?? task.title,
   }),
-  revalidate: { mode: "background" },
 });
 ```
 
@@ -121,18 +86,28 @@ needed for ordinary updates.
 ```ts
 const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
   id: ({ input }) => input.taskId,
-  revalidate: {
-    delay: 300,
-    mode: "background",
-    variables: { organizationId },
-  },
 });
 ```
 
 The package builds the scalar optimistic response, finds `Task` through the
 generated mutation registry, removes the item from every cached argument variant
-of the canonical `tasks` collection and evicts its normalized entity. Optional
-revalidation then refreshes the active variants with their original variables.
+of the canonical `tasks` collection and evicts its normalized entity.
+
+## Server freshness
+
+The package deliberately does not refetch queries. The component that owns an
+Apollo query also owns its exact filters, pagination and `refetch` function:
+
+```ts
+const { refetch } = useQuery(ListTasksDocument, { variables: filters });
+const [createTask] = useOptimisticCreate(CreateTaskDocument, options);
+
+await createTask({ variables: { input } });
+await refetch();
+```
+
+This keeps network policy in application code and optimistic cache mechanics in
+the package, without reconstructing query variables in another abstraction.
 
 ## Apollo options and escape hatches
 
@@ -143,8 +118,6 @@ useOptimisticCreate(CreateTaskDocument, {
   optimistic: ({ input }) => ({ title: input.title }),
   onCompleted: () => notifySuccess(),
   onError: (error) => notifyError(error.message),
-  revalidate: { mode: "background" },
-  onRevalidateError: (error) => notifyRevalidationError(error.message),
   refetchQueries: [DashboardDocument],
   update: (cache, result, context) => {
     // Runs after @vyrel/graphql-client's built-in cache behavior.
