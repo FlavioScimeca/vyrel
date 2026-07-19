@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.1.4
+
+### Patch Changes
+
+- 7da9b9b: cleanup e refactor logic api for refetch queries logic
+
 ## 0.1.3
 
 ### Patch Changes
