@@ -1,0 +1,64 @@
+---
+title: Dependency Flow
+description: How applications and packages depend on each other.
+---
+
+The declared workspace relationships allow Turborepo to order builds and let
+TypeScript resolve package contracts.
+
+```text
+apps/web
+  ├─ @vyrel/api (shared domain types/source)
+  ├─ @vyrel/auth
+  ├─ @vyrel/consts
+  ├─ @vyrel/env
+  ├─ @vyrel/graphql-client
+  └─ server (development type surface)
+
+apps/server
+  ├─ @vyrel/api
+  ├─ @vyrel/auth
+  ├─ @vyrel/db
+  ├─ @vyrel/env
+  └─ @vyrel/graphql
+
+@vyrel/api
+  ├─ @vyrel/auth
+  ├─ @vyrel/db
+  ├─ @vyrel/env
+  ├─ @vyrel/graphql
+  ├─ @vyrel/logging
+  └─ @vyrel/storage
+
+@vyrel/graphql
+  ├─ @vyrel/auth
+  ├─ @vyrel/db
+  ├─ @vyrel/logging
+  └─ @vyrel/morph
+```
+
+`@vyrel/db`, `@vyrel/auth`, and `@vyrel/graphql` form the main server
+infrastructure chain. `@vyrel/api` adds domain behavior on top. The Elysia app
+then composes the resulting GraphQL, auth, and REST adapters.
+
+## Turborepo tasks
+
+- `build` depends on `^build`, so a package's declared dependencies build first.
+- `check-types` depends on dependency builds and dependency typechecks.
+- `dev` is persistent and uncached.
+- Database mutation tasks and Knip are uncached.
+- `.env*` files are included in build inputs.
+- Declared environment variables pass through strict task isolation.
+
+Root scripts are convenience entry points. Package scripts contain the actual
+framework command such as `next build`, `tsdown`, or `vitest run`.
+
+## Boundary rules
+
+1. Declare a workspace dependency before importing it.
+2. Import from an exported package entry point, not a relative path into another
+   workspace.
+3. Keep application-specific components in their app; move genuinely shared
+   behavior into a focused package.
+4. Treat generated files as outputs, not handwritten source.
+5. Add publish metadata and verification only to packages intended for npm.

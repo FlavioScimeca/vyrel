@@ -1,0 +1,49 @@
+---
+title: Jobs, Email, and Logging
+description: Current background-job scaffolding, active email delivery, and observability paths.
+---
+
+These infrastructure areas are at different maturity levels. The documentation
+distinguishes active runtime behavior from available scaffolding.
+
+## Email
+
+`@vyrel/auth` contains the active email path. Better Auth's verification callback
+renders a React Email component and sends it through a shared Resend client.
+`RESEND_FROM_EMAIL` is the default sender, and individual calls can override it.
+
+The server also contains a welcome email template, but it is not wired into the
+current application composition.
+
+## BullMQ jobs
+
+The server defines email and notification queues with:
+
+- Redis connection defaults and optional password;
+- exponential retry for queued email and notifications;
+- delayed/priority email jobs;
+- recurring scheduler support;
+- queue statistics and graceful close helpers;
+- worker concurrency and email rate limiting.
+
+The worker handlers currently log and simulate delivery. Neither the queue nor
+worker module is imported by `src/index.ts` or `src/app.ts`. Starting the normal
+server therefore does not require Redis and does not start workers.
+
+## Structured logging
+
+`@vyrel/logging` exposes LogTape configuration and category loggers. GraphQL
+records request timing by default and detailed GraphQL/SQL phases when profiling
+is enabled. Drizzle connects to the same logging ecosystem through its adapter.
+
+The package configuration Effect is not yet invoked by the Elysia entrypoint,
+so sink setup must be treated as an explicit composition responsibility.
+
+## Additional installed capabilities
+
+- evlog has a server helper but is not mounted in the current app.
+- The Vercel AI SDK is declared in server and web manifests, but no active AI
+  handler or UI flow currently imports it.
+
+These dependencies should not be described as production features until an
+entrypoint registers and tests their behavior.

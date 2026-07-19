@@ -1,0 +1,66 @@
+---
+title: Authentication and Authorization
+description: Sessions, JWTs, route guards, organization membership, and resource access.
+---
+
+Vyrel separates identity from authorization. Better Auth proves who the actor
+is; proxy and domain policies decide what that actor may access.
+
+## Identity mechanisms
+
+### Session cookie
+
+Email/password sign-up and sign-in create Better Auth sessions. Browser requests
+send HTTP-only cookies to the Elysia auth or GraphQL endpoints. The server calls
+`auth.api.getSession` with the original request headers.
+
+### Bearer JWT
+
+The Better Auth JWT plugin exposes signed tokens. GraphQL can verify an
+`Authorization: Bearer ...` token against the Better Auth JWKS endpoint. Issuer
+and audience must match `BETTER_AUTH_URL`. JWKS material is cached for ten hours;
+tokens expire after one day.
+
+The GraphQL context resolves session and bearer claims concurrently and marks
+the request authenticated when either succeeds.
+
+## Next.js route policy
+
+The web proxy classifies public routes, onboarding, protected pages, and backend
+proxy routes. It preserves the requested URL in an auth redirect, verifies
+organization availability, and keeps users without an organization in the
+onboarding flow.
+
+A cookie-presence check is only an optimization. The Elysia/Better Auth endpoint
+remains the source of truth for session validity.
+
+## GraphQL policy
+
+Yoga's authentication plugin stops execution for unauthenticated operations.
+The health query is public; introspection is allowed without authentication only
+outside production. Pothos also exposes an `authenticated` scope for field-level
+configuration.
+
+## Domain authorization
+
+Organization and task services explicitly:
+
+1. resolve the actor from session or bearer claims;
+2. verify organization membership;
+3. load resources scoped to that membership;
+4. return typed forbidden/not-found failures.
+
+This prevents a valid account from accessing another organization's records by
+guessing identifiers.
+
+## Organizations
+
+Better Auth's organization plugin owns organizations, members, and invitations.
+Vyrel adds image metadata fields and domain services around creation, updates,
+reads, deletion, and logo handling.
+
+<Callout title="Trust boundary" type="warn">
+  Client redirects and hidden UI are usability features, not security controls.
+  Every server operation must retain its own authentication and authorization
+  checks.
+</Callout>

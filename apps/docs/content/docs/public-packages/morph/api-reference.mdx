@@ -1,0 +1,90 @@
+---
+title: Morph API Reference
+description: Bridge initialization, model options, helpers, mappings, overrides, and failures.
+---
+
+## `initializeDrizzleGraphqlBridge(builder, options?)`
+
+Creates a bridge bound to one Pothos builder.
+
+| Option | Purpose |
+| --- | --- |
+| `defaultIdFields` | Field names exposed as GraphQL `ID`; model options can override them |
+| `defaultEnumName` | Naming strategy for enums generated from a model field |
+| `scalarTypes` | Additional named input/scalar types available to mappings |
+| `unmappedFields` | Default `throw`, `warn`, or `omit` behavior |
+
+Built-in GraphQL input names and scalar types already registered on the builder
+are discovered during initialization.
+
+The returned bridge exposes `model`, the equivalent `fields` alias, and a
+bridge-level `inputsFrom` helper.
+
+## `bridge.model(config)`
+
+| Option | Purpose |
+| --- | --- |
+| `rowSchema` | Zod object or supported object pipeline representing output rows |
+| `objectName` | GraphQL object name and default enum namespace |
+| `exclude` | Keys not exposed as object fields |
+| `idFields` | Per-model ID field override |
+| `listArgsSchema` | Named Zod schemas converted into pre-built query args |
+| `extraEnums` | Named value arrays or Zod enum sources to register |
+| `extraEnumsFrom` | Additional schemas scanned for enum sources |
+| `computedEnumFields` | Resolver-backed enum outputs |
+| `enumName` | Per-model enum naming strategy |
+| `unmappedFields` | Per-model mapping failure policy |
+
+## Model helpers
+
+| Helper | Result |
+| --- | --- |
+| `exposeFields(t, options?)` | Pothos object field map for the row schema |
+| `inputsFrom(schema, options?)` | Typed Pothos with-input field map |
+| `argsFrom(schema, options?)` | Typed Pothos query argument map |
+| `computedEnumField(t, field, options)` | One resolver-backed enum field |
+| `args` | Named pre-built args when `listArgsSchema` is configured |
+
+Input/argument options support `exclude`, `fieldTypes`, `required`, and
+`unmappedFields`. Model-derived helpers also receive the model's enum registry.
+
+## Automatic mapping
+
+| Zod field | GraphQL mapping |
+| --- | --- |
+| `z.string()` | `String`, or `ID` when configured as an ID field |
+| `z.boolean()` | `Boolean` |
+| integer `z.number()` | `Int` |
+| other `z.number()` | `Float` |
+| `z.date()` | `DateTime` |
+| `z.enum()` / supported literals | Registered GraphQL enum |
+| Optional or nullable wrapper | Nullable GraphQL field |
+| `.describe()` | GraphQL description |
+
+Optional, nullable, default, and supported pipeline wrappers are unwrapped for
+type resolution while preserving required/nullability behavior.
+
+## Enums
+
+Morph compares allowed runtime values to enums already registered on the Pothos
+builder. A unique match is reused. Ambiguous equal-value enums require a
+`fieldTypes` override. Model enums can also be generated and named from
+`objectName` and field name.
+
+## Overrides and escape hatches
+
+- Use `fieldTypes` for custom scalars such as `File`, intentional enum choice,
+  or any field whose GraphQL representation differs from its Zod primitive.
+- Use `exclude` when a field is private or should be written as a native Pothos
+  resolver.
+- Spread the generated map alongside handwritten fields in the same Pothos
+  object/input configuration.
+
+## Failure policy
+
+The default policy is `throw`. `warn` omits unsupported fields and emits a
+development warning; `omit` silently omits them. Applications should prefer
+`throw` so schema drift fails early.
+
+Morph does not map arbitrary nested objects, unions, domain authorization, or
+database relationships automatically. Handle them directly in Pothos.

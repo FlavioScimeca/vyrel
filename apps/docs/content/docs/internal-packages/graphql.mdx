@@ -1,0 +1,61 @@
+---
+title: GraphQL Package
+description: Pothos schema construction, Yoga execution, authentication, errors, and generation.
+---
+
+`@vyrel/graphql` owns GraphQL infrastructure. Domain fields are registered from
+`@vyrel/api`; this package assembles and serves the final schema.
+
+## Pothos builder
+
+The shared builder enables:
+
+- Drizzle integration and relations;
+- DataLoader support;
+- Relay connection support without global node queries;
+- scope authentication;
+- Pothos validation;
+- the with-input plugin.
+
+It registers `DateTime`, `JSON`, `File`, and `URL` scalars. The authenticated
+scope reads `context.isAuthenticated` and treats scope errors as unauthorized.
+
+`graphqlBridge` binds `@vyrel/morph` to this builder, recognizes `id` and
+`orgId` as default ID fields, and throws when a Zod field cannot be mapped.
+
+## Schema assembly
+
+Files ending in `.graphql.ts` under `@vyrel/api/models` register fields through
+module side effects. `collect-graphql-imports.ts` deterministically writes
+`gen/generated-imports.ts`; `schema.ts` imports that generated file before
+calling `builder.toSchema()`.
+
+The separate schema generator prints the executable schema for web tooling.
+
+## Request context
+
+The context factory resolves the Better Auth session and bearer JWT in parallel.
+It exposes headers, optional session, optional JWT claims, and a combined
+`isAuthenticated` flag. `resolveActorUserId` returns the session user first and
+otherwise the JWT subject.
+
+## Yoga server
+
+GraphQL Yoga is configured with:
+
+- `/api/graphql` as the endpoint;
+- one-file multipart limits using `MEDIA_MAX_UPLOAD_BYTES`;
+- GraphiQL outside production;
+- production error masking and domain error formatting;
+- automatic persisted queries;
+- request timing, or detailed phase/SQL profiling when enabled;
+- an execution plugin that rejects non-public unauthenticated operations.
+
+Health is public. Introspection is public only outside production. All other
+operations require a session or verified bearer token before resolver execution.
+
+## Public exports
+
+The package exports the builder, schema, Yoga server, context helpers, and
+relevant context types. These are internal contracts consumed by the server,
+API package, and generation scripts.

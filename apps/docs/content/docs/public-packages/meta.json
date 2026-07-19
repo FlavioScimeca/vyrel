@@ -1,0 +1,7 @@
+{
+  "title": "Public Packages",
+  "description": "Published Vyrel libraries for GraphQL schema and Apollo client development.",
+  "pages": ["overview", "morph", "graphql-client"],
+  "pagesIndex": "overview",
+  "defaultOpen": true
+}

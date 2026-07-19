@@ -1,0 +1,84 @@
+---
+title: Installation
+description: Install the workspace, initialize its services, and start local development.
+---
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) `1.3.14`, matching the root `packageManager` field.
+- A libSQL-compatible database. Local development can use Turso's local server.
+- Cloudflare R2-compatible credentials for media operations.
+- A Resend API key and sender address for authentication email.
+- Redis only when experimenting with the current BullMQ queue scaffolding.
+
+<Callout title="Environment validation" type="warn">
+  Server variables are validated when `@vyrel/env/server` is imported. Export
+  the required values before running database or server commands; missing values
+  fail fast with a Zod validation error.
+</Callout>
+
+## Install dependencies
+
+From the repository root:
+
+```bash
+bun install
+```
+
+Bun installs all workspaces declared in the root `package.json`:
+`apps/*`, `packages/*`, and `packages/public/*`.
+
+## Configure the environment
+
+Read the [environment reference](/docs/getting-started/environment), then make
+the values available to the shell that launches Turborepo. The web application
+only exposes `NEXT_PUBLIC_SERVER_URL` to browser code; all other values must stay
+server-side.
+
+## Initialize the database
+
+For a local Turso-compatible database, run the local server in one terminal:
+
+```bash
+bun run db:local
+```
+
+Then apply the current Drizzle schema:
+
+```bash
+bun run db:push
+```
+
+`db:push` is intended for rapid local iteration. Use `db:generate` followed by
+`db:migrate` when a durable migration is required.
+
+## Start development
+
+```bash
+bun run dev
+```
+
+The root command asks Turborepo to start every workspace with a `dev` script.
+For focused work, prefer one of the app-specific commands:
+
+| Command | Service | Default address |
+| --- | --- | --- |
+| `bun run dev:web` | Next.js web app | `http://localhost:3001` |
+| `bun run dev:server` | Elysia API | `http://localhost:3000` |
+| `bun run dev:docs` | Fumadocs site | `http://localhost:4000` |
+| `bun run --cwd apps/web storybook` | Storybook | `http://localhost:6006` |
+| `bun run --cwd apps/extension dev` | WXT extension dev build | Port `5555` |
+
+The Elysia root route returns `OK`. GraphQL is mounted at
+`http://localhost:3000/api/graphql`; GraphiQL is enabled outside production.
+
+## First verification
+
+```bash
+bun run check-types
+bun run test
+bun run build
+```
+
+For the complete local gate used by CI and the pre-push hook, run
+`bun run preflight`.

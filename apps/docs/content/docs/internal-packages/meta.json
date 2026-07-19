@@ -1,0 +1,16 @@
+{
+  "title": "Internal Packages",
+  "description": "Private packages shared by the Vyrel applications.",
+  "pages": [
+    "overview",
+    "api",
+    "auth",
+    "database",
+    "graphql",
+    "environment-and-constants",
+    "storage",
+    "logging",
+    "configuration"
+  ],
+  "pagesIndex": "overview"
+}

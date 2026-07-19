@@ -1,4 +1,13 @@
 {
-  "title": "Documentation",
-  "pages": ["index"]
+  "title": "Vyrel",
+  "pages": [
+    "index",
+    "getting-started",
+    "monorepo",
+    "apps",
+    "internal-packages",
+    "architecture",
+    "public-packages",
+    "contributing"
+  ]
 }

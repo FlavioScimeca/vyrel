@@ -1,0 +1,49 @@
+---
+title: Browser Extension
+description: The current WXT and React extension scaffold and its build targets.
+---
+
+`apps/extension` is a private WXT application using React. WXT supplies browser
+manifest generation, development loading, and packaging.
+
+## Entrypoints
+
+```text
+entrypoints/
+├── background.ts       extension background context
+├── content.ts          content script configuration and execution
+└── popup/
+    ├── index.html
+    ├── main.tsx
+    ├── app.tsx
+    └── styles
+```
+
+The background and content entrypoints use WXT's global definition helpers. The
+popup mounts a React root into its HTML document.
+
+<Callout title="Current status" type="info">
+  The extension is a minimal scaffold. Its entrypoints demonstrate WXT wiring
+  and the popup contains starter UI; it does not currently share Vyrel auth,
+  GraphQL, or domain behavior.
+</Callout>
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `bun run --cwd apps/extension dev` | Start Chrome-oriented development on port `5555` |
+| `bun run --cwd apps/extension dev:firefox` | Start a Firefox development build |
+| `bun run --cwd apps/extension build` | Build the default browser target |
+| `bun run --cwd apps/extension build:firefox` | Build the Firefox target |
+| `bun run --cwd apps/extension zip` | Package the default target for distribution |
+| `bun run --cwd apps/extension zip:firefox` | Package the Firefox target |
+| `bun run --cwd apps/extension check-types` | Prepare WXT types and run TypeScript |
+
+## Generated output
+
+- `.wxt/` contains WXT-generated types and development metadata.
+- `.output/` contains browser-specific build output.
+
+Both directories are generated. Change `wxt.config.ts` or the entrypoint source,
+then let WXT recreate them.

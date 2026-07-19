@@ -1,0 +1,60 @@
+---
+title: Request Lifecycle
+description: End-to-end browser, HTTP, domain service, persistence, and cache paths.
+---
+
+Vyrel has two active browser-to-server transport paths: GraphQL through Apollo
+and selected REST/auth calls through HTTP/Eden-compatible server types.
+
+```text
+Next.js page or client component
+  ├─ Apollo TypedDocumentNode
+  │    -> Apollo link chain
+  │    -> Elysia /api/graphql
+  │    -> GraphQL Yoga
+  │    -> Pothos resolver
+  │    -> Effect domain service
+  │    -> Drizzle / Better Auth / R2
+  │    -> Apollo normalized cache
+  │
+  └─ Better Auth or typed REST call
+       -> Elysia auth/user/organization plugin
+       -> Better Auth API or Effect domain service
+       -> headers, cookies, and JSON response
+```
+
+The browser extension does not currently call these paths; its inclusion in the
+workspace is a scaffold for later integration.
+
+## Next.js boundary
+
+Public routes can render without a session. The Next.js proxy protects dashboard
+routes and asks the server for authoritative session/organization state when
+needed. Protected server components can use the server-session helper; client
+components use the Better Auth React client.
+
+## Elysia boundary
+
+Elysia owns HTTP concerns: route matching, CORS, forwarding the original Yoga
+request, invoking the Better Auth handler, setting response status, and
+preserving authentication headers. It delegates business rules to packages.
+
+## GraphQL boundary
+
+Yoga creates a request context, applies authentication/timing/error plugins, and
+executes the Pothos schema. Pothos resolvers translate GraphQL fields and inputs
+into Effect programs. Domain errors are formatted into GraphQL errors at the
+infrastructure boundary.
+
+## Persistence and side effects
+
+Drizzle accesses libSQL/SQLite. Better Auth uses the same schema for identity,
+session, organization, and invitation data. Media services optimize images and
+use R2-compatible object storage. Verification email is sent through Resend.
+
+## Client result handling
+
+Apollo normalizes returned entities using generated type policies. The Vyrel
+GraphQL client helper adds/removes entities from canonical root collections for
+optimistic create/delete behavior. Components remain responsible for filters,
+network refetch policy, notifications, and navigation.

@@ -1,0 +1,33 @@
+---
+title: Configuration Package
+description: Shared compiler configuration and repository-wide tooling ownership.
+---
+
+`@vyrel/config` is a private tooling package. It owns the shared TypeScript base
+configuration consumed by application and package `tsconfig.json` files.
+
+It has no runtime exports and should not be imported into application code.
+
+## Repository-level configuration
+
+Some configuration remains at the workspace root because it coordinates all
+packages:
+
+| File | Responsibility |
+| --- | --- |
+| `turbo.json` | Task graph, cache outputs, environment passthrough, persistent tasks |
+| `biome.jsonc` / `eslint.config.ts` | Ultracite-backed formatting and linting |
+| `knip.json` | Unused file, dependency, export, and cycle analysis |
+| `bunfig.toml` | Bun behavior |
+| `graphql.config.ts` | GraphQL editor/tooling integration |
+| `playwright.config.ts` | Browser-test configuration |
+| `commitlint.config.mjs` | Conventional commit validation |
+
+## Dependency versions
+
+The Bun workspace catalog in the root `package.json` aligns common versions
+such as React, Next.js, GraphQL, Zod, Elysia, Vitest, Playwright, and TypeScript.
+Workspace manifests reference those entries with `catalog:`.
+
+Syncpack verifies dependency consistency. Change the catalog or owning package
+manifest rather than installing duplicate versions ad hoc.

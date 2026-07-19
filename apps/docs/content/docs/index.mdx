@@ -1,16 +1,60 @@
 ---
-title: Introduction
-description: Start documenting your Better Fullstack project with Fumadocs.
+title: Vyrel
+description: A type-safe TypeScript monorepo for web applications, APIs, and reusable GraphQL tooling.
 ---
 
-# vyrel
+Vyrel combines a Next.js application, an Elysia server, a GraphQL API, and a set
+of focused TypeScript packages in one Bun and Turborepo workspace. This site is
+the canonical guide to the repository and its two public libraries.
 
-Welcome to your project documentation.
+<Cards>
+  <Card href="/docs/getting-started/installation" title="Get started">
+    Install the workspace, configure services, initialize the database, and run
+    the applications.
+  </Card>
+  <Card href="/docs/monorepo/overview" title="Understand the monorepo">
+    Learn how the applications and packages are organized and how data moves
+    through the stack.
+  </Card>
+  <Card href="/docs/apps/overview" title="Explore the applications">
+    Read about the web app, Elysia server, Fumadocs site, and WXT browser
+    extension.
+  </Card>
+  <Card href="/docs/public-packages/overview" title="Use the public packages">
+    Build GraphQL schemas with `@vyrel/morph` and optimistic Apollo mutations
+    with `@vyrel/graphql-client`.
+  </Card>
+</Cards>
 
-This app is powered by Fumadocs and uses local MDX content from `content/docs`.
+## What is in the repository?
 
-## Next Steps
+Vyrel is an application monorepo and a home for reusable libraries:
 
-- Edit this page in `content/docs/index.mdx`
-- Add more MDX files under `content/docs`
-- Run the docs app with your package manager's `dev` script
+- **Applications** are private deployable workspaces under `apps/`.
+- **Internal packages** under `packages/` own shared database, GraphQL,
+  authentication, storage, logging, and configuration concerns.
+- **Public packages** under `packages/public/` are independently built, tested,
+  versioned, and published to npm.
+
+The primary runtime path is:
+
+```text
+Next.js or extension
+  -> Apollo GraphQL or typed REST
+  -> Elysia
+  -> GraphQL Yoga and Pothos, or an Elysia REST route
+  -> Effect domain services
+  -> Drizzle / Better Auth / object storage
+```
+
+## Documentation audiences
+
+If you are integrating a public package, start with
+[Public packages](/docs/public-packages/overview). If you are changing Vyrel
+itself, begin with [Getting started](/docs/getting-started/installation) and
+then read the [architecture guides](/docs/architecture/request-lifecycle).
+
+<Callout title="Implementation status">
+  These pages document behavior that exists in the repository. Experimental
+  ideas and unimplemented proposals are not described as available features.
+</Callout>

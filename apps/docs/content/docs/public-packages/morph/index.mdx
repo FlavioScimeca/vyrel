@@ -1,0 +1,94 @@
+---
+title: "@vyrel/morph"
+description: Bridge Zod row schemas to Pothos GraphQL fields, arguments, inputs, and enums.
+---
+
+`@vyrel/morph` removes repetitive Pothos field mapping while keeping schema and
+resolver control in application code. Despite its historical function names,
+the runtime consumes Zod schemas and does not require Drizzle.
+
+## Installation
+
+```bash
+bun add @vyrel/morph zod @pothos/core @pothos/plugin-validation @pothos/plugin-with-input
+```
+
+The Pothos packages and Zod are peer dependencies so the application controls
+their versions and builder instance.
+
+## Quick start
+
+```ts
+import SchemaBuilder from "@pothos/core";
+import ValidationPlugin from "@pothos/plugin-validation";
+import WithInputPlugin from "@pothos/plugin-with-input";
+import { initializeDrizzleGraphqlBridge } from "@vyrel/morph";
+import { z } from "zod/v4";
+
+const builder = new SchemaBuilder({
+  plugins: [ValidationPlugin, WithInputPlugin],
+});
+
+const bridge = initializeDrizzleGraphqlBridge(builder, {
+  defaultIdFields: ["id"],
+  unmappedFields: "throw",
+});
+
+const userSchema = z.object({
+  active: z.boolean(),
+  id: z.string(),
+  role: z.enum(["admin", "member"]),
+});
+
+const userGraphql = bridge.model({
+  listArgsSchema: {
+    filters: z.object({ role: z.enum(["admin", "member"]) }),
+  },
+  objectName: "User",
+  rowSchema: userSchema,
+});
+
+const User = builder.objectRef<z.infer<typeof userSchema>>("User");
+
+builder.objectType(User, {
+  fields: (t) => userGraphql.exposeFields(t),
+});
+```
+
+`userGraphql` now contains typed helpers for object fields, inputs, arguments,
+and the configured list arguments.
+
+## What remains explicit
+
+Morph does not create queries, mutations, object references, resolvers, access
+rules, database queries, or domain validation. Define those with Pothos and Zod,
+then use Morph only for the mechanical field maps.
+
+## Common patterns
+
+### Exclude private columns
+
+```ts
+const userGraphql = bridge.model({
+  exclude: ["passwordHash"],
+  objectName: "User",
+  rowSchema: userSchema,
+});
+```
+
+### Create mutation inputs
+
+```ts
+const fields = userGraphql.inputsFrom(createUserSchema, {
+  exclude: ["createdById"],
+  fieldTypes: { avatar: "File" },
+});
+```
+
+### Add a computed enum field
+
+Computed enum fields accept a normal resolver. Use them when the output is not a
+stored row property but shares a registered enum type.
+
+Read the [API reference](/docs/public-packages/morph/api-reference) for every
+option and mapping rule.

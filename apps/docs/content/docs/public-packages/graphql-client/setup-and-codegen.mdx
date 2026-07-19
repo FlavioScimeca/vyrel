@@ -1,0 +1,95 @@
+---
+title: Setup and Codegen
+description: Configure GraphQL Code Generator, gql.tada conventions, and Apollo cache registration.
+---
+
+## Configure the plugin
+
+```ts title="codegen.ts"
+import type { CodegenConfig } from "@graphql-codegen/cli";
+
+const config: CodegenConfig = {
+  documents: ["src/**/*.{ts,tsx}", "!src/graphql/generated/**"],
+  generates: {
+    "src/graphql/generated/client-schema.ts": {
+      plugins: [
+        {
+          "@vyrel/graphql-client/codegen-plugin": {
+            keyFields: { Organization: "slug" },
+            scalars: {
+              DateTime: "string",
+              File: "File",
+              JSON: "unknown",
+              URL: "string",
+            },
+          },
+        },
+      ],
+    },
+  },
+  pluckConfig: {
+    globalGqlIdentifierName: ["graphql"],
+  },
+  schema: "schema.graphql",
+};
+
+export default config;
+```
+
+Run GraphQL Code Generator after producing the server schema and gql.tada
+typing output. The generated file should be committed only if that is the host
+application's artifact policy; it must never be edited manually.
+
+## Document conventions
+
+- Use named operations.
+- Export fragment `TaskListItem` as `TaskListItemFragment`.
+- Export operation `ListTasks` as `ListTasksDocument`.
+- CRUD root fields begin with `create`, `update`, or `delete`.
+- A canonical collection operation has one top-level array field.
+- Multiple mutation fields are supported and registered by response key.
+
+Naming violations and unresolved inference ambiguity fail code generation.
+
+## Generated exports
+
+The artifact contains:
+
+- module augmentation that maps fragment names to gql.tada result types;
+- `graphqlClientSchema`, including every object field, enum, scalar, and type
+  reference;
+- `GraphqlClientModel<Name>` for schema-wide model typing;
+- `graphqlClientTypePolicies` aligned with configured key fields;
+- `graphqlClientRegistry` for canonical collections and CRUD mutations.
+
+## Register the cache
+
+```ts
+import { InMemoryCache } from "@apollo/client";
+import { configureGraphqlClientCache } from "@vyrel/graphql-client/cache";
+import {
+  graphqlClientRegistry,
+  graphqlClientTypePolicies,
+} from "./generated/client-schema";
+
+const cache = configureGraphqlClientCache(
+  new InMemoryCache({
+    typePolicies: graphqlClientTypePolicies,
+  }),
+  graphqlClientRegistry
+);
+```
+
+Configure every Apollo cache instance once. The `/cache` entry is isomorphic and
+does not import React hooks or the codegen implementation.
+
+## Add a new model
+
+1. Expose the model, list query, and required mutations on the server.
+2. Regenerate `schema.graphql` and gql.tada types.
+3. Add a list-item fragment and a unique `List<Model>` operation.
+4. Add the mutation documents used by the application.
+5. Run GraphQL Code Generator.
+6. Use the generic optimistic hooks with those typed documents.
+
+No resource configuration or model-specific generated hook is required.

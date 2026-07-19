@@ -1,0 +1,6 @@
+{
+  "title": "Monorepo",
+  "description": "Workspace structure, dependencies, and tools.",
+  "pages": ["overview", "workspace-map", "dependency-flow", "technology-stack"],
+  "pagesIndex": "overview"
+}

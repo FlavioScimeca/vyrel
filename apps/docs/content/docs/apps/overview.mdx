@@ -1,0 +1,43 @@
+---
+title: Applications Overview
+description: The four private applications in the Vyrel workspace.
+---
+
+Vyrel contains four private applications. They are deployed or run directly;
+they are not npm libraries.
+
+<Cards>
+  <Card href="/docs/apps/web" title="Web">
+    Next.js frontend with authentication, onboarding, dashboard features, and
+    Apollo GraphQL.
+  </Card>
+  <Card href="/docs/apps/server" title="Server">
+    Elysia/Bun API process that composes GraphQL Yoga, Better Auth, and REST
+    adapters.
+  </Card>
+  <Card href="/docs/apps/docs" title="Docs">
+    Fumadocs and Next.js application that renders the documentation you are
+    reading.
+  </Card>
+  <Card href="/docs/apps/extension" title="Extension">
+    WXT/React browser-extension scaffold with Chrome and Firefox targets.
+  </Card>
+</Cards>
+
+## Development ports
+
+| Application | Workspace | Port |
+| --- | --- | --- |
+| Web | `web` | `3001` |
+| Server | `server` | `3000` |
+| Docs | `docs` | `4000` |
+| Extension dev tooling | `extension` | `5555` |
+
+Storybook is part of the web workspace and runs separately on port `6006`.
+
+## Shared contracts
+
+The applications communicate through exported packages rather than shared
+relative source paths. The web app consumes server types and generated GraphQL
+artifacts. The server composes internal package implementations. The docs and
+extension are currently independent of the domain package graph.

@@ -1,0 +1,98 @@
+---
+title: Web Application
+description: Next.js routes, authentication, GraphQL state, UI composition, and code generation.
+---
+
+`apps/web` is a Next.js App Router application running on port `3001` in
+development.
+
+## Route structure
+
+```text
+app/
+├── page.tsx                         public landing page
+├── auth/                            sign-in/sign-up experience
+│   ├── reset-password/
+│   └── verified/
+├── onboarding/                      organization onboarding
+└── (protected)/dashboard/
+    ├── tasks/
+    └── management/
+        ├── user/
+        └── organization/
+```
+
+The protected layout supplies the dashboard shell. Feature code is grouped
+under `src/features/` by authentication, task, user, and organization concerns.
+Reusable UI primitives live in `src/components/ui`; larger templates and the
+dashboard navigation live in their own component folders.
+
+## Route protection and proxying
+
+The root `proxy.ts` runs before matching application pages. It:
+
+1. bypasses framework assets and backend API proxy paths;
+2. redirects unauthenticated protected requests to `/auth` with a `next` value;
+3. resolves organization access for authenticated navigation;
+4. redirects users without an organization to onboarding;
+5. chooses the default organization dashboard route when appropriate.
+
+Proxy helpers keep route classification and auth lookup separate. A session
+cookie is used as a cheap first check; the server remains authoritative for the
+session and organization list.
+
+## GraphQL client
+
+Apollo Client owns GraphQL transport and normalized server state. The setup is
+split into focused modules for cache creation, links, authenticated and
+unauthenticated clients, and the React provider.
+
+The cache is initialized with generated `graphqlClientTypePolicies`, then
+registered with the generated Vyrel CRUD registry. Application-specific field
+policies—such as the argument keys for filtered task lists—remain explicit.
+
+```text
+feature GraphQL documents
+  -> gql.tada typed documents
+  -> Apollo links
+  -> POST /api/graphql
+  -> normalized Apollo cache
+```
+
+Multipart operations use `apollo-upload-client`. Authenticated requests can use
+the session cookie or the configured bearer-token flow.
+
+## Code generation
+
+`predev` and `prebuild` run three steps before Next.js:
+
+1. generate `schema.graphql` from the server Pothos schema;
+2. generate gql.tada's schema-aware TypeScript output;
+3. build `@vyrel/graphql-client` and run GraphQL Code Generator to produce
+   `src/graphql/generated/client-schema.ts`.
+
+During development, `concurrently` keeps Next.js and the client registry watcher
+running together. Never edit generated GraphQL files directly.
+
+## Authentication client
+
+`src/lib/auth-client.ts` lazily creates one Better Auth React client and exposes
+it through a stable proxy. UI features use methods such as `useSession`, email
+sign-in, organization selection, and sign-out. Server components use the
+server-session helper rather than importing the browser client.
+
+## UI and state tools
+
+- Tailwind CSS and shadcn/Base UI provide styling and accessible primitives.
+- Motion/Framer Motion powers visible animation paths.
+- Apollo owns GraphQL state.
+- TanStack Form supports typed forms.
+- TanStack Query and Zustand are installed for non-GraphQL state patterns but
+  are not the primary data path in the current feature code.
+- Storybook renders components independently from the application.
+
+## Tests
+
+The workspace uses Vitest, Testing Library, MSW, and jsdom. Tests currently
+cover authentication UI and proxy route/auth logic. The root Playwright
+configuration provides browser-level infrastructure.

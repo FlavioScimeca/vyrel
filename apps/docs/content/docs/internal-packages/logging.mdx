@@ -1,0 +1,38 @@
+---
+title: Logging Package
+description: Structured LogTape categories and GraphQL profiling.
+---
+
+`@vyrel/logging` centralizes LogTape configuration for server packages.
+
+## Configuration
+
+`configureLogging` is an Effect that installs one console sink and is idempotent
+within the process. Development uses the pretty formatter; other environments
+use structured console output. The configured root category is `vyrel`.
+
+`getAppLogger(...category)` returns a child logger such as `vyrel.graphql` or
+`vyrel.api`. The API and GraphQL packages create category loggers through this
+function. Drizzle uses LogTape's Drizzle adapter under `vyrel.database`.
+
+<Callout title="Current initialization">
+  The package exposes `configureLogging`, but the current Elysia entrypoint does
+  not call it explicitly. Consumers should not assume pretty sinks are installed
+  until the process composition root runs that Effect.
+</Callout>
+
+## GraphQL logging
+
+When profiling is disabled, Yoga records method, URL, operation, status, and
+duration. When `PROFILING` is enabled, it records authentication, parse,
+validation, execution, total, and SQL timing. SQL output is truncated and
+limited by `PROFILE_SQL_LIMIT`.
+
+Profiling is intended for development diagnosis. The normal timing plugin is
+lighter and remains active when detailed profiling is off.
+
+## Other server logger
+
+`apps/server/src/lib/logger.ts` defines a separate evlog helper. It is not
+currently imported by the server app. New server logging should choose one
+intentional path rather than emitting duplicate events through both systems.

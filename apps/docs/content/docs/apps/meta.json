@@ -1,0 +1,6 @@
+{
+  "title": "Applications",
+  "description": "The deployable and user-facing workspaces.",
+  "pages": ["overview", "web", "server", "docs", "extension"],
+  "pagesIndex": "overview"
+}

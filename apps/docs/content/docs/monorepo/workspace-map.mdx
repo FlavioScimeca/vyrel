@@ -1,0 +1,51 @@
+---
+title: Workspace Map
+description: Responsibilities and outputs of every application and package.
+---
+
+## Applications
+
+| Workspace | Directory | Responsibility | Main output |
+| --- | --- | --- | --- |
+| `web` | `apps/web` | Next.js UI, auth screens, dashboard, Apollo client | `.next/` |
+| `server` | `apps/server` | Bun/Elysia HTTP server and adapters | `dist/` or compiled binary |
+| `docs` | `apps/docs` | This Fumadocs site | `.next/` and `.source/` |
+| `extension` | `apps/extension` | WXT browser-extension scaffold | `.output/` and `.wxt/` |
+
+## Internal packages
+
+| Package | Responsibility |
+| --- | --- |
+| `@vyrel/api` | Domain services, GraphQL registrations, REST adapters, validation, authorization, media flows |
+| `@vyrel/auth` | Better Auth instance, Drizzle adapter, organizations, JWT, email verification |
+| `@vyrel/db` | libSQL client, Drizzle tables, relations, and database commands |
+| `@vyrel/graphql` | Pothos builder, Yoga handler, context, plugins, scalars, schema generation |
+| `@vyrel/env` | Validated server and web environment access |
+| `@vyrel/consts` | Runtime-specific endpoint, token, JWT, and cache constants |
+| `@vyrel/storage` | Bun S3/R2 operations, keys, signed URLs, typed errors, placeholder asset |
+| `@vyrel/logging` | LogTape configuration and application logger categories |
+| `@vyrel/config` | Shared TypeScript compiler configuration |
+
+## Public packages
+
+| Package | Responsibility |
+| --- | --- |
+| `@vyrel/morph` | Convert Zod row schemas into Pothos object fields, inputs, arguments, and enums |
+| `@vyrel/graphql-client` | Generate Apollo CRUD metadata and implement type-safe optimistic mutations |
+
+## Generated files
+
+| Path | Producer | Edit policy |
+| --- | --- | --- |
+| `apps/docs/.source/` | `fumadocs-mdx` | Never edit manually |
+| `apps/*/.next/` | Next.js | Never edit manually |
+| `apps/extension/.wxt/` | WXT prepare/dev | Never edit manually |
+| `apps/extension/.output/` | WXT build | Never edit manually |
+| `apps/web/schema.graphql` | GraphQL schema generator | Regenerate from server schema |
+| `apps/web/graphql-env.d.ts` | gql.tada | Regenerate from schema |
+| `apps/web/src/graphql/generated/client-schema.ts` | GraphQL Code Generator | Never edit manually |
+| `packages/public/*/dist/` | Package compiler | Never edit manually |
+
+Generated artifacts are deterministic inputs or outputs in development and
+build workflows. Change their source schema, documents, or configuration, then
+run the owning generator.

@@ -1,0 +1,53 @@
+---
+title: Monorepo Overview
+description: How Vyrel divides deployable applications, internal packages, and public libraries.
+---
+
+Vyrel is a Bun workspace orchestrated by Turborepo. Its root `package.json`
+discovers three workspace patterns:
+
+```text
+apps/*              private applications
+packages/*          private shared packages
+packages/public/*   independently published npm packages
+```
+
+## Three workspace classes
+
+| Class | Purpose | Publication model |
+| --- | --- | --- |
+| Applications | User-facing or deployable processes | Private |
+| Internal packages | Shared source, contracts, and infrastructure | Private |
+| Public packages | Reusable GraphQL tooling | Built and published to npm |
+
+Internal packages generally expose TypeScript source directly through workspace
+exports. The public packages compile to `dist/`, declare peer dependencies, and
+verify their publish surface before release.
+
+## Domain organization
+
+The server-side domain implementation lives primarily in `@vyrel/api`. User,
+organization, and task modules each group:
+
+- validation and inferred TypeScript types;
+- Effect services and layers;
+- GraphQL query/mutation registration;
+- REST adapters where a multipart or cookie-aware endpoint is useful;
+- authorization and media helpers;
+- domain-specific tagged errors.
+
+Framework infrastructure remains separate: `@vyrel/graphql` owns Yoga and
+Pothos, `@vyrel/auth` owns Better Auth, and `@vyrel/db` owns persistence.
+
+## Public boundary
+
+Only `packages/public/*` is released. The current packages are
+`@vyrel/morph` and `@vyrel/graphql-client`. Changesets ignores every app and
+internal package, which prevents application-only changes from appearing in npm
+release selection.
+
+<Callout title="Private does not mean unstructured">
+  Internal packages still expose declared workspace entry points and should be
+  consumed through package imports. Reaching across folders into another
+  package's source bypasses the dependency graph and should be avoided.
+</Callout>

@@ -1,0 +1,56 @@
+---
+title: "@vyrel/graphql-client"
+description: Operation-driven Apollo React hooks for type-safe optimistic GraphQL mutations.
+---
+
+`@vyrel/graphql-client` removes mechanical optimistic-response and normalized
+cache work from Apollo mutations. It is operation-driven: pass the typed
+mutation at the call site rather than defining a global resource wrapper.
+
+## Installation
+
+```bash
+bun add @vyrel/graphql-client @apollo/client graphql react
+bun add --dev @graphql-codegen/cli
+```
+
+The package supports Apollo Client 4 and React 18.2 or 19. It is designed for
+gql.tada documents and requires its GraphQL Code Generator plugin.
+
+## Runtime API
+
+```ts
+import {
+  useOptimisticCreate,
+  useOptimisticDelete,
+  useOptimisticUpdate,
+} from "@vyrel/graphql-client";
+```
+
+- `useOptimisticCreate` builds the response entity, adds identity/conventional
+  timestamps, and prepends it to the canonical collection.
+- `useOptimisticUpdate` merges a typed patch with complete current selection
+  data and lets Apollo normalization update every consumer.
+- `useOptimisticDelete` builds a scalar response, removes the entity from every
+  cached canonical-list variant, evicts it, and runs garbage collection.
+
+## Why code generation is required
+
+A mutation document knows its variables and selected fragments. The schema and
+all client documents reveal the cross-operation relationships needed for safe
+list updates. Codegen combines both sources into a deterministic registry.
+
+The runtime therefore does not ask every call site for typename, fragment,
+collection query, response wrapper, or list variables.
+
+<Cards>
+  <Card href="/docs/public-packages/graphql-client/setup-and-codegen" title="Setup and codegen">
+    Generate metadata and register it on each Apollo cache.
+  </Card>
+  <Card href="/docs/public-packages/graphql-client/optimistic-mutations" title="Optimistic mutations">
+    Implement create, update, delete, and custom Apollo behavior.
+  </Card>
+  <Card href="/docs/public-packages/graphql-client/architecture-and-limits" title="Architecture and limits">
+    Understand inference, package boundaries, and explicit non-goals.
+  </Card>
+</Cards>

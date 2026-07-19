@@ -1,0 +1,57 @@
+---
+title: Architecture and Limits
+description: Runtime entry points, inference rules, cache behavior, and V1 non-goals.
+---
+
+## Package entry points
+
+| Entry point | Contents | Runtime |
+| --- | --- | --- |
+| `@vyrel/graphql-client` | React optimistic hooks and document inference | Browser/client components |
+| `@vyrel/graphql-client/cache` | Registry definition and per-cache configuration | Isomorphic Apollo setup |
+| `@vyrel/graphql-client/codegen` | Metadata types and generation utilities | Build tooling |
+| `@vyrel/graphql-client/codegen-plugin` | GraphQL Code Generator plugin | Node/Bun codegen |
+
+The React entry starts with `use client`. Codegen implementation and GraphQL
+schema processing do not enter the browser bundle.
+
+## Inference contract
+
+- All CRUD fields in a mutation are registered independently, including aliases.
+- `field` selects one when a hook cannot use the sole root field.
+- Fragment selections for the same entity are combined.
+- A single list query, or one unambiguous `List<Field>` query, becomes canonical.
+- Equal variable names or compatible nested input fields bind create variables
+  to collection variables.
+- `ID` and `String` are compatible for string identity binding.
+- Configured cache keys default to `id` when absent.
+- Create IDs default to `optimistic-${randomUUID}`.
+- Selected create timestamps default to the current ISO time.
+
+Unsafe ambiguity produces a descriptive build-time or runtime error.
+
+## Cache mechanics
+
+Create and server results run through the same Apollo update lifecycle. List
+insertion deduplicates by normalized cache identity. Delete removes from every
+cached argument variant of the canonical list rather than assuming one filter.
+Update relies on normalized identity and does not alter list membership.
+
+Application `update` callbacks run after built-in create/delete behavior so
+exceptional workflows can extend the result.
+
+## Deliberate non-goals
+
+The package does not:
+
+- generate GraphQL operations;
+- wrap read queries;
+- invent domain values or list-filter membership;
+- replace Apollo type/field policies;
+- own toasts, forms, redirects, or error presentation;
+- implement offline queues, undo, or conflict resolution;
+- support nested lists or Relay connection pagination in V1;
+- replace gql.tada or GraphQL Code Generator.
+
+These boundaries keep the runtime focused on repeatable GraphQL/Apollo mechanics
+while leaving product behavior in the application.

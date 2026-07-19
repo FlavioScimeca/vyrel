@@ -1,0 +1,69 @@
+---
+title: Commits and Changesets
+description: Conventional commit rules and public-package version intent.
+---
+
+## Conventional commits
+
+Commit messages and pull request titles use:
+
+```text
+type(scope): short description
+```
+
+Examples:
+
+```text
+feat(morph): support a custom scalar mapping
+fix(graphql): preserve domain error codes
+docs(docs): explain the workspace dependency flow
+```
+
+Allowed types include `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`, and `revert`. Common scopes correspond to apps,
+packages, CI, dependencies, release, and root work.
+
+Use the guided command after staging intentional changes:
+
+```bash
+git add <paths>
+bun run commit
+```
+
+The wizard collects type, scope, and subject. Commitlint validates the final
+message.
+
+## When a changeset is required
+
+A pull request that changes production files under `packages/public/*` needs a
+changeset unless the change intentionally has no release impact and the PR uses
+the `skip-changeset` label. Test-only public package changes are excluded by CI.
+
+A changeset records:
+
+- the public package or packages;
+- a patch, minor, or major bump;
+- the changelog summary users will read.
+
+The guided commit flow prompts when public package files are staged. Manual
+creation is also available:
+
+```bash
+bun run changeset
+```
+
+## Default bump guidance
+
+| Change | Typical bump |
+| --- | --- |
+| Backward-compatible bug fix or docs correction | Patch |
+| Backward-compatible capability | Minor |
+| Breaking API or behavior | Major |
+
+Hooks may infer a default from the commit type, but the author is responsible
+for choosing the semantic impact.
+
+## Private workspaces
+
+Applications and internal packages are listed in Changesets' `ignore` array.
+They do not receive npm versions and should not be selected in a changeset.

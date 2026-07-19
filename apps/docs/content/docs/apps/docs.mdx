@@ -1,0 +1,56 @@
+---
+title: Documentation Application
+description: How Fumadocs loads, routes, searches, and renders the Vyrel documentation.
+---
+
+`apps/docs` is a Next.js application using Fumadocs MDX, Core, and UI. It runs
+on port `4000` in development, and `/` redirects to `/docs`.
+
+## Content pipeline
+
+```text
+content/docs/**/*.mdx + meta.json
+  -> source.config.ts
+  -> fumadocs-mdx
+  -> .source generated collection
+  -> lib/source.ts loader
+  -> page tree, static params, and search
+```
+
+`source.config.ts` declares the `content/docs` directory. The generated
+collection is loaded with `/docs` as its base URL. Do not edit `.source/`.
+
+## Routing and rendering
+
+The optional catch-all route at `app/docs/[[...slug]]/page.tsx` resolves a page
+from its slug, returns Next.js `notFound()` for unknown documents, and renders
+the compiled MDX body. `generateStaticParams()` gives Next.js every content
+route for static generation. Page frontmatter supplies title and description
+metadata.
+
+The docs layout passes the generated page tree into Fumadocs `DocsLayout`.
+`lib/layout.shared.tsx` owns branding and top-level links. The root provider
+owns theme and search UI context.
+
+## Search
+
+`app/api/search/route.ts` builds the English search index directly from the same
+content source. Adding a page therefore makes it searchable without a separate
+index configuration.
+
+## Authoring a page
+
+1. Add an `.mdx` file under the appropriate `content/docs` folder.
+2. Include `title` and `description` frontmatter.
+3. Add the page basename to that folder's `meta.json` `pages` array.
+4. Use absolute documentation links such as `/docs/apps/web`.
+5. Run `bun run check:docs` and `bun run build:docs` from the repository root.
+
+Fumadocs supplies Cards, Callouts, tables, highlighted code, heading anchors,
+breadcrumbs, and previous/next navigation through the default MDX component
+registry.
+
+<Callout title="Navigation order">
+  A `meta.json` `pages` array is an allow-list as well as an ordering list. A new
+  page omitted from it will not appear in that folder's sidebar.
+</Callout>

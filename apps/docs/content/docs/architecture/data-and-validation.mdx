@@ -1,0 +1,59 @@
+---
+title: Data and Validation
+description: How SQLite records, Zod schemas, GraphQL types, and Effect failures stay aligned.
+---
+
+Vyrel keeps each layer explicit while deriving mechanical shapes where safe.
+
+## Persistence model
+
+Drizzle table declarations are the persistence source of truth. They define
+columns, indexes, and foreign keys for Better Auth, organizations, and tasks.
+`relations.ts` describes traversable one-to-one and one-to-many relations for
+typed Drizzle queries.
+
+## Domain schemas
+
+Domain modules derive select and insert schemas with `drizzle-orm/zod`, then
+adapt them for API behavior:
+
+- omit server-managed identifiers, timestamps, ownership, and media fields;
+- define create/update/delete shapes;
+- refine cross-field constraints such as date ranges;
+- add lookup and filtered-list inputs;
+- infer exported TypeScript types from the final Zod schemas.
+
+Transport adapters validate before running business logic. Services still
+enforce authorization and invariants that cannot be expressed as structural
+input validation.
+
+## GraphQL mapping
+
+`@vyrel/morph` maps supported Zod primitives, optionality, nullability,
+descriptions, enums, and configured IDs into Pothos definitions. A domain can
+exclude fields, override field types, register extra enums, or write native
+Pothos fields and resolvers.
+
+The repository configures unmapped fields to throw. Unsupported shapes therefore
+fail schema construction instead of disappearing silently.
+
+## Effect failures
+
+Services use tagged errors to make failure categories part of their type. A
+GraphQL adapter maps them into domain GraphQL errors; REST adapters map them into
+status and JSON responses. Storage and image errors remain typed until that
+boundary.
+
+## Ownership rule
+
+| Concern | Owner |
+| --- | --- |
+| Columns, indexes, relations | `@vyrel/db` |
+| Input shape and domain refinement | `@vyrel/api` Zod schemas |
+| Business invariants and access | Effect services |
+| GraphQL exposure | Pothos domain modules and `@vyrel/morph` |
+| HTTP status/cookies | Elysia REST adapters |
+| Client selection and caching | Feature documents and Apollo |
+
+No layer should infer domain decisions—such as organization access or list
+membership—solely from structural schema metadata.
