@@ -1,11 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "build": {
-    "env": {
-      "VERCEL_EXPERIMENTAL_BACKENDS": "1"
-    }
-  },
   "installCommand": "cd ../.. && bun install && bun run script/swap-typescript-for-vercel.ts",
-  "buildCommand": "cd ../.. && bun run build --filter=server"
+  "buildCommand": "cd ../.. && bun run build --filter=server",
+  "outputDirectory": "dist",
+  "env": {
+    "VERCEL_EXPERIMENTAL_BACKENDS": "1"
+  }
 }
