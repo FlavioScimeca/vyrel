@@ -1,10 +1,13 @@
+// biome-ignore lint/style/noExportedImports: _
 import { app } from "./app";
-
-app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
-});
 
 export type { ServerApp } from "./app";
 
-const app_ = app;
-export default app_;
+if (import.meta.main) {
+  const port = Number(process.env.PORT) || 3000;
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}
+
+export default app;

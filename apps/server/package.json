@@ -9,12 +9,17 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsdown",
+    "build": "bun run script/compiler.ts",
+    "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
+    "build:verified": "bun run script/build.ts",
     "check-types": "tsc -b",
+    "clean": "rm -rf dist",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.mjs",
-    "test": "vitest run --passWithNoTests"
+    "size": "bun run script/size.ts",
+    "start": "bun run dist/index.js",
+    "test": "vitest run --passWithNoTests",
+    "validate": "bun run script/verify.ts"
   },
   "dependencies": {
     "@effect/platform": "catalog:",
@@ -53,7 +58,6 @@
     "jsdom": "catalog:",
     "msw": "catalog:",
     "playwright": "catalog:",
-    "tsdown": "^0.22.3",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
