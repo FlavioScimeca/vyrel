@@ -687,6 +687,41 @@ const renderGraphqlClientMetadata = (
         `    readonly ${JSON.stringify(fragment.fragmentName)}: ResultOf<typeof FragmentDocument${index}>;`
     )
     .join("\n");
+  const collectionIndexByEntityType = new Map(
+    crudRegistry.collections.map((collection, index) => [
+      collection.entityType,
+      index,
+    ])
+  );
+  const collectionIndexesByMutationField = new Map<string, Set<number>>();
+  for (const mutation of crudRegistry.mutations) {
+    const collectionIndex = collectionIndexByEntityType.get(
+      mutation.entityType
+    );
+    if (collectionIndex === undefined) {
+      continue;
+    }
+    const indexes =
+      collectionIndexesByMutationField.get(mutation.responseKey) ??
+      new Set<number>();
+    indexes.add(collectionIndex);
+    collectionIndexesByMutationField.set(mutation.responseKey, indexes);
+  }
+  const mutationCollectionVariablesRegistry = [
+    ...collectionIndexesByMutationField,
+  ]
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([responseKey, indexes]) => {
+      const variables = [...indexes]
+        .toSorted((left, right) => left - right)
+        .map(
+          (index) =>
+            `GqlVariablesOf<typeof CollectionDocument${index}>`
+        )
+        .join(" | ");
+      return `    readonly ${JSON.stringify(responseKey)}: ${variables};`;
+    })
+    .join("\n");
   const collectionRegistry = crudRegistry.collections
     .map(
       (collection, index) =>
@@ -728,13 +763,17 @@ const renderGraphqlClientMetadata = (
 
   return `import { defineGraphqlClientRegistry } from "@vyrel/graphql-client/cache";
 import type { GraphqlClientSchemaMetadata, ModelOf } from "@vyrel/graphql-client/codegen";
-import type { ResultOf } from "gql.tada";
+import type { ResultOf, VariablesOf as GqlVariablesOf } from "gql.tada";
 ${fragmentImports}
 ${collectionImports}
 
 declare module "@vyrel/graphql-client" {
   interface FragmentTypeRegistry {
 ${fragmentRegistry}
+  }
+
+  interface MutationCollectionVariablesRegistry {
+${mutationCollectionVariablesRegistry}
   }
 }
 

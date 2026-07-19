@@ -1,6 +1,6 @@
 import { defineGraphqlClientRegistry } from "@vyrel/graphql-client/cache";
 import type { GraphqlClientSchemaMetadata, ModelOf } from "@vyrel/graphql-client/codegen";
-import type { ResultOf } from "gql.tada";
+import type { ResultOf, VariablesOf as GqlVariablesOf } from "gql.tada";
 import type { OrganizationListItemFragment as FragmentDocument0 } from "../../features/dashboard/organization/graphql/fragments";
 import type { TaskListItemFragment as FragmentDocument1 } from "../../features/dashboard/task/graphql/fragments";
 import type { UserProfileFragment as FragmentDocument2 } from "../../features/dashboard/user/graphql/fragments";
@@ -12,6 +12,12 @@ declare module "@vyrel/graphql-client" {
     readonly "OrganizationListItem": ResultOf<typeof FragmentDocument0>;
     readonly "TaskListItem": ResultOf<typeof FragmentDocument1>;
     readonly "UserProfile": ResultOf<typeof FragmentDocument2>;
+  }
+
+  interface MutationCollectionVariablesRegistry {
+    readonly "createTask": GqlVariablesOf<typeof CollectionDocument1>;
+    readonly "deleteTask": GqlVariablesOf<typeof CollectionDocument1>;
+    readonly "updateTask": GqlVariablesOf<typeof CollectionDocument1>;
   }
 }
 

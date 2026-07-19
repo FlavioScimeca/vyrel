@@ -6,9 +6,14 @@ import { useCallback } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
+import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
 import { TasksListSkeleton } from "@/features/dashboard/task/components/tasks-list-skeleton";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
+import {
+  type TaskFilterQueryVariables,
+  useTaskFilters,
+} from "@/features/dashboard/task/hooks/use-task-filters";
 import { authClient } from "@/lib/auth-client";
 
 type TasksScreenProps = {
@@ -34,9 +39,19 @@ function TasksListErrorFallback({
   );
 }
 
-function TasksListPanel({ organizationId }: { organizationId: string }) {
+function TasksListPanel({
+  filters,
+  hasActiveFilters,
+  onClearFilters,
+  organizationId,
+}: {
+  filters: TaskFilterQueryVariables;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
+  organizationId: string;
+}) {
   const { data, error, loading, refetch } = useQuery(ListTasksDocument, {
-    variables: { organizationId },
+    variables: { organizationId, ...filters },
   });
 
   const handleRetry = useCallback(() => {
@@ -58,7 +73,13 @@ function TasksListPanel({ organizationId }: { organizationId: string }) {
     );
   }
 
-  return <TaskList tasks={data?.tasks ?? []} />;
+  return (
+    <TaskList
+      hasActiveFilters={hasActiveFilters}
+      onClearFilters={onClearFilters}
+      tasks={data?.tasks ?? []}
+    />
+  );
 }
 
 export default function TasksScreen({
@@ -68,6 +89,15 @@ export default function TasksScreen({
   const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
   const organizationId = sessionOrgId ?? initialOrganizationId;
   const hasOrganization = organizationId !== null && organizationId.length > 0;
+  const {
+    clearFilters,
+    createdRange,
+    hasActiveFilters,
+    queryVariables,
+    search,
+    setCreatedRange,
+    setSearch,
+  } = useTaskFilters();
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -92,7 +122,23 @@ export default function TasksScreen({
       )}
 
       {hasOrganization ? (
-        <TasksListPanel key={organizationId} organizationId={organizationId} />
+        <>
+          <TaskFilters
+            clearFilters={clearFilters}
+            createdRange={createdRange}
+            hasActiveFilters={hasActiveFilters}
+            onCreatedRangeChange={setCreatedRange}
+            onSearchChange={setSearch}
+            search={search}
+          />
+          <TasksListPanel
+            filters={queryVariables}
+            hasActiveFilters={hasActiveFilters}
+            key={organizationId}
+            onClearFilters={clearFilters}
+            organizationId={organizationId}
+          />
+        </>
       ) : null}
     </div>
   );

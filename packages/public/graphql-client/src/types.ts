@@ -1,4 +1,8 @@
-import type { TypedDocumentNode, Unmasked } from "@apollo/client";
+import type {
+  OperationVariables,
+  TypedDocumentNode,
+  Unmasked,
+} from "@apollo/client";
 
 export type DataOf<TDocument> =
   TDocument extends TypedDocumentNode<infer TData, infer _TVariables>
@@ -20,6 +24,24 @@ declare const fragmentRegistryMarker: unique symbol;
 export interface FragmentTypeRegistry {
   readonly [fragmentRegistryMarker]?: never;
 }
+
+/** Populated by codegen with collection variables keyed by mutation field. */
+declare const mutationCollectionVariablesRegistryMarker: unique symbol;
+
+export interface MutationCollectionVariablesRegistry {
+  readonly [mutationCollectionVariablesRegistryMarker]?: never;
+}
+
+type RegisteredMutationField<TData> = Extract<
+  keyof Unmasked<TData>,
+  keyof MutationCollectionVariablesRegistry
+>;
+
+export type CollectionVariablesFor<TData> = [
+  RegisteredMutationField<TData>,
+] extends [never]
+  ? OperationVariables
+  : MutationCollectionVariablesRegistry[RegisteredMutationField<TData>];
 
 type NonNullish<TValue> = Exclude<TValue, null | undefined>;
 

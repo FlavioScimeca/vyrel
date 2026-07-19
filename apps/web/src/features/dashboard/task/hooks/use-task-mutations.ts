@@ -27,6 +27,10 @@ export function useCreateTaskMutation() {
       imageThumb: null,
       title: variables.input.title,
     }),
+    revalidate: {
+      delay: 300,
+      mode: "background",
+    },
   });
 }
 
@@ -46,6 +50,10 @@ export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
           : (variables.input.description ?? null),
       title: variables.input.title ?? existingTask.title,
     }),
+    revalidate: {
+      delay: 300,
+      mode: "background",
+    },
   });
 }
 
@@ -57,6 +65,10 @@ export function useDeleteTaskMutation() {
     },
     onError: (error) => {
       toast.error(error.message || "Unable to delete task.");
+    },
+    revalidate: {
+      delay: 300,
+      mode: "background",
     },
   });
 }

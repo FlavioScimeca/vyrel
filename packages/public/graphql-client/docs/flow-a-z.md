@@ -586,7 +586,49 @@ click "create"
     └── sostituzione con il risultato reale
 ```
 
-Non è necessario attendere o forzare un refetch.
+Di default non viene eseguito un refetch: la risposta della mutation sostituisce
+già il dato optimistic. Quando il server può riordinare la lista o aggiornare
+campi derivati, la rivalidazione della collection è attivabile on demand:
+
+```ts
+useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({ title: input.title }),
+  revalidate: {
+    delay: 300,
+    mode: "background",
+    variables: ({ input }) => ({ organizationId: input.organizationId }),
+  },
+  onRevalidateError: (error) => notifyRevalidationError(error.message),
+});
+```
+
+Dopo il successo della mutation, il package riusa dal registry:
+
+- `ListTasksDocument` come collection canonica di `Task`;
+- `input.organizationId` come origine di `$organizationId`;
+- `network-only` per ottenere lo stato reale dal server.
+
+La query eseguita equivale a:
+
+```ts
+apolloClient.query({
+  query: ListTasksDocument,
+  variables: { organizationId: mutationVariables.input.organizationId },
+  fetchPolicy: "network-only",
+});
+```
+
+La richiesta rimane in background: non ritarda il risultato della mutation. Un
+errore di rivalidazione chiama soltanto `onRevalidateError`, quando presente, e
+non trasforma una create già riuscita in un errore di mutation.
+
+`delay` indica quanti millisecondi attendere dopo il successo prima di avviare
+la richiesta; il default è `0`. `variables` è un override opzionale e può essere
+un oggetto oppure un callback che riceve le variabili tipizzate della mutation.
+Il tipo atteso non è generico: il codegen registra `createTask` insieme a
+`VariablesOf<typeof ListTasksDocument>`, quindi TypeScript suggerisce e valida
+`organizationId`. Per create, in assenza dell'override resta valido il mapping
+automatico generato.
 
 ## 9. Runtime di `useOptimisticUpdate`
 
@@ -602,6 +644,7 @@ useOptimisticUpdate(UpdateTaskDocument, {
         : (input.description ?? null),
     title: input.title ?? existingTask.title,
   }),
+  revalidate: { mode: "background" },
 });
 ```
 
@@ -643,6 +686,32 @@ optimistic: ({ input }) => ({
 
 Non è necessario creare un wrapper o una resource diversa per ogni variante.
 
+Se `revalidate` è presente, dopo la risposta reale il package chiede ad Apollo
+di rieseguire tutte le istanze attive di `ListTasksDocument`. Ogni istanza
+mantiene le proprie variabili originali, per esempio:
+
+```text
+ListTasks({ organizationId: "org-1" })
+ListTasks({ organizationId: "org-2" })
+```
+
+Questo permette al server di correggere ordinamento, filtri e campi derivati
+senza aggiungere `organizationId` alla mutation di update.
+
+Quando è nota una variante precisa, si può evitare il refetch di tutte le
+istanze attive:
+
+```ts
+revalidate: {
+  delay: 300,
+  mode: "background",
+  variables: { organizationId },
+}
+```
+
+In questo caso update esegue soltanto `ListTasksDocument({ organizationId })`
+con `network-only`. Lo stesso comportamento è disponibile sulla delete.
+
 ## 10. Runtime di `useOptimisticDelete`
 
 Una delete viene scritta così:
@@ -650,6 +719,11 @@ Una delete viene scritta così:
 ```ts
 useOptimisticDelete(DeleteTaskDocument, {
   id: ({ input }) => input.taskId,
+  revalidate: {
+    delay: 300,
+    mode: "background",
+    variables: { organizationId },
+  },
 });
 ```
 
@@ -689,6 +763,15 @@ tasks({"organizationId":"org-2"})
 La task viene rimossa da ogni variante in cui è presente. Non serve passare
 manualmente `organizationId` alla delete.
 
+Dopo il successo reale, `revalidate` riesegue le istanze attive di
+`ListTasksDocument` usando i parametri già conservati dai rispettivi observer
+Apollo. Le varianti presenti soltanto in cache restano aggiornate dalla rimozione
+optimistic; quelle attive vengono inoltre riallineate con il server.
+
+Se `variables` è specificato, la delete rivalida invece soltanto quella variante
+della collection. Se non è specificato, mantiene il comportamento precedente e
+rivalida tutte le istanze attive con le rispettive variabili Apollo.
+
 ## 11. Opzioni Apollo ed escape hatch
 
 Gli hook accettano le normali opzioni di `useMutation`:
@@ -698,6 +781,8 @@ useOptimisticCreate(CreateTaskDocument, {
   optimistic: ({ input }) => ({ title: input.title }),
   onCompleted: () => notifySuccess(),
   onError: (error) => notifyError(error.message),
+  revalidate: { mode: "background" },
+  onRevalidateError: (error) => notifyRevalidationError(error.message),
   refetchQueries: [DashboardDocument],
   update: (cache, result, context) => {
     // Comportamento speciale dell'applicazione.

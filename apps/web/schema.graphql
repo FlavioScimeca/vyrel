@@ -71,7 +71,7 @@ type Query {
   task(id: ID!): Task
 
   """List tasks for an organization the caller belongs to"""
-  tasks(organizationId: ID!): [Task!]!
+  tasks(createdFrom: DateTime, createdTo: DateTime, organizationId: ID!, search: String): [Task!]!
 
   """Get a user by id"""
   user(id: ID!): User

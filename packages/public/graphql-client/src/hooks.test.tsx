@@ -8,10 +8,10 @@ import {
   type TypedDocumentNode,
 } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { parse } from "graphql";
 import { createElement, type PropsWithChildren } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   useOptimisticCreate,
@@ -67,6 +67,14 @@ interface DeleteTaskVariables {
   readonly input: {
     readonly taskId: string;
   };
+}
+
+declare module "./types" {
+  interface MutationCollectionVariablesRegistry {
+    readonly createTask: TaskVariables;
+    readonly deleteTask: TaskVariables;
+    readonly updateTask: TaskVariables;
+  }
 }
 
 const tasksDocument = parse(`
@@ -262,6 +270,153 @@ describe("optimistic mutation hooks", () => {
     expect(customUpdateCalls).toBe(2);
   });
 
+  it("revalidates active collection instances after create", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const refetchSpy = vi
+      .spyOn(network.client, "refetchQueries")
+      .mockResolvedValue([] as never);
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          optimistic: ({ input }) => ({ title: input.title }),
+          revalidate: { mode: "background" },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Optimistic" },
+        },
+      });
+    });
+
+    expect(refetchSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      network.resolve({
+        createTask: {
+          __typename: "Task",
+          id: "task-1",
+          title: "Created",
+        },
+      });
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(refetchSpy).toHaveBeenCalledWith({ include: [tasksDocument] });
+    });
+  });
+
+  it("delays revalidation and resolves typed collection variables", async () => {
+    vi.useFakeTimers();
+    try {
+      const network = createPendingNetwork();
+      activeClient = network.client;
+      const querySpy = vi
+        .spyOn(network.client, "query")
+        .mockResolvedValue({ data: { tasks: [] } } as never);
+      const { result } = renderHook(
+        () =>
+          useOptimisticCreate(createTaskDocument, {
+            optimistic: ({ input }) => ({ title: input.title }),
+            revalidate: {
+              delay: 300,
+              mode: "background",
+              variables: ({ input }) => ({
+                organizationId: input.organizationId,
+              }),
+            },
+          }),
+        { wrapper: ApolloTestProvider }
+      );
+
+      let mutationPromise: ReturnType<(typeof result.current)[0]>;
+      act(() => {
+        mutationPromise = result.current[0]({
+          variables: {
+            input: { organizationId: "org-1", title: "Optimistic" },
+          },
+        });
+      });
+
+      await act(async () => {
+        network.resolve({
+          createTask: {
+            __typename: "Task",
+            id: "task-1",
+            title: "Created",
+          },
+        });
+        await mutationPromise;
+      });
+
+      expect(querySpy).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(299));
+      expect(querySpy).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(1));
+      expect(querySpy).toHaveBeenCalledWith({
+        fetchPolicy: "network-only",
+        query: tasksDocument,
+        variables: { organizationId: "org-1" },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports background revalidation errors without failing the mutation", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const revalidation = Promise.withResolvers<never>();
+    vi.spyOn(network.client, "refetchQueries").mockReturnValue(
+      revalidation.promise as never
+    );
+    const onRevalidateError = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          onRevalidateError,
+          optimistic: ({ input }) => ({ title: input.title }),
+          revalidate: { mode: "background" },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Optimistic" },
+        },
+      });
+    });
+
+    await act(async () => {
+      network.resolve({
+        createTask: {
+          __typename: "Task",
+          id: "task-1",
+          title: "Created",
+        },
+      });
+      await mutationPromise;
+    });
+
+    expect(onRevalidateError).not.toHaveBeenCalled();
+
+    const revalidationError = new Error("Revalidation failed");
+    revalidation.reject(revalidationError);
+
+    await waitFor(() => {
+      expect(onRevalidateError).toHaveBeenCalledWith(revalidationError);
+    });
+  });
+
   it("rolls an optimistic create back after a network error", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
@@ -298,9 +453,12 @@ describe("optimistic mutation hooks", () => {
     expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
   });
 
-  it("updates a normalized entity optimistically", async () => {
+  it("updates optimistically and revalidates active collection instances", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
+    const refetchSpy = vi
+      .spyOn(network.client, "refetchQueries")
+      .mockResolvedValue([] as never);
     network.client.cache.writeQuery({
       data: {
         tasks: [{ __typename: "Task", id: "task-1", title: "Before" }],
@@ -314,6 +472,7 @@ describe("optimistic mutation hooks", () => {
         useOptimisticUpdate(updateTaskDocument, {
           current,
           optimistic: ({ input }) => ({ title: input.title }),
+          revalidate: { mode: "background" },
         }),
       { wrapper: ApolloTestProvider }
     );
@@ -343,11 +502,63 @@ describe("optimistic mutation hooks", () => {
       });
       await mutationPromise;
     });
+
+    await waitFor(() => {
+      expect(refetchSpy).toHaveBeenCalledWith({ include: [tasksDocument] });
+    });
   });
 
-  it("removes a deleted entity from every cached collection variant", async () => {
+  it("revalidates one exact collection after an update override", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
+    const querySpy = vi
+      .spyOn(network.client, "query")
+      .mockResolvedValue({ data: { tasks: [] } } as never);
+    const { result } = renderHook(
+      () =>
+        useOptimisticUpdate(updateTaskDocument, {
+          current: { id: "task-1", title: "Before" },
+          optimistic: ({ input }) => ({ title: input.title }),
+          revalidate: {
+            variables: { organizationId: "org-1" },
+          },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { taskId: "task-1", title: "After" } },
+      });
+    });
+
+    await act(async () => {
+      network.resolve({
+        updateTask: {
+          __typename: "Task",
+          id: "task-1",
+          title: "After",
+        },
+      });
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(querySpy).toHaveBeenCalledWith({
+        fetchPolicy: "network-only",
+        query: tasksDocument,
+        variables: { organizationId: "org-1" },
+      });
+    });
+  });
+
+  it("deletes optimistically and revalidates active collection instances", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const refetchSpy = vi
+      .spyOn(network.client, "refetchQueries")
+      .mockResolvedValue([] as never);
     for (const organizationId of ["org-1", "org-2"]) {
       network.client.cache.writeQuery({
         data: {
@@ -361,6 +572,7 @@ describe("optimistic mutation hooks", () => {
       () =>
         useOptimisticDelete(deleteTaskDocument, {
           id: ({ input }) => input.taskId,
+          revalidate: { mode: "background" },
         }),
       { wrapper: ApolloTestProvider }
     );
@@ -378,6 +590,83 @@ describe("optimistic mutation hooks", () => {
     await act(async () => {
       network.resolve({ deleteTask: "task-1" });
       await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(refetchSpy).toHaveBeenCalledWith({ include: [tasksDocument] });
+    });
+  });
+
+  it("revalidates one exact collection after a delete override", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const querySpy = vi
+      .spyOn(network.client, "query")
+      .mockResolvedValue({ data: { tasks: [] } } as never);
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteTaskDocument, {
+          id: ({ input }) => input.taskId,
+          revalidate: {
+            variables: () => ({ organizationId: "org-1" }),
+          },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { taskId: "task-1" } },
+      });
+    });
+
+    await act(async () => {
+      network.resolve({ deleteTask: "task-1" });
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(querySpy).toHaveBeenCalledWith({
+        fetchPolicy: "network-only",
+        query: tasksDocument,
+        variables: { organizationId: "org-1" },
+      });
+    });
+  });
+
+  it("reports active collection revalidation errors separately", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const revalidationError = new Error("Active revalidation failed");
+    vi.spyOn(network.client, "refetchQueries").mockRejectedValue(
+      revalidationError
+    );
+    const onRevalidateError = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteTaskDocument, {
+          id: ({ input }) => input.taskId,
+          onRevalidateError,
+          revalidate: { mode: "background" },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { taskId: "task-1" } },
+      });
+    });
+
+    await act(async () => {
+      network.resolve({ deleteTask: "task-1" });
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(onRevalidateError).toHaveBeenCalledWith(revalidationError);
     });
   });
 });

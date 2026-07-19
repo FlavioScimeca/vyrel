@@ -112,6 +112,9 @@ describe("GraphQL Codegen plugin", () => {
       'readonly "TaskListItem": ResultOf<typeof FragmentDocument0>'
     );
     expect(source).toContain(
+      'readonly "createTask": GqlVariablesOf<typeof CollectionDocument0>'
+    );
+    expect(source).toContain(
       '"Task": { query: CollectionDocument0, responseKey: "tasks", storeFieldName: "tasks" }'
     );
     expect(source).toContain(

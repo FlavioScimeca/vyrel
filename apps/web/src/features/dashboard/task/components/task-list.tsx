@@ -26,6 +26,8 @@ import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 const WHITESPACE_PATTERN = /\s+/;
 
 type TaskListProps = {
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
   tasks: readonly TaskListItemRef[];
 };
 
@@ -88,8 +90,43 @@ function TaskCard({ task }: { task: TaskListItemRef }) {
   );
 }
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({
+  hasActiveFilters = false,
+  onClearFilters,
+  tasks,
+}: TaskListProps) {
   if (tasks.length === 0) {
+    if (hasActiveFilters) {
+      return (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <IconChecklist />
+            </EmptyMedia>
+            <EmptyTitle>No tasks match your filters</EmptyTitle>
+            <EmptyDescription>
+              Try adjusting your search or date range
+              {onClearFilters === undefined ? (
+                "."
+              ) : (
+                <>
+                  , or{" "}
+                  <button
+                    className="text-foreground underline underline-offset-4"
+                    onClick={onClearFilters}
+                    type="button"
+                  >
+                    clear filters
+                  </button>
+                  .
+                </>
+              )}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      );
+    }
+
     return (
       <Empty className="border">
         <EmptyHeader>
