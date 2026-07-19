@@ -37,6 +37,9 @@ const result = await Bun.build({
     syntax: true,
     whitespace: true,
   },
+  naming: {
+    entry: "bundle.[ext]",
+  },
   outdir,
   sourcemap: "linked",
   target: "bun",
@@ -57,7 +60,8 @@ if (analyze && result.metafile) {
   console.log("Wrote bundle metafile to dist/meta.json");
 }
 
-const bundle = await Bun.file(outfile).text();
+const bundlePath = join(outdir, "bundle.js");
+const bundle = await Bun.file(bundlePath).text();
 const unresolvedWorkspaceImports = bundle.match(
   /from\s+["']@vyrel\/[^"']+["']/g
 );
@@ -68,4 +72,14 @@ if (unresolvedWorkspaceImports?.length) {
   );
 }
 
-console.log(`Built ${outfile} (${formatBytes(bundle.length)})`);
+const vercelEntry = `import { Elysia } from "elysia";
+
+void Elysia;
+
+export { default } from "./bundle.js";
+`;
+
+await Bun.write(outfile, vercelEntry);
+
+console.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
+console.log(`Wrote ${outfile} (Vercel entry shim)`);

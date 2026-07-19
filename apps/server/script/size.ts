@@ -50,7 +50,7 @@ if (!distExists?.isDirectory()) {
 
 const files = await listDistFiles(distDir);
 const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-const runtimeEntry = files.find((file) => file.path.endsWith("/index.js"));
+const runtimeEntry = files.find((file) => file.path.endsWith("/bundle.js"));
 
 console.log("server dist size\n");
 console.log("File".padEnd(28), "Size");
@@ -66,7 +66,7 @@ console.log("Total on disk".padEnd(28), formatBytes(totalBytes));
 
 if (runtimeEntry) {
   console.log(
-    "Runtime entry (index.js)".padEnd(28),
+    "Runtime bundle (bundle.js)".padEnd(28),
     formatBytes(runtimeEntry.size)
   );
 }
