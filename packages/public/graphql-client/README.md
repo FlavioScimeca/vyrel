@@ -79,7 +79,10 @@ const [editTask] = useOptimisticUpdate(UpdateTaskDocument, {
 
 Apollo normalizes the partial optimistic entity using its typename and ID, so
 every query containing the same entity sees the update. A list rewrite is not
-needed for ordinary updates.
+needed for ordinary updates. `current` must contain every field selected by the
+mutation fragment; TypeScript enforces this so Apollo never receives an
+incomplete optimistic response. The `optimistic` callback remains a partial
+on-demand patch.
 
 ## Delete
 

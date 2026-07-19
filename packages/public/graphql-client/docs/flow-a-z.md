@@ -631,6 +631,11 @@ Il package costruisce una response optimistic equivalente a:
 }
 ```
 
+`current` contiene obbligatoriamente tutti i campi selezionati dal fragment
+della mutation. Questo impedisce response optimistic incomplete e warning
+Apollo come `Missing field while writing result`. Soltanto `optimisticPatch`
+rimane parziale e on demand.
+
 Apollo riconosce l'entity attraverso la sua cache key, per esempio
 `Task:task-1`, e aggiorna il record normalizzato. Tutte le query che referenziano
 quella task vedono lo stesso cambiamento.

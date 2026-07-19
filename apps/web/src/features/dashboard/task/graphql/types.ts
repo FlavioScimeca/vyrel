@@ -6,7 +6,4 @@ export type TaskListItemRef = FragmentOf<typeof TaskListItemFragment>;
 type TaskListItemData = ResultOf<typeof TaskListItemFragment>;
 
 /** Existing task fields merged into an optimistic update. */
-export type OptimisticTaskExisting = Pick<
-  TaskListItemData,
-  "id" | "title" | "description" | "imageFull" | "imageThumb"
->;
+export type OptimisticTaskExisting = TaskListItemData;

@@ -3,13 +3,13 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
-export type TaskFilterQueryVariables = {
+type TaskFilterQueryVariables = {
   createdFrom?: string;
   createdTo?: string;
   search?: string;
 };
 
-export type UseTaskFiltersResult = {
+type UseTaskFiltersResult = {
   clearFilters: () => void;
   createdRange: DateRange | undefined;
   hasActiveFilters: boolean;
