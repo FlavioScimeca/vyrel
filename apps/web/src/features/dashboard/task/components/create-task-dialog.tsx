@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
+import { useRefreshTasks } from "@/features/dashboard/task/context/task-refresh-context";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
@@ -47,6 +48,7 @@ type CreateTaskDialogProps = {
 export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const [createTask] = useCreateTaskMutation();
+  const refreshTasks = useRefreshTasks();
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
@@ -69,10 +71,10 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
     [resetForm]
   );
 
-  const onSubmit = form.handleSubmit((values) => {
+  const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
 
-    createTask({
+    const mutation = createTask({
       variables: {
         input: {
           description:
@@ -84,11 +86,15 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
           title: values.title,
         },
       },
-    }).catch(() => {
-      // Errors surface via the mutation onError toast.
     });
-
     handleOpenChange(false);
+
+    try {
+      await mutation;
+      await refreshTasks();
+    } catch {
+      // Mutation errors use its toast; refetch errors surface via query state.
+    }
   });
 
   const imageError = form.formState.errors.image;

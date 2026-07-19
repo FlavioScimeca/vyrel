@@ -298,7 +298,7 @@ describe("optimistic mutation hooks", () => {
     expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
   });
 
-  it("updates a normalized entity optimistically", async () => {
+  it("updates the normalized entity optimistically", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
     network.client.cache.writeQuery({
@@ -343,9 +343,17 @@ describe("optimistic mutation hooks", () => {
       });
       await mutationPromise;
     });
+
+    expect(
+      network.client.cache.readQuery({
+        optimistic: false,
+        query: tasksDocument,
+        variables: { organizationId: "org-1" },
+      })?.tasks[0]?.title
+    ).toBe("After");
   });
 
-  it("removes a deleted entity from every cached collection variant", async () => {
+  it("deletes optimistically from every cached collection variant", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
     for (const organizationId of ["org-1", "org-2"]) {
@@ -379,5 +387,8 @@ describe("optimistic mutation hooks", () => {
       network.resolve({ deleteTask: "task-1" });
       await mutationPromise;
     });
+
+    expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
+    expect(readTaskIds(network.client, "org-2", false)).toEqual([]);
   });
 });

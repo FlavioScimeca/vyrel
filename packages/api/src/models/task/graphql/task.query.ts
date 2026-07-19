@@ -7,6 +7,7 @@ import { getTask, listTasksByOrganization } from "../services/read.service";
 import { taskQuerySchema } from "../types/base.types";
 import {
   taskByIdSchema,
+  taskListFiltersSchema,
   tasksByOrganizationSchema,
 } from "../types/extra.types";
 import { runTaskGraphqlEffect } from "./effect";
@@ -23,6 +24,9 @@ const metadata = {
 };
 
 export const taskGraphql = graphqlBridge.model({
+  listArgsSchema: {
+    filters: taskListFiltersSchema,
+  },
   objectName: metadata.objectName,
   rowSchema: taskQuerySchema,
 });
@@ -77,6 +81,7 @@ builder.queryFields((t) => ({
   tasks: t.field({
     args: {
       organizationId: t.arg.id({ required: true }),
+      ...taskGraphql.args.filters,
     },
     description: metadata.tasks.description,
     nullable: false,
@@ -84,7 +89,10 @@ builder.queryFields((t) => ({
       runTaskGraphqlEffect(
         listTasksByOrganization(
           tasksByOrganizationSchema.parse({
+            createdFrom: args.createdFrom ?? undefined,
+            createdTo: args.createdTo ?? undefined,
             organizationId: String(args.organizationId),
+            search: args.search ?? undefined,
           }),
           context.headers,
           resolveActorUserId(context)

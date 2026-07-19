@@ -1,6 +1,6 @@
 import { db } from "@vyrel/db";
 import { task } from "@vyrel/db/schema";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
 import { Effect } from "effect";
 
 import type {
@@ -20,6 +20,46 @@ export const getTask = (
   jwtUserId?: string
 ) => fetchTaskForUser(input.id, headers, jwtUserId);
 
+const startOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const endOfDay = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+const escapeLikePattern = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+
+const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
+  const conditions: SQL[] = [eq(task.organizationId, input.organizationId)];
+
+  if (input.search !== undefined) {
+    const pattern = `%${escapeLikePattern(input.search.toLowerCase())}%`;
+    const searchCondition = or(
+      sql`lower(${task.title}) like ${pattern} escape '\\'`,
+      sql`lower(coalesce(${task.description}, '')) like ${pattern} escape '\\'`
+    );
+    if (searchCondition !== undefined) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  if (input.createdFrom !== undefined) {
+    conditions.push(gte(task.createdAt, startOfDay(input.createdFrom)));
+  }
+
+  if (input.createdTo !== undefined) {
+    conditions.push(lte(task.createdAt, endOfDay(input.createdTo)));
+  }
+
+  return conditions;
+};
+
 export const listTasksByOrganization = (
   input: TasksTypeByOrganization,
   headers: Headers,
@@ -29,6 +69,8 @@ export const listTasksByOrganization = (
     const userId = yield* resolveActorUserId(headers, jwtUserId);
 
     yield* assertOrgMembership(input.organizationId, userId);
+
+    const conditions = buildTaskListConditions(input);
 
     return yield* Effect.tryPromise({
       catch: (cause) =>
@@ -40,7 +82,8 @@ export const listTasksByOrganization = (
         db
           .select()
           .from(task)
-          .where(eq(task.organizationId, input.organizationId))
+          .where(and(...conditions))
+          .orderBy(desc(task.createdAt))
           .all(),
     });
   });

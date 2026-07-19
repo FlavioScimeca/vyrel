@@ -13,7 +13,7 @@ export function createApolloCache(): InMemoryCache {
       Query: {
         fields: {
           tasks: {
-            keyArgs: ["organizationId"],
+            keyArgs: ["organizationId", "search", "createdFrom", "createdTo"],
           },
         },
       },

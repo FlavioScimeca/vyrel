@@ -586,7 +586,21 @@ click "create"
     └── sostituzione con il risultato reale
 ```
 
-Non è necessario attendere o forzare un refetch.
+Il package non esegue refetch. La risposta della mutation sostituisce già il
+dato optimistic; quando servono ordinamento, filtri o campi derivati aggiornati
+dal server, il componente che possiede la query usa il `refetch` di Apollo:
+
+```ts
+const { refetch } = useQuery(ListTasksDocument, { variables: filters });
+const [createTask] = useOptimisticCreate(CreateTaskDocument, options);
+
+await createTask({ variables: { input } });
+await refetch();
+```
+
+Apollo conserva già l'istanza esatta della query e le sue variabili. In questo
+modo il package resta responsabile soltanto della meccanica optimistic, mentre
+la pagina decide esplicitamente quando richiedere dati freschi al server.
 
 ## 9. Runtime di `useOptimisticUpdate`
 
@@ -616,6 +630,11 @@ Il package costruisce una response optimistic equivalente a:
   },
 }
 ```
+
+`current` contiene obbligatoriamente tutti i campi selezionati dal fragment
+della mutation. Questo impedisce response optimistic incomplete e warning
+Apollo come `Missing field while writing result`. Soltanto `optimisticPatch`
+rimane parziale e on demand.
 
 Apollo riconosce l'entity attraverso la sua cache key, per esempio
 `Task:task-1`, e aggiorna il record normalizzato. Tutte le query che referenziano

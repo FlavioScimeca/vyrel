@@ -79,7 +79,10 @@ const [editTask] = useOptimisticUpdate(UpdateTaskDocument, {
 
 Apollo normalizes the partial optimistic entity using its typename and ID, so
 every query containing the same entity sees the update. A list rewrite is not
-needed for ordinary updates.
+needed for ordinary updates. `current` must contain every field selected by the
+mutation fragment; TypeScript enforces this so Apollo never receives an
+incomplete optimistic response. The `optimistic` callback remains a partial
+on-demand patch.
 
 ## Delete
 
@@ -92,6 +95,22 @@ const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
 The package builds the scalar optimistic response, finds `Task` through the
 generated mutation registry, removes the item from every cached argument variant
 of the canonical `tasks` collection and evicts its normalized entity.
+
+## Server freshness
+
+The package deliberately does not refetch queries. The component that owns an
+Apollo query also owns its exact filters, pagination and `refetch` function:
+
+```ts
+const { refetch } = useQuery(ListTasksDocument, { variables: filters });
+const [createTask] = useOptimisticCreate(CreateTaskDocument, options);
+
+await createTask({ variables: { input } });
+await refetch();
+```
+
+This keeps network policy in application code and optimistic cache mechanics in
+the package, without reconstructing query variables in another abstraction.
 
 ## Apollo options and escape hatches
 

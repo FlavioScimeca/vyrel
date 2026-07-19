@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useRefreshTasks } from "@/features/dashboard/task/context/task-refresh-context";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
@@ -28,24 +29,29 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
   const [deleteTask] = useDeleteTaskMutation();
+  const refreshTasks = useRefreshTasks();
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
   }, []);
 
-  const handleDelete = useCallback(() => {
-    deleteTask({
+  const handleDelete = useCallback(async () => {
+    const mutation = deleteTask({
       variables: {
         input: {
           taskId: item.id,
         },
       },
-    }).catch(() => {
-      // Errors surface via the mutation onError toast.
     });
-
     handleOpenChange(false);
-  }, [deleteTask, handleOpenChange, item.id]);
+
+    try {
+      await mutation;
+      await refreshTasks();
+    } catch {
+      // Mutation errors use its toast; refetch errors surface via query state.
+    }
+  }, [deleteTask, handleOpenChange, item.id, refreshTasks]);
 
   return (
     <AlertDialog onOpenChange={handleOpenChange} open={open}>

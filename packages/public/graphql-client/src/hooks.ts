@@ -67,10 +67,11 @@ export type OptimisticUpdateOptions<
   TVariables extends OperationVariables,
 > = MutationOptions<TMutationData, TVariables> &
   SharedOptions & {
-    readonly current: Partial<MutationFragmentData<TMutationData>>;
+    /** Complete current data for every field selected by the mutation fragment. */
+    readonly current: MutationFragmentData<TMutationData>;
     readonly optimistic: (
       variables: TVariables,
-      current: Readonly<Partial<MutationFragmentData<TMutationData>>>
+      current: Readonly<MutationFragmentData<TMutationData>>
     ) => Partial<MutationFragmentData<TMutationData>>;
     /** Additional Apollo update callback. */
     readonly update?: MutationUpdate<TMutationData, TVariables>;
@@ -247,7 +248,6 @@ export const useOptimisticUpdate = <
   const responseKey = getRootResponseKey(mutation, "mutation", field);
   const entitySelection = getMutationEntitySelection(mutation, field);
   const currentRecord = asRecord(current) ?? {};
-
   const mutationOptions: useMutation.Options<
     TMutationData,
     TVariables,
