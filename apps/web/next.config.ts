@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
         destination: `${serverUrl}/api/organizations`,
         source: "/api/organizations",
       },
+      {
+        destination: `${serverUrl}/api/graphql`,
+        source: "/api/graphql",
+      },
     ];
   },
 };

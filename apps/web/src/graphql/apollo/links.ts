@@ -2,9 +2,9 @@ import { ApolloLink } from "@apollo/client/link";
 import { SetContextLink } from "@apollo/client/link/context";
 import { ErrorLink } from "@apollo/client/link/error";
 import { PersistedQueryLink } from "@apollo/client/link/persisted-queries";
-import { GRAPHQL_URI } from "@vyrel/consts/web";
 import UploadHttpLink from "apollo-upload-client/UploadHttpLink.mjs";
 
+import { getGraphqlUri } from "@/lib/web-api-base-url";
 import { sha256 } from "./sha256";
 import { isUnauthenticatedError } from "./unauthenticated";
 
@@ -56,7 +56,7 @@ export function createApolloLink(
     fetchOptions: {
       credentials: "include",
     },
-    uri: GRAPHQL_URI,
+    uri: getGraphqlUri(),
   });
 
   return ApolloLink.from([errorLink, authLink, persistedQueryLink, uploadLink]);
