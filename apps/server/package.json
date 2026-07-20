@@ -11,6 +11,7 @@
   "scripts": {
     "build": "bun run script/compiler.ts",
     "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
+    "build:image-worker": "bun run script/compile-image-worker.ts",
     "build:verified": "bun run script/build.ts",
     "check-types": "tsc -b",
     "clean": "rm -rf dist",
@@ -35,6 +36,7 @@
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql": "workspace:*",
+    "@vyrel/storage": "workspace:*",
     "ai": "^7.0.4",
     "better-auth": "catalog:",
     "bullmq": "^5.79.2",

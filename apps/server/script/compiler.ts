@@ -2,6 +2,8 @@ import { cp, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { compileImageWorker } from "./compile-image-worker";
+
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -72,11 +74,22 @@ if (unresolvedWorkspaceImports?.length) {
   );
 }
 
-const vercelEntry = `import { Elysia } from "elysia";
+const vercelEntry = `import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Elysia } from "elysia";
 
 void Elysia;
 
 import app from "./bundle.js";
+
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+export const imageWorkerBinaryPath = join(moduleDir, "bin/image-worker");
+
+// Keep the compiled worker in the traced function bundle.
+if (existsSync(imageWorkerBinaryPath)) {
+  void Bun.file(imageWorkerBinaryPath).size;
+}
 
 export default app;
 
@@ -100,3 +113,5 @@ if (await Bun.file(faviconSource).exists()) {
 
 console.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
 console.log(`Wrote ${outfile} (Vercel entry shim)`);
+
+await compileImageWorker();
