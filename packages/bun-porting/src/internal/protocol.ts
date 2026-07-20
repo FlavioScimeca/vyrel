@@ -59,6 +59,11 @@ export type PortingPipelineTerminal =
   | "blob"
   | "dataurl";
 
+export type PortingPipelineSpec = {
+  operations: PortingImageOperation[];
+  terminal: PortingPipelineTerminal;
+};
+
 export type PortingWorkerInput =
   | {
       mode?: "diagnostic";
@@ -76,6 +81,13 @@ export type PortingWorkerInput =
       maxInputBytes?: number;
       operations: PortingImageOperation[];
       terminal: PortingPipelineTerminal;
+    }
+  | {
+      mode: "execute-pipelines";
+      source: PortingWorkerSource;
+      maxPixels?: number;
+      maxInputBytes?: number;
+      pipelines: Record<string, PortingPipelineSpec>;
     };
 
 export type PortingWorkerRuntimeInfo = {
@@ -108,6 +120,8 @@ export type PortingWorkerSuccess = {
   runtime: PortingWorkerRuntimeInfo;
   image?: PortingWorkerImageInfo;
   pipeline?: PortingWorkerPipelineResult;
+  /** Present for `execute-pipelines` (keyed like the request). */
+  pipelines?: Record<string, PortingWorkerPipelineResult>;
 };
 
 export type PortingWorkerFailure = {

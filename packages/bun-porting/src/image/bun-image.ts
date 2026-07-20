@@ -1,4 +1,11 @@
 import { isNativeImageAvailable as hostHasNativeImage } from "../bootstrap/config";
+import type { PortingPipelineTerminal } from "../internal/protocol";
+import {
+  type BunImageBatchOptions,
+  type BunImageBatchPipelines,
+  type BunImageBatchResult,
+  runBunImageBatch,
+} from "./batch";
 import { NativeBunImage } from "./native";
 import type {
   BunImageInput,
@@ -11,6 +18,12 @@ import type {
 } from "./types";
 import { WorkerBackedBunImage } from "./worker-backed";
 
+export type {
+  BunImageBatchOptions,
+  BunImageBatchPipelines,
+  BunImageBatchResult,
+} from "./batch";
+export type { PipelineBuilder } from "./pipeline-builder";
 export type {
   BunImageInput,
   BunImageJpegOptions,
@@ -37,6 +50,26 @@ export class BunImage implements BunImageLike {
     this.impl = hostHasNativeImage()
       ? new NativeBunImage(input, options)
       : new WorkerBackedBunImage(input, options);
+  }
+
+  /**
+   * Run multiple pipelines against one source.
+   *
+   * Callbacks only record ops (like a lazy Bun.Image chain). Terminals default
+   * to `bytes`; override per key via `terminals`.
+   */
+  static batch<
+    P extends BunImageBatchPipelines,
+    const T extends
+      | Partial<Record<keyof P & string, PortingPipelineTerminal>>
+      | undefined = undefined,
+  >(
+    source: BunImageInput,
+    options: BunImageBatchOptions<P> & { terminals?: T }
+  ): Promise<BunImageBatchResult<P, T>> {
+    return runBunImageBatch(source, options) as Promise<
+      BunImageBatchResult<P, T>
+    >;
   }
 
   resize(

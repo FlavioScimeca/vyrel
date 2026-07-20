@@ -9,9 +9,11 @@ import { Chunk, Effect, Layer, Schema, Stream } from "effect";
 import { BunPortingError } from "../internal/errors";
 import type {
   PortingImageOperation,
+  PortingPipelineSpec,
   PortingPipelineTerminal,
   PortingWorkerFailure,
   PortingWorkerInput,
+  PortingWorkerPipelineResult,
   PortingWorkerResponse,
   PortingWorkerSource,
   PortingWorkerSuccess,
@@ -199,6 +201,79 @@ const parseExecutePipelineInput = (
     };
   });
 
+const parsePipelineSpec = (
+  key: string,
+  value: unknown
+): Effect.Effect<PortingPipelineSpec, BunPortingError> => {
+  if (value === null || typeof value !== "object") {
+    return failWorker(
+      `pipelines.${key} must be an object.`,
+      "INVALID_OPERATIONS"
+    );
+  }
+
+  const spec = value as Record<string, unknown>;
+  if (!Array.isArray(spec.operations)) {
+    return failWorker(
+      `pipelines.${key} requires an operations array.`,
+      "INVALID_OPERATIONS"
+    );
+  }
+
+  if (!isPipelineTerminal(spec.terminal)) {
+    return failWorker(
+      `pipelines.${key} requires a valid terminal.`,
+      "INVALID_TERMINAL"
+    );
+  }
+
+  return Effect.succeed({
+    operations: spec.operations as PortingImageOperation[],
+    terminal: spec.terminal,
+  });
+};
+
+const parseExecutePipelinesInput = (
+  record: Record<string, unknown>
+): Effect.Effect<
+  Extract<PortingWorkerInput, { mode: "execute-pipelines" }>,
+  BunPortingError
+> =>
+  Effect.gen(function* () {
+    if (
+      record.pipelines === null ||
+      typeof record.pipelines !== "object" ||
+      Array.isArray(record.pipelines)
+    ) {
+      return yield* failWorker(
+        "execute-pipelines requires a pipelines object.",
+        "INVALID_OPERATIONS"
+      );
+    }
+
+    const pipelineRecord = record.pipelines as Record<string, unknown>;
+    const keys = Object.keys(pipelineRecord);
+    if (keys.length === 0) {
+      return yield* failWorker(
+        "execute-pipelines requires at least one pipeline.",
+        "INVALID_OPERATIONS"
+      );
+    }
+
+    const pipelines: Record<string, PortingPipelineSpec> = {};
+    for (const key of keys) {
+      pipelines[key] = yield* parsePipelineSpec(key, pipelineRecord[key]);
+    }
+
+    const limits = limitsFromRecord(record);
+    return {
+      ...limits,
+      mode: "execute-pipelines" as const,
+      pipelines,
+      source: yield* parseSource(record.source, true),
+    };
+  });
+
 const parseInput = (
   raw: string
 ): Effect.Effect<PortingWorkerInput, BunPortingError> =>
@@ -238,6 +313,10 @@ const parseInput = (
 
     if (mode === "execute-pipeline") {
       return yield* parseExecutePipelineInput(record);
+    }
+
+    if (mode === "execute-pipelines") {
+      return yield* parseExecutePipelinesInput(record);
     }
 
     return yield* failWorker(
@@ -542,6 +621,75 @@ const executePipeline = (
     };
   });
 
+const executePipelines = (
+  input: Extract<PortingWorkerInput, { mode: "execute-pipelines" }>
+): Effect.Effect<
+  PortingWorkerSuccess,
+  BunPortingError,
+  HttpClient.HttpClient
+> =>
+  Effect.gen(function* () {
+    if (typeof Bun.Image !== "function") {
+      return yield* failWorker(
+        "Bun.Image is not available in this runtime.",
+        "NO_BUN_IMAGE"
+      );
+    }
+
+    const bytes = yield* loadSourceBytes(
+      input.source,
+      input.maxInputBytes ?? DEFAULT_MAX_INPUT_BYTES
+    );
+    const maxPixels = input.maxPixels ?? DEFAULT_MAX_PIXELS;
+
+    const pipelines: Record<string, PortingWorkerPipelineResult> = {};
+
+    for (const [key, spec] of Object.entries(input.pipelines)) {
+      const decoded = yield* Effect.try({
+        catch: (cause) =>
+          new BunPortingError({
+            cause,
+            code: "IMAGE_DECODE_FAILED",
+            message:
+              cause instanceof Error
+                ? cause.message
+                : "Unable to decode image.",
+          }),
+        try: () => new Bun.Image(bytes, { maxPixels }),
+      });
+
+      const image = yield* applyOperations(decoded, spec.operations);
+      const pipelineResult = yield* runTerminal(image, spec.terminal).pipe(
+        Effect.mapError(
+          (cause) =>
+            new BunPortingError({
+              cause,
+              code: "PIPELINE_TERMINAL_FAILED",
+              message:
+                cause instanceof BunPortingError
+                  ? `${key}: ${cause.message}`
+                  : `Pipeline terminal failed: ${key}`,
+            })
+        )
+      );
+
+      if (pipelineResult === undefined) {
+        return yield* failWorker(
+          `Pipeline produced no result: ${key}`,
+          "PIPELINE_TERMINAL_FAILED"
+        );
+      }
+
+      pipelines[key] = pipelineResult;
+    }
+
+    return {
+      pipelines,
+      runtime: runtimeInfo(),
+      success: true as const,
+    };
+  });
+
 const main = Effect.gen(function* () {
   const rawInput = yield* readStdin;
   const input = yield* parseInput(rawInput);
@@ -552,6 +700,10 @@ const main = Effect.gen(function* () {
 
   if (input.mode === "execute-pipeline") {
     return yield* executePipeline(input);
+  }
+
+  if (input.mode === "execute-pipelines") {
+    return yield* executePipelines(input);
   }
 
   return {

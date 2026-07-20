@@ -3,7 +3,6 @@ import { uploadObject } from "@vyrel/storage/object-storage";
 import { Effect } from "effect";
 
 import {
-  encodeImagePlaceholder,
   type ImageOptimizeError,
   messageForImageOptimizeError,
 } from "../../../lib/media/image-optimizer";
@@ -56,9 +55,6 @@ export const uploadOrganizationLogo = (
     const previews = yield* optimizeOrganizationLogoImages(
       validation.file.buffer
     ).pipe(Effect.mapError(mapImageOptimizeFailure));
-    const imagePlaceholder = yield* encodeImagePlaceholder(
-      validation.file.buffer
-    ).pipe(Effect.mapError(mapImageOptimizeFailure));
 
     yield* Effect.all(
       [
@@ -83,7 +79,7 @@ export const uploadOrganizationLogo = (
     return {
       imageAssetId: organizationId,
       imageFull: keys.fullKey,
-      imagePlaceholder,
+      imagePlaceholder: previews.placeholder,
       imageThumb: keys.thumbKey,
     };
   });

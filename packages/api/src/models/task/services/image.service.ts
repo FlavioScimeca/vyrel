@@ -3,7 +3,6 @@ import { uploadObject } from "@vyrel/storage/object-storage";
 import { Effect } from "effect";
 
 import {
-  encodeImagePlaceholder,
   type ImageOptimizeError,
   messageForImageOptimizeError,
 } from "../../../lib/media/image-optimizer";
@@ -48,9 +47,6 @@ export const uploadTaskImage = (
     const previews = yield* optimizeTaskImages(validation.file.buffer).pipe(
       Effect.mapError(mapImageOptimizeFailure)
     );
-    const imagePlaceholder = yield* encodeImagePlaceholder(
-      validation.file.buffer
-    ).pipe(Effect.mapError(mapImageOptimizeFailure));
 
     yield* Effect.all(
       [
@@ -75,7 +71,7 @@ export const uploadTaskImage = (
     return {
       imageAssetId: taskId,
       imageFull: keys.fullKey,
-      imagePlaceholder,
+      imagePlaceholder: previews.placeholder,
       imageThumb: keys.thumbKey,
     };
   });
