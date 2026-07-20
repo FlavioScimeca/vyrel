@@ -13,7 +13,8 @@
     "gql:client:watch": "graphql-codegen --config codegen.ts --watch",
     "gql:generate": "gql-tada generate-output --tsconfig tsconfig.json",
     "graphql:schema": "bun run --cwd ../.. graphql:schema",
-    "start": "next start",
+    "react:doctor": "bun x react-doctor@latest  --verbose",
+    "start": "bun run --bun next start --port 3001",
     "storybook": "storybook dev -p 6006",
     "test": "vitest run --passWithNoTests",
     "ui:add": "bunx --bun shadcn@latest add"

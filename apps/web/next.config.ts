@@ -4,7 +4,6 @@ import type { NextConfig } from "next";
 const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   reactCompiler: true,
   serverExternalPackages: ["libsql", "@libsql/client"],
   typedRoutes: true,

@@ -23,9 +23,10 @@ export async function getServerSession(): Promise<SessionResponse | null> {
 
 /** Fetch session using an explicit Cookie header (e.g. from middleware / proxy). */
 export async function fetchSessionWithCookie(
-  cookie: string
+  cookie: string,
+  baseURL?: string
 ): Promise<SessionResponse | null> {
-  const client = createEdenClient({ cookie });
+  const client = createEdenClient({ cookie }, baseURL);
 
   try {
     const { data, error, status } = await client.api.auth["get-session"].get({
