@@ -8,6 +8,7 @@
         "@effect/platform": "catalog:",
         "@effect/platform-bun": "catalog:",
         "@vyrel/env": "workspace:*",
+        "add": "^2.0.9",
         "cz-git": "^1.13.1",
         "dotenv": "catalog:",
         "effect": "catalog:",
@@ -2246,6 +2247,8 @@
     "acorn-import-phases": ["acorn-import-phases@1.0.4", "", { "peerDependencies": { "acorn": "^8.14.0" } }, "sha512-wKmbr/DDiIXzEOiWrTTUcDm24kQ2vGfZQvM2fwg2vXqR5uW6aapr7ObPtj1th32b9u90/Pf4AItvdTh42fBmVQ=="],
 
     "acorn-jsx": ["acorn-jsx@5.3.2", "", { "peerDependencies": { "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0" } }, "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="],
+
+    "add": ["add@2.0.9", "", {}, "sha512-a6+u7hP0xmII7EBQenAIb6oMp9/vcW6EmrsD0ngUbLnE69Xtwj4yCbmHLUi5LZ6ggJB+AufHTaDbW1XBiYJwFw=="],
 
     "adjust-sourcemap-loader": ["adjust-sourcemap-loader@4.0.0", "", { "dependencies": { "loader-utils": "^2.0.0", "regex-parser": "^2.2.11" } }, "sha512-OXwN5b9pCUXNQHJpwwD2qP40byEmSgzj8B4ydSN0uMNYWiFmJ6x6KwUllMmfk8Rwu/HJDFR7U8ubsWBoN0Xp0A=="],
 
