@@ -76,7 +76,16 @@ const vercelEntry = `import { Elysia } from "elysia";
 
 void Elysia;
 
-export { default } from "./bundle.js";
+import app from "./bundle.js";
+
+export default app;
+
+if (!process.env.VERCEL) {
+  const port = Number(process.env.PORT) || 3000;
+  app.listen(port, () => {
+    console.log(\`Server is running on http://localhost:\${port}\`);
+  });
+}
 `;
 
 await Bun.write(outfile, vercelEntry);

@@ -1,3 +1,4 @@
+import { getSessionCookie } from "better-auth/cookies";
 import type { NextRequest } from "next/server";
 
 import { createEdenClient } from "@/lib/eden-client";
@@ -6,7 +7,7 @@ import {
   type SessionResponse,
 } from "@/lib/server-session";
 
-/** Better Auth default session cookie name (httpOnly). */
+/** Better Auth session cookie base name (without the `__Secure-` production prefix). */
 export const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
 
 const noStoreFetch = { cache: "no-store" } as const;
@@ -38,7 +39,11 @@ function requestHeaders(request: NextRequest): HeadersInit | undefined {
 
 /** Fast optimistic check — does not validate the session with the API. */
 export function hasSessionCookie(request: NextRequest): boolean {
-  return request.cookies.has(BETTER_AUTH_SESSION_COOKIE);
+  return getSessionCookie(request) !== null;
+}
+
+function proxyApiBaseURL(request: NextRequest): string {
+  return request.nextUrl.origin;
 }
 
 async function fetchSession(
@@ -50,11 +55,14 @@ async function fetchSession(
     return null;
   }
 
-  return await fetchSessionWithCookie(cookie);
+  return await fetchSessionWithCookie(cookie, proxyApiBaseURL(request));
 }
 
 async function fetchOrganizationCount(request: NextRequest): Promise<number> {
-  const client = createEdenClient(requestHeaders(request));
+  const client = createEdenClient(
+    requestHeaders(request),
+    proxyApiBaseURL(request)
+  );
 
   try {
     const { data, error, status } = await client.api.auth.organization.list.get(

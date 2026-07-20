@@ -18,6 +18,15 @@ describe("proxy-auth", () => {
     expect(hasSessionCookie(request)).toBe(true);
   });
 
+  it("detects the secure-prefixed session cookie used in production", () => {
+    const request = requestWithCookie(
+      "/dashboard",
+      `__Secure-${BETTER_AUTH_SESSION_COOKIE}=abc123`
+    );
+
+    expect(hasSessionCookie(request)).toBe(true);
+  });
+
   it("returns false when the session cookie is missing", () => {
     const request = requestWithCookie("/dashboard");
 
