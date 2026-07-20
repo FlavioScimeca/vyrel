@@ -85,7 +85,7 @@
     "knip:production": "knip --production",
     "lint": "ultracite check",
     "lint:doctor": "ultracite doctor",
-    "preflight": "bun run deps:lint && bun run lint && bun run knip && bun run knip:cycles && bun run check-types && bun run build && bun run test",
+    "preflight": "bun run deps:lint && bun run lint && turbo source --filter=docs && bun run knip && bun run knip:cycles && bun run check-types && bun run build && bun run test",
     "prepare": "bun run script/patch-ts6-imports.ts && husky",
     "processes:kill": "bun run script/kill-processes.ts",
     "release": "bun run script/release.ts",

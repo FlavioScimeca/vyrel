@@ -23,7 +23,7 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "source"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".next/**"]
     },
@@ -35,7 +35,11 @@
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^build", "^check-types"]
+      "dependsOn": ["^build", "^check-types", "source"]
+    },
+    "source": {
+      "inputs": ["source.config.ts", "content/**"],
+      "outputs": [".source/**"]
     },
     "check-effect-ts": {
       "cache": false
