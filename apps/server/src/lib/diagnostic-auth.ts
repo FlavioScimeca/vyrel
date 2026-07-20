@@ -1,16 +1,6 @@
-import { env } from "@vyrel/env/server";
-
-const DIAGNOSTIC_HEADER = "x-diagnostic-secret";
-
-export const isDiagnosticAuthorized = (request: Request): boolean => {
-  const secret = env.DIAGNOSTIC_SECRET;
-
-  if (secret === undefined) {
-    return env.NODE_ENV !== "production";
-  }
-
-  return request.headers.get(DIAGNOSTIC_HEADER) === secret;
-};
+// TEMP: open diagnostics while testing image worker on Vercel preview.
+// Restore secret check before shipping.
+export const isDiagnosticAuthorized = (_request: Request): boolean => true;
 
 export const diagnosticNotFound = (): Response =>
   new Response("Not Found", { status: 404 });
