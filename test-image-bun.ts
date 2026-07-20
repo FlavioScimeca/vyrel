@@ -11,7 +11,7 @@
  */
 
 const DEPLOYMENT_URL =
-  "https://vyrel-server-fjdjvu72g-flavioscimecas-projects.vercel.app";
+  "https://vyrel-server-git-feat-bun-image-worker-flavioscimecas-projects.vercel.app";
 
 // TEMP hardcoded bypass — delete this file when done testing
 const BYPASS_SECRET = "CpGYGtUNy53G0tbE1GDbXG6Wi35AMBSC";
