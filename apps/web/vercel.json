@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && bun install && bun run script/swap-typescript-for-vercel.ts",
+  "installCommand": "cd ../.. && bunx bun@1.3.14 install && bun run script/swap-typescript-for-vercel.ts",
   "buildCommand": "cd ../.. && bun run build --filter=web"
 }

@@ -32,4 +32,11 @@ export const PATCH = app.handle;
 export const DELETE = app.handle;
 export const PUT = app.handle;
 
+console.log({
+  bunVersion: Bun.version,
+  bunRevision: Bun.revision,
+  hasBunImage: typeof Bun.Image,
+  runtime: typeof Bun === "undefined" ? "not-bun" : "bun",
+});
+
 export type ServerApp = typeof app;
