@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { cp, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -89,6 +89,14 @@ if (!process.env.VERCEL) {
 `;
 
 await Bun.write(outfile, vercelEntry);
+
+const publicDir = join(packageRoot, "public");
+const faviconSource = join(publicDir, "favicon.ico");
+
+if (await Bun.file(faviconSource).exists()) {
+  await cp(publicDir, join(outdir, "public"), { recursive: true });
+  console.log("Copied public/ to dist/public/");
+}
 
 console.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
 console.log(`Wrote ${outfile} (Vercel entry shim)`);

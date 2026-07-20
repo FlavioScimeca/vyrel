@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { env } from "@vyrel/env/server";
 import { Elysia } from "elysia";
+import { faviconPath } from "./lib/favicon";
 import { authPlugin } from "./plugins/auth";
 import { graphqlPlugin } from "./plugins/graphql";
 import { organizationRestPlugin } from "./plugins/organization-rest";
@@ -19,6 +20,10 @@ export const app = new Elysia()
   .use(userRestPlugin)
   .use(organizationRestPlugin)
   .use(authPlugin)
+  .get("/favicon.ico", ({ set }) => {
+    set.headers["cache-control"] = "public, max-age=3600";
+    return Bun.file(faviconPath);
+  })
   .get("/", () => "OK");
 
 export const GET = app.handle;
