@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "bun run graphql:schema && bun run gql:generate && bun run gql:client",
+    "prebuild": "bun run script/prebuild.ts",
     "build": "bun run --bun next build",
     "build-storybook": "storybook build",
     "check-types": "tsc --noEmit",
