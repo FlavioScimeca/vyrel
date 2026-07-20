@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { env } from "@vyrel/env/server";
 import { Elysia } from "elysia";
+import "./lib/bun-porting";
 import { faviconPath } from "./lib/favicon";
 import { authPlugin } from "./plugins/auth";
 import { graphqlPlugin } from "./plugins/graphql";
@@ -23,17 +24,6 @@ export const app = new Elysia()
   .get("/favicon.ico", ({ set }) => {
     set.headers["cache-control"] = "public, max-age=3600";
     return Bun.file(faviconPath);
-  })
-  .get("/check-bun", () => {
-    // Vercel/Elysia stamp: major only (`"1.x"`); Vercel manages minor/patch.
-    // https://elysiajs.com/integrations/vercel
-    const [major] = Bun.version.split(".");
-    return {
-      bunVersion: `${major}.x`,
-      version: Bun.version,
-      revision: Bun.revision,
-      runtime: "bun",
-    };
   })
   .get("/", () => "OK");
 

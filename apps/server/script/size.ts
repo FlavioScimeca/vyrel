@@ -48,9 +48,14 @@ if (!distExists?.isDirectory()) {
   throw new Error("dist/ not found. Run `bun run build` first.");
 }
 
+const WORKER_SIZE_WARNING_BYTES = 80 * 1024 * 1024;
+
 const files = await listDistFiles(distDir);
 const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 const runtimeEntry = files.find((file) => file.path.endsWith("/bundle.js"));
+const workerEntry = files.find((file) =>
+  file.path.endsWith("/bin/porting-worker")
+);
 
 console.log("server dist size\n");
 console.log("File".padEnd(28), "Size");
@@ -63,6 +68,22 @@ for (const file of files.toSorted((left, right) => right.size - left.size)) {
 
 console.log("-".repeat(40));
 console.log("Total on disk".padEnd(28), formatBytes(totalBytes));
+
+if (workerEntry) {
+  console.log(
+    "Porting worker (bin/porting-worker)".padEnd(28),
+    formatBytes(workerEntry.size)
+  );
+
+  if (workerEntry.size > WORKER_SIZE_WARNING_BYTES) {
+    console.log(
+      `\nWarning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
+    );
+  }
+} else {
+  console.error("\nError: dist/bin/porting-worker is missing");
+  process.exit(1);
+}
 
 if (runtimeEntry) {
   console.log(

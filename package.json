@@ -101,6 +101,7 @@
     "@effect/platform": "catalog:",
     "@effect/platform-bun": "catalog:",
     "@vyrel/env": "workspace:*",
+    "add": "^2.0.9",
     "cz-git": "^1.13.1",
     "dotenv": "catalog:",
     "effect": "catalog:",

@@ -11,6 +11,7 @@
   "scripts": {
     "build": "bun run script/compiler.ts",
     "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
+    "build:porting-worker": "bun run script/compile-porting-worker.ts",
     "build:verified": "bun run script/build.ts",
     "check-types": "tsc -b",
     "clean": "rm -rf dist",
@@ -32,6 +33,7 @@
     "@sinclair/typebox": "^0.34.49",
     "@vyrel/api": "workspace:*",
     "@vyrel/auth": "workspace:*",
+    "@vyrel/bun-porting": "workspace:*",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql": "workspace:*",

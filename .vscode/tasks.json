@@ -69,7 +69,7 @@
     },
     {
       "label": "dev",
-      "dependsOn": ["dev: server", "dev: web", "dev: extension"],
+      "dependsOn": ["dev: server", "dev: web"],
       "dependsOrder": "parallel",
       "problemMatcher": [],
       "group": {
