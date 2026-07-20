@@ -2,7 +2,9 @@ import { chmod, mkdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BUN_COMPILER_VERSION = "1.3.14";
+import { getBunPortingConfig, PORTING_WORKER_BINARY_NAME } from "./config";
+
+// Worker size warning threshold is set to 80 MB
 const WORKER_SIZE_WARNING_BYTES = 80 * 1024 * 1024;
 
 const formatBytes = (bytes: number): string => {
@@ -17,11 +19,16 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const workerEntry = join(packageRoot, "src/workers/image-worker.ts");
-const workerOutDir = join(packageRoot, "dist/bin");
-const workerOutfile = join(workerOutDir, "image-worker");
+const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const workerEntry = join(packageRoot, "src/worker/entry.ts");
 const fixturePath = join(packageRoot, "test-fixtures/sample.png");
+
+export type CompilePortingWorkerOptions = {
+  /** Directory that will contain `bin/porting-worker` (typically apps/server/dist). */
+  outdir: string;
+  /** Override Bun compiler version (default from configureBunPorting). */
+  compilerVersion?: string;
+};
 
 export const determineCompileTarget = (): string => {
   if (process.env.VERCEL === "1") {
@@ -55,34 +62,36 @@ const canRunSelfTest = (target: string): boolean => {
   return false;
 };
 
-const assertCompilerVersion = (): void => {
+const assertCompilerVersion = (compilerVersion: string): void => {
   const result = Bun.spawnSync({
-    cmd: ["bunx", `bun@${BUN_COMPILER_VERSION}`, "--version"],
+    cmd: ["bunx", `bun@${compilerVersion}`, "--version"],
     stderr: "pipe",
     stdout: "pipe",
   });
 
   if (result.exitCode !== 0) {
     throw new Error(
-      `Failed to resolve bun@${BUN_COMPILER_VERSION}: ${result.stderr.toString()}`
+      `Failed to resolve bun@${compilerVersion}: ${result.stderr.toString()}`
     );
   }
 
   const version = result.stdout.toString().trim();
-  if (!version.startsWith(BUN_COMPILER_VERSION)) {
-    throw new Error(
-      `Expected bun@${BUN_COMPILER_VERSION}, received ${version}`
-    );
+  if (!version.startsWith(compilerVersion)) {
+    throw new Error(`Expected bun@${compilerVersion}, received ${version}`);
   }
 
   console.log(`Using compiler ${version}`);
 };
 
-const compileWithTarget = (target: string): void => {
+const compileWithTarget = (
+  target: string,
+  compilerVersion: string,
+  workerOutfile: string
+): void => {
   const result = Bun.spawnSync({
     cmd: [
       "bunx",
-      `bun@${BUN_COMPILER_VERSION}`,
+      `bun@${compilerVersion}`,
       "build",
       "--compile",
       `--target=${target}`,
@@ -95,11 +104,12 @@ const compileWithTarget = (target: string): void => {
   });
 
   if (result.exitCode !== 0) {
-    throw new Error(`image-worker compile failed for target ${target}`);
+    throw new Error(`porting-worker compile failed for target ${target}`);
   }
 };
 
 const runWorkerSelfTest = async (
+  workerOutfile: string,
   mode: "diagnostic" | "probe-image",
   input?: Record<string, unknown>
 ): Promise<void> => {
@@ -126,7 +136,7 @@ const runWorkerSelfTest = async (
 
   if (exitCode !== 0) {
     throw new Error(
-      `image-worker self-test (${mode}) failed with exit ${exitCode}: ${stderr || stdout}`
+      `porting-worker self-test (${mode}) failed with exit ${exitCode}: ${stderr || stdout}`
     );
   }
 
@@ -135,7 +145,7 @@ const runWorkerSelfTest = async (
     parsed = JSON.parse(stdout);
   } catch (error) {
     throw new Error(
-      `image-worker self-test (${mode}) returned invalid JSON: ${stdout}`,
+      `porting-worker self-test (${mode}) returned invalid JSON: ${stdout}`,
       { cause: error }
     );
   }
@@ -147,24 +157,32 @@ const runWorkerSelfTest = async (
     parsed.success !== true
   ) {
     throw new Error(
-      `image-worker self-test (${mode}) did not succeed: ${stdout}`
+      `porting-worker self-test (${mode}) did not succeed: ${stdout}`
     );
   }
 
   const { runtime } = parsed as { runtime?: { hasBunImage?: string } };
   if (runtime?.hasBunImage !== "function") {
     throw new Error(
-      `image-worker self-test (${mode}) missing Bun.Image: ${stdout}`
+      `porting-worker self-test (${mode}) missing Bun.Image: ${stdout}`
     );
   }
 };
 
-export const compileImageWorker = async (): Promise<{
+export const compilePortingWorker = async (
+  options: CompilePortingWorkerOptions
+): Promise<{
   outfile: string;
   sizeBytes: number;
   target: string;
 }> => {
-  assertCompilerVersion();
+  const cfg = getBunPortingConfig();
+  const compilerVersion = options.compilerVersion ?? cfg.compilerVersion;
+
+  const workerOutDir = join(options.outdir, "bin");
+  const workerOutfile = join(workerOutDir, PORTING_WORKER_BINARY_NAME);
+
+  assertCompilerVersion(compilerVersion);
   await mkdir(workerOutDir, { recursive: true });
   await rm(workerOutfile, { force: true });
 
@@ -174,7 +192,7 @@ export const compileImageWorker = async (): Promise<{
   let compiledTarget = primaryTarget;
 
   try {
-    compileWithTarget(primaryTarget);
+    compileWithTarget(primaryTarget, compilerVersion, workerOutfile);
   } catch (primaryError) {
     if (fallbackTarget === null) {
       throw primaryError;
@@ -184,7 +202,7 @@ export const compileImageWorker = async (): Promise<{
       `Primary target ${primaryTarget} failed, retrying with ${fallbackTarget}`
     );
     await rm(workerOutfile, { force: true });
-    compileWithTarget(fallbackTarget);
+    compileWithTarget(fallbackTarget, compilerVersion, workerOutfile);
     compiledTarget = fallbackTarget;
   }
 
@@ -192,7 +210,7 @@ export const compileImageWorker = async (): Promise<{
 
   const workerStat = await stat(workerOutfile);
   if (workerStat.size === 0) {
-    throw new Error("image-worker binary is empty");
+    throw new Error("porting-worker binary is empty");
   }
 
   console.log(
@@ -201,29 +219,29 @@ export const compileImageWorker = async (): Promise<{
 
   if (workerStat.size > WORKER_SIZE_WARNING_BYTES) {
     console.warn(
-      `Warning: image-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
+      `Warning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
     );
   }
 
   if (canRunSelfTest(compiledTarget)) {
-    await runWorkerSelfTest("diagnostic");
+    await runWorkerSelfTest(workerOutfile, "diagnostic");
 
     const fixtureExists = await Bun.file(fixturePath).exists();
     if (fixtureExists) {
-      await runWorkerSelfTest("probe-image", {
+      await runWorkerSelfTest(workerOutfile, "probe-image", {
         mode: "probe-image",
         source: {
           path: fixturePath,
           type: "path",
         },
       });
-      console.log("image-worker probe-image self-test passed");
+      console.log("porting-worker probe-image self-test passed");
     } else {
       console.warn(`Skipping probe-image self-test: ${fixturePath} not found`);
     }
   } else {
     console.warn(
-      `Skipping image-worker self-test for cross-compiled target ${compiledTarget} on ${process.platform}/${process.arch}`
+      `Skipping porting-worker self-test for cross-compiled target ${compiledTarget} on ${process.platform}/${process.arch}`
     );
   }
 
@@ -233,7 +251,3 @@ export const compileImageWorker = async (): Promise<{
     target: compiledTarget,
   };
 };
-
-if (import.meta.main) {
-  await compileImageWorker();
-}

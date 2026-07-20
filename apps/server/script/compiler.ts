@@ -2,7 +2,12 @@ import { cp, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compileImageWorker } from "./compile-image-worker";
+import {
+  compilePortingWorker,
+  createVercelEntryTracingSnippet,
+} from "@vyrel/bun-porting/bootstrap";
+
+import { initBunPorting } from "../src/lib/bun-porting";
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
@@ -19,6 +24,8 @@ const formatBytes = (bytes: number): string => {
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outdir = join(packageRoot, "dist");
 const outfile = join(outdir, "index.js");
+
+initBunPorting();
 
 const pkg = (await Bun.file(join(packageRoot, "package.json")).json()) as {
   version: string;
@@ -74,6 +81,8 @@ if (unresolvedWorkspaceImports?.length) {
   );
 }
 
+const tracingSnippet = createVercelEntryTracingSnippet("bin/porting-worker");
+
 const vercelEntry = `import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -83,14 +92,7 @@ void Elysia;
 
 import app from "./bundle.js";
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
-export const imageWorkerBinaryPath = join(moduleDir, "bin/image-worker");
-
-// Keep the compiled worker in the traced function bundle.
-if (existsSync(imageWorkerBinaryPath)) {
-  void Bun.file(imageWorkerBinaryPath).size;
-}
-
+${tracingSnippet}
 export default app;
 
 if (!process.env.VERCEL) {
@@ -114,4 +116,4 @@ if (await Bun.file(faviconSource).exists()) {
 console.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
 console.log(`Wrote ${outfile} (Vercel entry shim)`);
 
-await compileImageWorker();
+await compilePortingWorker({ outdir });

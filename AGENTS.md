@@ -51,6 +51,7 @@ vyrel/
 ├── packages/
 │   ├── api/         # API layer (domain resolvers, auth context)
 │   ├── auth/        # Authentication
+│   ├── bun-porting/ # Bun API porting for Vercel (e.g. BunImage via standalone worker)
 │   ├── db/          # Database schema
 │   ├── graphql/     # GraphQL infrastructure (Pothos, Yoga)
 │   └── public/

@@ -95,10 +95,10 @@
         "@sinclair/typebox": "^0.34.49",
         "@vyrel/api": "workspace:*",
         "@vyrel/auth": "workspace:*",
+        "@vyrel/bun-porting": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
         "@vyrel/graphql": "workspace:*",
-        "@vyrel/storage": "workspace:*",
         "ai": "^7.0.4",
         "better-auth": "catalog:",
         "bullmq": "^5.79.2",
@@ -224,6 +224,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@vyrel/auth": "workspace:*",
+        "@vyrel/bun-porting": "workspace:*",
         "@vyrel/db": "workspace:*",
         "@vyrel/env": "workspace:*",
         "@vyrel/graphql": "workspace:*",
@@ -266,6 +267,16 @@
         "@types/react": "catalog:",
         "@vyrel/config": "workspace:*",
         "typescript": "catalog:",
+      },
+    },
+    "packages/bun-porting": {
+      "name": "@vyrel/bun-porting",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@vyrel/config": "workspace:*",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
       },
     },
     "packages/config": {
@@ -2131,6 +2142,8 @@
     "@vyrel/api": ["@vyrel/api@workspace:packages/api"],
 
     "@vyrel/auth": ["@vyrel/auth@workspace:packages/auth"],
+
+    "@vyrel/bun-porting": ["@vyrel/bun-porting@workspace:packages/bun-porting"],
 
     "@vyrel/config": ["@vyrel/config@workspace:packages/config"],
 

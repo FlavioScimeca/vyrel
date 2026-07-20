@@ -1,35 +1,23 @@
 import { spawn } from "node:child_process";
 import { accessSync, constants, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
+import { getBunPortingConfig } from "../bootstrap/config";
 import type {
-  ImageWorkerInput,
-  ImageWorkerResponse,
-  ImageWorkerRunResult,
-  ImageWorkerSuccess,
-} from "../workers/image-worker-protocol";
+  PortingWorkerInput,
+  PortingWorkerResponse,
+  PortingWorkerRunResult,
+  PortingWorkerSuccess,
+} from "./protocol";
 
-const DEFAULT_TIMEOUT_MS = 10_000;
-const DEFAULT_MAX_STDOUT_BYTES = 1024 * 1024;
-const DEFAULT_MAX_STDERR_BYTES = 1024 * 1024;
 const KILL_GRACE_MS = 500;
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
+export const getPortingWorkerPathCandidates = (): string[] => {
+  const { binaryPathCandidates } = getBunPortingConfig();
+  return binaryPathCandidates;
+};
 
-export const getImageWorkerPathCandidates = (): string[] => [
-  join(process.cwd(), "bin/image-worker"),
-  join(process.cwd(), "dist/bin/image-worker"),
-  join(moduleDir, "bin/image-worker"),
-  join(moduleDir, "../bin/image-worker"),
-  join(moduleDir, "../../bin/image-worker"),
-  "/var/task/bin/image-worker",
-  "/var/task/dist/bin/image-worker",
-  "/var/task/apps/server/dist/bin/image-worker",
-];
-
-export const resolveImageWorkerPath = (): string | null => {
-  for (const candidate of getImageWorkerPathCandidates()) {
+export const resolvePortingWorkerPath = (): string | null => {
+  for (const candidate of getPortingWorkerPathCandidates()) {
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -49,9 +37,11 @@ const isExecutable = (path: string): boolean => {
 
 const parseWorkerStdout = (
   stdout: string
-): { ok: true; result: ImageWorkerSuccess } | { ok: false; error: string } => {
+):
+  | { ok: true; result: PortingWorkerSuccess }
+  | { ok: false; error: string } => {
   try {
-    const parsed = JSON.parse(stdout) as ImageWorkerResponse;
+    const parsed = JSON.parse(stdout) as PortingWorkerResponse;
     if (parsed.success) {
       return { ok: true, result: parsed };
     }
@@ -68,25 +58,26 @@ const parseWorkerStdout = (
   }
 };
 
-export const runImageWorker = (
-  input: ImageWorkerInput,
+export const runPortingWorker = (
+  input: PortingWorkerInput,
   options?: {
     timeoutMs?: number;
     maxStdoutBytes?: number;
     maxStderrBytes?: number;
   }
-): Promise<ImageWorkerRunResult> => {
+): Promise<PortingWorkerRunResult> => {
   const startedAt = Date.now();
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const maxStdoutBytes = options?.maxStdoutBytes ?? DEFAULT_MAX_STDOUT_BYTES;
-  const maxStderrBytes = options?.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES;
-  const workerPath = resolveImageWorkerPath();
+  const cfg = getBunPortingConfig();
+  const timeoutMs = options?.timeoutMs ?? cfg.timeoutMs;
+  const maxStdoutBytes = options?.maxStdoutBytes ?? cfg.maxStdoutBytes;
+  const maxStderrBytes = options?.maxStderrBytes ?? cfg.maxStderrBytes;
+  const workerPath = resolvePortingWorkerPath();
 
   if (workerPath === null) {
     return Promise.resolve({
       code: "WORKER_NOT_FOUND",
       durationMs: Date.now() - startedAt,
-      error: "image-worker binary was not found in any known path.",
+      error: "porting-worker binary was not found in any known path.",
       exitCode: null,
       ok: false,
       path: null,
@@ -99,7 +90,7 @@ export const runImageWorker = (
     return Promise.resolve({
       code: "WORKER_NOT_EXECUTABLE",
       durationMs: Date.now() - startedAt,
-      error: `image-worker is not executable: ${workerPath}`,
+      error: `porting-worker is not executable: ${workerPath}`,
       exitCode: null,
       ok: false,
       path: workerPath,
@@ -117,7 +108,7 @@ export const runImageWorker = (
     let killTimer: ReturnType<typeof setTimeout> | null = null;
     let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const finish = (result: ImageWorkerRunResult): void => {
+    const finish = (result: PortingWorkerRunResult): void => {
       if (settled) {
         return;
       }
@@ -143,7 +134,7 @@ export const runImageWorker = (
         error:
           cause instanceof Error
             ? cause.message
-            : "Failed to spawn image-worker.",
+            : "Failed to spawn porting-worker.",
         exitCode: null,
         ok: false,
         path: workerPath,
@@ -172,7 +163,7 @@ export const runImageWorker = (
       finish({
         code: "WORKER_TIMEOUT",
         durationMs: Date.now() - startedAt,
-        error: `image-worker timed out after ${timeoutMs}ms.`,
+        error: `porting-worker timed out after ${timeoutMs}ms.`,
         exitCode: null,
         ok: false,
         path: workerPath,
@@ -188,7 +179,7 @@ export const runImageWorker = (
         finish({
           code: "WORKER_STDOUT_LIMIT",
           durationMs: Date.now() - startedAt,
-          error: `image-worker stdout exceeded ${maxStdoutBytes} bytes.`,
+          error: `porting-worker stdout exceeded ${maxStdoutBytes} bytes.`,
           exitCode: null,
           ok: false,
           path: workerPath,
@@ -208,7 +199,7 @@ export const runImageWorker = (
         finish({
           code: "WORKER_STDERR_LIMIT",
           durationMs: Date.now() - startedAt,
-          error: `image-worker stderr exceeded ${maxStderrBytes} bytes.`,
+          error: `porting-worker stderr exceeded ${maxStderrBytes} bytes.`,
           exitCode: null,
           ok: false,
           path: workerPath,
@@ -227,7 +218,7 @@ export const runImageWorker = (
         finish({
           code: "WORKER_EXIT_NON_ZERO",
           durationMs,
-          error: `image-worker exited with code ${exitCode ?? "null"}.`,
+          error: `porting-worker exited with code ${exitCode ?? "null"}.`,
           exitCode,
           ok: false,
           path: workerPath,

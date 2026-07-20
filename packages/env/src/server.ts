@@ -12,7 +12,6 @@ export const env = createEnv({
     CORS_ORIGIN: z.url(),
     DATABASE_AUTH_TOKEN: z.string().min(1),
     DATABASE_URL: z.string().min(1),
-    DIAGNOSTIC_SECRET: z.string().min(16).optional(),
     LOG_LEVEL: z.enum(["trace", "debug", "info", "warning", "error", "fatal"]),
     MEDIA_MAX_UPLOAD_BYTES: z.coerce
       .number()

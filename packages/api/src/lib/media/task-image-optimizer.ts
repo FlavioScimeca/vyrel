@@ -1,4 +1,4 @@
-import { Image } from "bun";
+import { BunImage } from "@vyrel/bun-porting/image";
 import { Effect } from "effect";
 
 import {
@@ -12,7 +12,7 @@ const TASK_IMAGE_FULL_MAX_SIDE = 512;
 const WEBP_CONTENT_TYPE = "image/webp" as const;
 
 function createSourceImage(source: Buffer) {
-  return new Image(source, { maxPixels: 4096 * 4096 });
+  return new BunImage(source, { maxPixels: 4096 * 4096 });
 }
 
 const encodeVariant = (

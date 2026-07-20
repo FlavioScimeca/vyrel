@@ -54,7 +54,7 @@ const files = await listDistFiles(distDir);
 const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 const runtimeEntry = files.find((file) => file.path.endsWith("/bundle.js"));
 const workerEntry = files.find((file) =>
-  file.path.endsWith("/bin/image-worker")
+  file.path.endsWith("/bin/porting-worker")
 );
 
 console.log("server dist size\n");
@@ -71,17 +71,17 @@ console.log("Total on disk".padEnd(28), formatBytes(totalBytes));
 
 if (workerEntry) {
   console.log(
-    "Image worker (bin/image-worker)".padEnd(28),
+    "Porting worker (bin/porting-worker)".padEnd(28),
     formatBytes(workerEntry.size)
   );
 
   if (workerEntry.size > WORKER_SIZE_WARNING_BYTES) {
     console.log(
-      `\nWarning: image-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
+      `\nWarning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
     );
   }
 } else {
-  console.error("\nError: dist/bin/image-worker is missing");
+  console.error("\nError: dist/bin/porting-worker is missing");
   process.exit(1);
 }
 

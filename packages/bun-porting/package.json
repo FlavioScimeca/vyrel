@@ -1,0 +1,22 @@
+{
+  "name": "@vyrel/bun-porting",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./image": "./src/image/bun-image.ts",
+    "./bootstrap": "./src/bootstrap/index.ts",
+    "./internal/runner": "./src/internal/runner.ts",
+    "./internal/protocol": "./src/internal/protocol.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@vyrel/config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

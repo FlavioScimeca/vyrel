@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@vyrel/auth": "workspace:*",
+    "@vyrel/bun-porting": "workspace:*",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql": "workspace:*",

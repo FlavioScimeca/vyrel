@@ -1,4 +1,4 @@
-import { Image } from "bun";
+import { BunImage } from "@vyrel/bun-porting/image";
 import { Data, Effect } from "effect";
 
 const THUMB_MAX_WIDTH = 480;
@@ -75,7 +75,7 @@ export function messageForImageOptimizeError(
 }
 
 function createSourceImage(sourcePng: Buffer) {
-  return new Image(sourcePng, { maxPixels: MAX_IMAGE_PIXELS });
+  return new BunImage(sourcePng, { maxPixels: MAX_IMAGE_PIXELS });
 }
 
 const encodeThumb = (source: ReturnType<typeof createSourceImage>) =>
