@@ -24,6 +24,19 @@ export const app = new Elysia()
     set.headers["cache-control"] = "public, max-age=3600";
     return Bun.file(faviconPath);
   })
+  .get("/check-bun", () => {
+    // Vercel/Elysia stamp: major only (`"1.x"`); Vercel manages minor/patch.
+    // https://elysiajs.com/integrations/vercel
+    const [major] = Bun.version.split(".");
+    return {
+      bunVersion: `${major}.x`,
+      version: Bun.version,
+      revision: Bun.revision,
+      hasBunImage: typeof Bun.Image,
+      checkBunImage: typeof new Bun.Image(new Blob()),
+      runtime: "bun",
+    };
+  })
   .get("/", () => "OK");
 
 export const GET = app.handle;
@@ -31,12 +44,5 @@ export const POST = app.handle;
 export const PATCH = app.handle;
 export const DELETE = app.handle;
 export const PUT = app.handle;
-
-console.log({
-  bunVersion: Bun.version,
-  bunRevision: Bun.revision,
-  hasBunImage: typeof Bun.Image,
-  runtime: typeof Bun === "undefined" ? "not-bun" : "bun",
-});
 
 export type ServerApp = typeof app;
