@@ -32,8 +32,6 @@ export const app = new Elysia()
       bunVersion: `${major}.x`,
       version: Bun.version,
       revision: Bun.revision,
-      hasBunImage: typeof Bun.Image,
-      checkBunImage: typeof new Bun.Image(new Blob()),
       runtime: "bun",
     };
   })
