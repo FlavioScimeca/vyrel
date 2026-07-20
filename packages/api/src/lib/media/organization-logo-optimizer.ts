@@ -9,46 +9,55 @@ import {
 
 const LOGO_THUMB_MAX_SIDE = 128;
 const LOGO_FULL_MAX_SIDE = 512;
+const PLACEHOLDER_MAX_SIZE = 8;
+const PLACEHOLDER_WEBP_QUALITY = 10;
 const WEBP_CONTENT_TYPE = "image/webp" as const;
+const MAX_PIXELS = 4096 * 4096;
 
-function createSourceImage(source: Buffer) {
-  return new BunImage(source, { maxPixels: 4096 * 4096 });
-}
-
-const encodeVariant = (
-  source: ReturnType<typeof createSourceImage>,
-  maxSide: number,
-  quality: number
-) =>
-  Effect.tryPromise({
-    catch: (cause) => new ImageOptimizeError({ cause }),
-    try: () =>
-      source
-        .resize(maxSide, maxSide, {
-          filter: "lanczos3",
-          fit: "inside",
-          withoutEnlargement: false,
-        })
-        .webp({ quality })
-        .bytes(),
-  }).pipe(
-    Effect.map(
-      (buffer): OptimizedImageVariant => ({
-        buffer,
-        contentType: WEBP_CONTENT_TYPE,
-      })
-    )
-  );
+const toVariant = (buffer: Uint8Array): OptimizedImageVariant => ({
+  buffer,
+  contentType: WEBP_CONTENT_TYPE,
+});
 
 export const optimizeOrganizationLogoImages = (
   source: Buffer
 ): Effect.Effect<OptimizedPreviewImages, ImageOptimizeError> =>
-  Effect.gen(function* () {
-    const image = createSourceImage(source);
-    const [thumb, full] = yield* Effect.all([
-      encodeVariant(image, LOGO_THUMB_MAX_SIDE, 82),
-      encodeVariant(image, LOGO_FULL_MAX_SIDE, 86),
-    ]);
+  Effect.tryPromise({
+    catch: (cause) => new ImageOptimizeError({ cause }),
+    try: async () => {
+      const { full, placeholder, thumb } = await BunImage.batch(source, {
+        maxPixels: MAX_PIXELS,
+        pipelines: {
+          full: (img) =>
+            img
+              .resize(LOGO_FULL_MAX_SIDE, LOGO_FULL_MAX_SIDE, {
+                filter: "lanczos3",
+                fit: "inside",
+                withoutEnlargement: false,
+              })
+              .webp({ quality: 86 }),
+          placeholder: (img) =>
+            img
+              .resize(PLACEHOLDER_MAX_SIZE, PLACEHOLDER_MAX_SIZE, {
+                fit: "inside",
+              })
+              .webp({ quality: PLACEHOLDER_WEBP_QUALITY }),
+          thumb: (img) =>
+            img
+              .resize(LOGO_THUMB_MAX_SIDE, LOGO_THUMB_MAX_SIDE, {
+                filter: "lanczos3",
+                fit: "inside",
+                withoutEnlargement: false,
+              })
+              .webp({ quality: 82 }),
+        },
+        terminals: { placeholder: "dataurl" },
+      });
 
-    return { full, thumb };
+      return {
+        full: toVariant(full),
+        placeholder,
+        thumb: toVariant(thumb),
+      };
+    },
   });

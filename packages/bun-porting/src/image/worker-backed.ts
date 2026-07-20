@@ -89,7 +89,7 @@ const toUint8Array = (
     return input instanceof Uint8Array ? input : new Uint8Array(input);
   });
 
-const toSource = (
+export const toPortingWorkerSource = (
   input: BunImageInput
 ): Effect.Effect<PortingWorkerSource, BunPortingError, HttpClient.HttpClient> =>
   Effect.gen(function* () {
@@ -110,7 +110,7 @@ const toSource = (
     };
   });
 
-const pipelineBytes = (
+export const pipelineBytesFromResult = (
   pipeline: PortingWorkerPipelineResult
 ): Effect.Effect<Uint8Array, BunPortingError> => {
   if (pipeline.bytesBase64 === undefined) {
@@ -118,6 +118,10 @@ const pipelineBytes = (
   }
   return Effect.succeed(Buffer.from(pipeline.bytesBase64, "base64"));
 };
+
+const toSource = toPortingWorkerSource;
+
+const pipelineBytes = pipelineBytesFromResult;
 
 /**
  * Worker-backed Bun.Image facade: queues chainable ops and executes them in one

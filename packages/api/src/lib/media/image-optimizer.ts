@@ -22,6 +22,13 @@ export interface OptimizedImageVariant {
 export type OptimizedPreviewImages = {
   full: OptimizedImageVariant;
   thumb: OptimizedImageVariant;
+  placeholder: string;
+};
+
+/** Preview variants without placeholder (design uploads). */
+export type OptimizedPreviewVariants = {
+  full: OptimizedImageVariant;
+  thumb: OptimizedImageVariant;
 };
 
 export class ImageOptimizeError extends Data.TaggedError("ImageOptimizeError")<{
@@ -74,73 +81,59 @@ export function messageForImageOptimizeError(
   return "Unable to optimize design preview images.";
 }
 
-function createSourceImage(sourcePng: Buffer) {
-  return new BunImage(sourcePng, { maxPixels: MAX_IMAGE_PIXELS });
-}
-
-const encodeThumb = (source: ReturnType<typeof createSourceImage>) =>
-  Effect.tryPromise({
-    catch: (cause) => new ImageOptimizeError({ cause }),
-    try: () =>
-      source
-        .resize(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT, {
-          filter: "lanczos3",
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 80 })
-        .bytes(),
-  }).pipe(
-    Effect.map(
-      (buffer): OptimizedImageVariant => ({
-        buffer,
-        contentType: WEBP_CONTENT_TYPE,
-      })
-    )
-  );
-
-const encodeFull = (source: ReturnType<typeof createSourceImage>) =>
-  Effect.tryPromise({
-    catch: (cause) => new ImageOptimizeError({ cause }),
-    try: () =>
-      source
-        .resize(FULL_MAX_WIDTH, undefined, {
-          filter: "lanczos3",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 85 })
-        .bytes(),
-  }).pipe(
-    Effect.map(
-      (buffer): OptimizedImageVariant => ({
-        buffer,
-        contentType: WEBP_CONTENT_TYPE,
-      })
-    )
-  );
+const toVariant = (buffer: Uint8Array): OptimizedImageVariant => ({
+  buffer,
+  contentType: WEBP_CONTENT_TYPE,
+});
 
 export const encodeImagePlaceholder = (
   sourcePng: Buffer
 ): Effect.Effect<string, ImageOptimizeError> =>
   Effect.tryPromise({
     catch: (cause) => new ImageOptimizeError({ cause }),
-    try: () =>
-      createSourceImage(sourcePng)
-        .resize(PLACEHOLDER_MAX_SIZE, PLACEHOLDER_MAX_SIZE, {
-          fit: "inside",
-        })
-        .webp({ quality: PLACEHOLDER_WEBP_QUALITY })
-        .dataurl(),
+    try: async () => {
+      const { placeholder } = await BunImage.batch(sourcePng, {
+        maxPixels: MAX_IMAGE_PIXELS,
+        pipelines: {
+          placeholder: (img) =>
+            img
+              .resize(PLACEHOLDER_MAX_SIZE, PLACEHOLDER_MAX_SIZE, {
+                fit: "inside",
+              })
+              .webp({ quality: PLACEHOLDER_WEBP_QUALITY }),
+        },
+        terminals: { placeholder: "dataurl" },
+      });
+      return placeholder;
+    },
   });
 
 export const optimizePreviewImages = (
   sourcePng: Buffer
-): Effect.Effect<OptimizedPreviewImages, ImageOptimizeError> =>
-  Effect.gen(function* () {
-    const [thumb, full] = yield* Effect.all([
-      encodeThumb(createSourceImage(sourcePng)),
-      encodeFull(createSourceImage(sourcePng)),
-    ]);
-
-    return { full, thumb };
+): Effect.Effect<OptimizedPreviewVariants, ImageOptimizeError> =>
+  Effect.tryPromise({
+    catch: (cause) => new ImageOptimizeError({ cause }),
+    try: async () => {
+      const { full, thumb } = await BunImage.batch(sourcePng, {
+        maxPixels: MAX_IMAGE_PIXELS,
+        pipelines: {
+          full: (img) =>
+            img
+              .resize(FULL_MAX_WIDTH, undefined, {
+                filter: "lanczos3",
+                withoutEnlargement: true,
+              })
+              .webp({ quality: 85 }),
+          thumb: (img) =>
+            img
+              .resize(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT, {
+                filter: "lanczos3",
+                fit: "inside",
+                withoutEnlargement: true,
+              })
+              .webp({ quality: 80 }),
+        },
+      });
+      return { full: toVariant(full), thumb: toVariant(thumb) };
+    },
   });
