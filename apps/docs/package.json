@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "fumadocs-mdx && next build --webpack",
-    "check-types": "fumadocs-mdx && tsc --noEmit",
+    "build": "next build --webpack",
+    "check-types": "tsc --noEmit",
     "dev": "next dev --port 4000",
+    "source": "fumadocs-mdx",
     "start": "next start"
   },
   "dependencies": {
