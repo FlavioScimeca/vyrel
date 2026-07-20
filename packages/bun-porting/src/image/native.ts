@@ -1,3 +1,7 @@
+import { Effect } from "effect";
+
+import { BunPortingError } from "../internal/errors";
+import { bunPortingRuntime } from "../internal/runtime";
 import type {
   BunImageInput,
   BunImageJpegOptions,
@@ -72,12 +76,24 @@ export class NativeBunImage implements BunImageLike {
     return this.image.bytes();
   }
 
-  async buffer(): Promise<ArrayBuffer> {
-    const buf = await this.image.buffer();
-    return buf.buffer.slice(
-      buf.byteOffset,
-      buf.byteOffset + buf.byteLength
-    ) as ArrayBuffer;
+  buffer(): Promise<ArrayBuffer> {
+    const { image } = this;
+    return bunPortingRuntime.runPromise(
+      Effect.gen(function* () {
+        const buf = yield* Effect.tryPromise({
+          catch: (cause) =>
+            new BunPortingError({
+              cause,
+              message: "Failed to read native image buffer.",
+            }),
+          try: () => image.buffer(),
+        });
+        return buf.buffer.slice(
+          buf.byteOffset,
+          buf.byteOffset + buf.byteLength
+        ) as ArrayBuffer;
+      })
+    );
   }
 
   blob(): Promise<Blob> {

@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { Path } from "@effect/platform";
+import { Effect } from "effect";
 
 import { resolvePortingWorkerPath } from "../internal/runner";
+import { bunPortingRuntime } from "../internal/runtime";
 import { PORTING_WORKER_BINARY_NAME } from "./config";
 
 /**
@@ -25,20 +26,31 @@ if (existsSync(portingWorkerBinaryPath)) {
 export const getPortingWorkerBinaryPath = (): string | null =>
   resolvePortingWorkerPath();
 
-export const portingWorkerBundleExists = (): boolean => {
-  const path = resolvePortingWorkerPath();
-  return path !== null && existsSync(path);
-};
+export const portingWorkerBundleExists = (): boolean =>
+  resolvePortingWorkerPath() !== null;
+
+const defaultServerBinaryPathCandidatesEffect = (
+  packageRoot: string
+): Effect.Effect<string[], never, Path.Path> =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const cwd = path.resolve(".");
+
+    return [
+      path.join(packageRoot, "dist/bin", PORTING_WORKER_BINARY_NAME),
+      path.join(packageRoot, "bin", PORTING_WORKER_BINARY_NAME),
+      path.join(cwd, "bin", PORTING_WORKER_BINARY_NAME),
+      path.join(cwd, "dist/bin", PORTING_WORKER_BINARY_NAME),
+      `/var/task/bin/${PORTING_WORKER_BINARY_NAME}`,
+      `/var/task/dist/bin/${PORTING_WORKER_BINARY_NAME}`,
+      `/var/task/apps/server/dist/bin/${PORTING_WORKER_BINARY_NAME}`,
+    ];
+  });
 
 /** Default path candidates for apps/server deploy layouts. */
 export const defaultServerBinaryPathCandidates = (
   packageRoot: string
-): string[] => [
-  join(packageRoot, "dist/bin", PORTING_WORKER_BINARY_NAME),
-  join(packageRoot, "bin", PORTING_WORKER_BINARY_NAME),
-  join(process.cwd(), "bin", PORTING_WORKER_BINARY_NAME),
-  join(process.cwd(), "dist/bin", PORTING_WORKER_BINARY_NAME),
-  `/var/task/bin/${PORTING_WORKER_BINARY_NAME}`,
-  `/var/task/dist/bin/${PORTING_WORKER_BINARY_NAME}`,
-  `/var/task/apps/server/dist/bin/${PORTING_WORKER_BINARY_NAME}`,
-];
+): string[] =>
+  bunPortingRuntime.runSync(
+    defaultServerBinaryPathCandidatesEffect(packageRoot)
+  );

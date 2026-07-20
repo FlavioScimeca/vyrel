@@ -273,7 +273,13 @@
     "packages/bun-porting": {
       "name": "@vyrel/bun-porting",
       "version": "0.0.0",
+      "dependencies": {
+        "@effect/platform": "catalog:",
+        "@effect/platform-bun": "catalog:",
+        "effect": "catalog:",
+      },
       "devDependencies": {
+        "@effect/vitest": "catalog:",
         "@types/bun": "catalog:",
         "@vyrel/config": "workspace:*",
         "typescript": "catalog:",

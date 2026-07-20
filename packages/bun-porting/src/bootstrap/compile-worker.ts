@@ -1,11 +1,18 @@
-import { chmod, mkdir, rm, stat } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { Command, FileSystem, Path } from "@effect/platform";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
+import { Config, Effect, Option, Schema } from "effect";
+import type { ConfigError } from "effect/ConfigError";
+import type { ParseError } from "effect/ParseResult";
 
+import { BunPortingError } from "../internal/errors";
+import { bunPortingRuntime } from "../internal/runtime";
 import { getBunPortingConfig, PORTING_WORKER_BINARY_NAME } from "./config";
 
-// Worker size warning threshold is set to 80 MB
 const WORKER_SIZE_WARNING_BYTES = 80 * 1024 * 1024;
+
+const encodeJson = Schema.encode(Schema.parseJson(Schema.Unknown));
+const decodeJson = Schema.decodeUnknown(Schema.parseJson(Schema.Unknown));
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
@@ -19,10 +26,6 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const workerEntry = join(packageRoot, "src/worker/entry.ts");
-const fixturePath = join(packageRoot, "test-fixtures/sample.png");
-
 export type CompilePortingWorkerOptions = {
   /** Directory that will contain `bin/porting-worker` (typically apps/server/dist). */
   outdir: string;
@@ -30,21 +33,31 @@ export type CompilePortingWorkerOptions = {
   compilerVersion?: string;
 };
 
-export const determineCompileTarget = (): string => {
-  if (process.env.VERCEL === "1") {
+type CompileServices = CommandExecutor | FileSystem.FileSystem | Path.Path;
+
+type CompileError = BunPortingError | ConfigError | PlatformError | ParseError;
+
+const determineCompileTargetEffect = (): Effect.Effect<string, ConfigError> =>
+  Effect.gen(function* () {
+    const vercel = yield* Config.string("VERCEL").pipe(Config.option);
+
+    if (Option.getOrElse(vercel, () => "") === "1") {
+      return "bun-linux-x64-baseline";
+    }
+
+    if (process.platform === "darwin" && process.arch === "arm64") {
+      return "bun-darwin-arm64";
+    }
+
+    if (process.platform === "darwin" && process.arch === "x64") {
+      return "bun-darwin-x64";
+    }
+
     return "bun-linux-x64-baseline";
-  }
+  });
 
-  if (process.platform === "darwin" && process.arch === "arm64") {
-    return "bun-darwin-arm64";
-  }
-
-  if (process.platform === "darwin" && process.arch === "x64") {
-    return "bun-darwin-x64";
-  }
-
-  return "bun-linux-x64-baseline";
-};
+export const determineCompileTarget = (): string =>
+  Effect.runSync(determineCompileTargetEffect());
 
 const canRunSelfTest = (target: string): boolean => {
   if (process.platform === "darwin" && process.arch === "arm64") {
@@ -62,192 +75,234 @@ const canRunSelfTest = (target: string): boolean => {
   return false;
 };
 
-const assertCompilerVersion = (compilerVersion: string): void => {
-  const result = Bun.spawnSync({
-    cmd: ["bunx", `bun@${compilerVersion}`, "--version"],
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-
-  if (result.exitCode !== 0) {
-    throw new Error(
-      `Failed to resolve bun@${compilerVersion}: ${result.stderr.toString()}`
+const assertCompilerVersion = (
+  compilerVersion: string
+): Effect.Effect<void, BunPortingError, CommandExecutor> =>
+  Effect.gen(function* () {
+    const version = yield* Command.string(
+      Command.make("bunx", `bun@${compilerVersion}`, "--version")
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BunPortingError({
+            cause,
+            message: `Failed to resolve bun@${compilerVersion}`,
+          })
+      )
     );
-  }
 
-  const version = result.stdout.toString().trim();
-  if (!version.startsWith(compilerVersion)) {
-    throw new Error(`Expected bun@${compilerVersion}, received ${version}`);
-  }
+    const trimmed = version.trim();
+    if (!trimmed.startsWith(compilerVersion)) {
+      return yield* new BunPortingError({
+        message: `Expected bun@${compilerVersion}, received ${trimmed}`,
+      });
+    }
 
-  console.log(`Using compiler ${version}`);
-};
+    yield* Effect.log(`Using compiler ${trimmed}`);
+  });
 
 const compileWithTarget = (
   target: string,
   compilerVersion: string,
+  workerEntry: string,
   workerOutfile: string
-): void => {
-  const result = Bun.spawnSync({
-    cmd: [
-      "bunx",
-      `bun@${compilerVersion}`,
-      "build",
-      "--compile",
-      `--target=${target}`,
-      workerEntry,
-      "--outfile",
-      workerOutfile,
-    ],
-    stderr: "inherit",
-    stdout: "inherit",
+): Effect.Effect<void, BunPortingError, CommandExecutor> =>
+  Effect.gen(function* () {
+    const exitCode = yield* Command.exitCode(
+      Command.make(
+        "bunx",
+        `bun@${compilerVersion}`,
+        "build",
+        "--compile",
+        `--target=${target}`,
+        workerEntry,
+        "--outfile",
+        workerOutfile
+      ).pipe(Command.stdout("inherit"), Command.stderr("inherit"))
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BunPortingError({
+            cause,
+            message: `porting-worker compile failed for target ${target}`,
+          })
+      )
+    );
+
+    if (exitCode !== 0) {
+      return yield* new BunPortingError({
+        message: `porting-worker compile failed for target ${target}`,
+      });
+    }
   });
 
-  if (result.exitCode !== 0) {
-    throw new Error(`porting-worker compile failed for target ${target}`);
-  }
-};
-
-const runWorkerSelfTest = async (
+const runWorkerSelfTest = (
   workerOutfile: string,
   mode: "diagnostic" | "probe-image",
   input?: Record<string, unknown>
-): Promise<void> => {
-  const payload =
-    mode === "diagnostic"
-      ? JSON.stringify({ mode: "diagnostic" })
-      : JSON.stringify(input);
+): Effect.Effect<void, BunPortingError | ParseError, CommandExecutor> =>
+  Effect.gen(function* () {
+    const payload = yield* encodeJson(
+      mode === "diagnostic" ? { mode: "diagnostic" } : (input ?? {})
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BunPortingError({
+            cause,
+            message: `porting-worker self-test (${mode}) failed to encode input`,
+          })
+      )
+    );
 
-  const child = Bun.spawn({
-    cmd: [workerOutfile],
-    stderr: "pipe",
-    stdin: "pipe",
-    stdout: "pipe",
+    const stdout = yield* Command.string(
+      Command.make(workerOutfile).pipe(Command.feed(payload))
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BunPortingError({
+            cause,
+            message: `porting-worker self-test (${mode}) failed`,
+          })
+      )
+    );
+
+    const parsed = yield* decodeJson(stdout).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BunPortingError({
+            cause,
+            message: `porting-worker self-test (${mode}) returned invalid JSON: ${stdout}`,
+          })
+      )
+    );
+
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      !("success" in parsed) ||
+      parsed.success !== true
+    ) {
+      return yield* new BunPortingError({
+        message: `porting-worker self-test (${mode}) did not succeed: ${stdout}`,
+      });
+    }
+
+    const { runtime } = parsed as { runtime?: { hasBunImage?: string } };
+    if (runtime?.hasBunImage !== "function") {
+      return yield* new BunPortingError({
+        message: `porting-worker self-test (${mode}) missing Bun.Image: ${stdout}`,
+      });
+    }
   });
 
-  child.stdin.write(payload);
-  child.stdin.end();
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    throw new Error(
-      `porting-worker self-test (${mode}) failed with exit ${exitCode}: ${stderr || stdout}`
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stdout);
-  } catch (error) {
-    throw new Error(
-      `porting-worker self-test (${mode}) returned invalid JSON: ${stdout}`,
-      { cause: error }
-    );
-  }
-
-  if (
-    parsed === null ||
-    typeof parsed !== "object" ||
-    !("success" in parsed) ||
-    parsed.success !== true
-  ) {
-    throw new Error(
-      `porting-worker self-test (${mode}) did not succeed: ${stdout}`
-    );
-  }
-
-  const { runtime } = parsed as { runtime?: { hasBunImage?: string } };
-  if (runtime?.hasBunImage !== "function") {
-    throw new Error(
-      `porting-worker self-test (${mode}) missing Bun.Image: ${stdout}`
-    );
-  }
-};
-
-export const compilePortingWorker = async (
-  options: CompilePortingWorkerOptions
-): Promise<{
+export type CompilePortingWorkerResult = {
   outfile: string;
   sizeBytes: number;
   target: string;
-}> => {
-  const cfg = getBunPortingConfig();
-  const compilerVersion = options.compilerVersion ?? cfg.compilerVersion;
-
-  const workerOutDir = join(options.outdir, "bin");
-  const workerOutfile = join(workerOutDir, PORTING_WORKER_BINARY_NAME);
-
-  assertCompilerVersion(compilerVersion);
-  await mkdir(workerOutDir, { recursive: true });
-  await rm(workerOutfile, { force: true });
-
-  const primaryTarget = determineCompileTarget();
-  const fallbackTarget =
-    primaryTarget === "bun-linux-x64-baseline" ? "bun-linux-x64" : null;
-  let compiledTarget = primaryTarget;
-
-  try {
-    compileWithTarget(primaryTarget, compilerVersion, workerOutfile);
-  } catch (primaryError) {
-    if (fallbackTarget === null) {
-      throw primaryError;
-    }
-
-    console.warn(
-      `Primary target ${primaryTarget} failed, retrying with ${fallbackTarget}`
-    );
-    await rm(workerOutfile, { force: true });
-    compileWithTarget(fallbackTarget, compilerVersion, workerOutfile);
-    compiledTarget = fallbackTarget;
-  }
-
-  await chmod(workerOutfile, 0o755);
-
-  const workerStat = await stat(workerOutfile);
-  if (workerStat.size === 0) {
-    throw new Error("porting-worker binary is empty");
-  }
-
-  console.log(
-    `Built ${workerOutfile} (${formatBytes(workerStat.size)}) target=${compiledTarget}`
-  );
-
-  if (workerStat.size > WORKER_SIZE_WARNING_BYTES) {
-    console.warn(
-      `Warning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
-    );
-  }
-
-  if (canRunSelfTest(compiledTarget)) {
-    await runWorkerSelfTest(workerOutfile, "diagnostic");
-
-    const fixtureExists = await Bun.file(fixturePath).exists();
-    if (fixtureExists) {
-      await runWorkerSelfTest(workerOutfile, "probe-image", {
-        mode: "probe-image",
-        source: {
-          path: fixturePath,
-          type: "path",
-        },
-      });
-      console.log("porting-worker probe-image self-test passed");
-    } else {
-      console.warn(`Skipping probe-image self-test: ${fixturePath} not found`);
-    }
-  } else {
-    console.warn(
-      `Skipping porting-worker self-test for cross-compiled target ${compiledTarget} on ${process.platform}/${process.arch}`
-    );
-  }
-
-  return {
-    outfile: workerOutfile,
-    sizeBytes: workerStat.size,
-    target: compiledTarget,
-  };
 };
+
+const compilePortingWorkerEffect = (
+  options: CompilePortingWorkerOptions
+): Effect.Effect<CompilePortingWorkerResult, CompileError, CompileServices> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const cfg = getBunPortingConfig();
+    const compilerVersion = options.compilerVersion ?? cfg.compilerVersion;
+
+    const packageRoot = path.resolve(import.meta.dirname, "../..");
+    const workerEntry = path.join(packageRoot, "src/worker/entry.ts");
+    const fixturePath = path.join(packageRoot, "test-fixtures/sample.png");
+
+    const workerOutDir = path.join(options.outdir, "bin");
+    const workerOutfile = path.join(workerOutDir, PORTING_WORKER_BINARY_NAME);
+
+    yield* assertCompilerVersion(compilerVersion);
+    yield* fs.makeDirectory(workerOutDir, { recursive: true });
+    yield* fs.remove(workerOutfile, { force: true });
+
+    const primaryTarget = yield* determineCompileTargetEffect();
+    const fallbackTarget =
+      primaryTarget === "bun-linux-x64-baseline" ? "bun-linux-x64" : null;
+    let compiledTarget = primaryTarget;
+
+    const primaryAttempt = yield* compileWithTarget(
+      primaryTarget,
+      compilerVersion,
+      workerEntry,
+      workerOutfile
+    ).pipe(Effect.either);
+
+    if (primaryAttempt._tag === "Left") {
+      if (fallbackTarget === null) {
+        return yield* primaryAttempt.left;
+      }
+
+      yield* Effect.logWarning(
+        `Primary target ${primaryTarget} failed, retrying with ${fallbackTarget}`
+      );
+      yield* fs.remove(workerOutfile, { force: true });
+      yield* compileWithTarget(
+        fallbackTarget,
+        compilerVersion,
+        workerEntry,
+        workerOutfile
+      );
+      compiledTarget = fallbackTarget;
+    }
+
+    yield* fs.chmod(workerOutfile, 0o755);
+
+    const workerStat = yield* fs.stat(workerOutfile);
+    const sizeBytes = Number(workerStat.size);
+    if (sizeBytes === 0) {
+      return yield* new BunPortingError({
+        message: "porting-worker binary is empty",
+      });
+    }
+
+    yield* Effect.log(
+      `Built ${workerOutfile} (${formatBytes(sizeBytes)}) target=${compiledTarget}`
+    );
+
+    if (sizeBytes > WORKER_SIZE_WARNING_BYTES) {
+      yield* Effect.logWarning(
+        `Warning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
+      );
+    }
+
+    if (canRunSelfTest(compiledTarget)) {
+      yield* runWorkerSelfTest(workerOutfile, "diagnostic");
+
+      const fixtureExists = yield* fs.exists(fixturePath);
+      if (fixtureExists) {
+        yield* runWorkerSelfTest(workerOutfile, "probe-image", {
+          mode: "probe-image",
+          source: {
+            path: fixturePath,
+            type: "path",
+          },
+        });
+        yield* Effect.log("porting-worker probe-image self-test passed");
+      } else {
+        yield* Effect.logWarning(
+          `Skipping probe-image self-test: ${fixturePath} not found`
+        );
+      }
+    } else {
+      yield* Effect.logWarning(
+        `Skipping porting-worker self-test for cross-compiled target ${compiledTarget} on ${process.platform}/${process.arch}`
+      );
+    }
+
+    return {
+      outfile: workerOutfile,
+      sizeBytes,
+      target: compiledTarget,
+    };
+  });
+
+export const compilePortingWorker = (
+  options: CompilePortingWorkerOptions
+): Promise<CompilePortingWorkerResult> =>
+  bunPortingRuntime.runPromise(compilePortingWorkerEffect(options));

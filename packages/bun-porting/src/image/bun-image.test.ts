@@ -1,42 +1,83 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { Path } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
+import { describe, expect, it } from "@effect/vitest";
+import { Effect } from "effect";
 
+import { BunPortingError } from "../internal/errors";
 import { BunImage, isNativeImageAvailable } from "./bun-image";
-
-const fixturePath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../test-fixtures/sample.png"
-);
 
 describe("BunImage", () => {
   it("reports native availability on this host", () => {
     expect(typeof isNativeImageAvailable()).toBe("boolean");
   });
 
-  it("reads metadata from the sample PNG when Bun.Image is available", async () => {
-    if (!isNativeImageAvailable()) {
-      return;
-    }
+  it.effect(
+    "reads metadata from the sample PNG when Bun.Image is available",
+    () =>
+      Effect.gen(function* () {
+        if (!isNativeImageAvailable()) {
+          return;
+        }
 
-    const bytes = await Bun.file(fixturePath).bytes();
-    const metadata = await new BunImage(bytes).metadata();
+        const path = yield* Path.Path;
+        const fixturePath = path.resolve(
+          import.meta.dirname,
+          "../../test-fixtures/sample.png"
+        );
 
-    expect(metadata.width).toBe(1);
-    expect(metadata.height).toBe(1);
-  });
+        const bytes = yield* Effect.tryPromise({
+          catch: (cause) =>
+            new BunPortingError({
+              cause,
+              message: "Failed to read fixture.",
+            }),
+          try: () => Bun.file(fixturePath).bytes(),
+        });
+        const metadata = yield* Effect.promise(() =>
+          new BunImage(bytes).metadata()
+        );
 
-  it("resizes and encodes webp when Bun.Image is available", async () => {
-    if (!isNativeImageAvailable()) {
-      return;
-    }
+        expect(metadata.width).toBe(1);
+        expect(metadata.height).toBe(1);
+      }).pipe(
+        // Test entry point: provide Path for fixture resolution.
+        // @effect-diagnostics-next-line effect/strictEffectProvide:off
+        Effect.provide(BunContext.layer)
+      )
+  );
 
-    const bytes = await Bun.file(fixturePath).bytes();
-    const output = await new BunImage(bytes)
-      .resize(8, 8, { fit: "inside" })
-      .webp({ quality: 80 })
-      .bytes();
+  it.effect("resizes and encodes webp when Bun.Image is available", () =>
+    Effect.gen(function* () {
+      if (!isNativeImageAvailable()) {
+        return;
+      }
 
-    expect(output.byteLength).toBeGreaterThan(0);
-  });
+      const path = yield* Path.Path;
+      const fixturePath = path.resolve(
+        import.meta.dirname,
+        "../../test-fixtures/sample.png"
+      );
+
+      const bytes = yield* Effect.tryPromise({
+        catch: (cause) =>
+          new BunPortingError({
+            cause,
+            message: "Failed to read fixture.",
+          }),
+        try: () => Bun.file(fixturePath).bytes(),
+      });
+      const output = yield* Effect.promise(() =>
+        new BunImage(bytes)
+          .resize(8, 8, { fit: "inside" })
+          .webp({ quality: 80 })
+          .bytes()
+      );
+
+      expect(output.byteLength).toBeGreaterThan(0);
+    }).pipe(
+      // Test entry point: provide Path for fixture resolution.
+      // @effect-diagnostics-next-line effect/strictEffectProvide:off
+      Effect.provide(BunContext.layer)
+    )
+  );
 });

@@ -10,10 +10,17 @@
     "./internal/protocol": "./src/internal/protocol.ts"
   },
   "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
+  "dependencies": {
+    "@effect/platform": "catalog:",
+    "@effect/platform-bun": "catalog:",
+    "effect": "catalog:"
+  },
   "devDependencies": {
+    "@effect/vitest": "catalog:",
     "@types/bun": "catalog:",
     "@vyrel/config": "workspace:*",
     "typescript": "catalog:",

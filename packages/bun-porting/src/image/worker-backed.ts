@@ -1,10 +1,18 @@
+import { HttpClient, HttpClientResponse } from "@effect/platform";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { FileSystem } from "@effect/platform/FileSystem";
+import { type Clock, Effect } from "effect";
+import type { ParseError } from "effect/ParseResult";
+
+import { BunPortingError } from "../internal/errors";
 import type {
   PortingImageOperation,
   PortingPipelineTerminal,
   PortingWorkerPipelineResult,
   PortingWorkerSource,
 } from "../internal/protocol";
-import { runPortingWorker } from "../internal/runner";
+import { runPortingWorkerEffect } from "../internal/runner";
+import { bunPortingRuntime } from "../internal/runtime";
 import type {
   BunImageInput,
   BunImageJpegOptions,
@@ -18,47 +26,97 @@ import type {
 const DEFAULT_MAX_PIXELS = 16_777_216;
 const DEFAULT_MAX_INPUT_BYTES = 25_000_000;
 
-const toUint8Array = async (input: BunImageInput): Promise<Uint8Array> => {
-  if (typeof input === "string") {
-    return Bun.file(input).bytes();
-  }
-  if (typeof input === "object" && input !== null && "path" in input) {
-    return Bun.file(input.path).bytes();
-  }
-  if (typeof input === "object" && input !== null && "url" in input) {
-    const response = await fetch(input.url);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to download image (${response.status} ${response.statusText}).`
-      );
+type WorkerServices =
+  | HttpClient.HttpClient
+  | FileSystem
+  | CommandExecutor
+  | Clock.Clock;
+
+type WorkerError = BunPortingError | ParseError;
+
+const toUint8Array = (
+  input: BunImageInput
+): Effect.Effect<Uint8Array, BunPortingError, HttpClient.HttpClient> =>
+  Effect.gen(function* () {
+    if (typeof input === "string") {
+      return yield* Effect.tryPromise({
+        catch: (cause) =>
+          new BunPortingError({
+            cause,
+            message: "Failed to read image path.",
+          }),
+        try: () => Bun.file(input).bytes(),
+      });
     }
-    return new Uint8Array(await response.arrayBuffer());
-  }
-  if (input instanceof ArrayBuffer) {
-    return new Uint8Array(input);
-  }
-  if (input instanceof Blob) {
-    return new Uint8Array(await input.arrayBuffer());
-  }
-  return input instanceof Uint8Array ? input : new Uint8Array(input);
-};
+    if (typeof input === "object" && input !== null && "path" in input) {
+      return yield* Effect.tryPromise({
+        catch: (cause) =>
+          new BunPortingError({
+            cause,
+            message: "Failed to read image path.",
+          }),
+        try: () => Bun.file(input.path).bytes(),
+      });
+    }
+    if (typeof input === "object" && input !== null && "url" in input) {
+      const buffer = yield* HttpClient.get(input.url).pipe(
+        Effect.flatMap(HttpClientResponse.filterStatusOk),
+        Effect.flatMap((response) => response.arrayBuffer),
+        Effect.scoped,
+        Effect.mapError(
+          (cause) =>
+            new BunPortingError({
+              cause,
+              message: "Failed to download image.",
+            })
+        )
+      );
+      return new Uint8Array(buffer);
+    }
+    if (input instanceof ArrayBuffer) {
+      return new Uint8Array(input);
+    }
+    if (input instanceof Blob) {
+      return yield* Effect.tryPromise({
+        catch: (cause) =>
+          new BunPortingError({
+            cause,
+            message: "Failed to read image blob.",
+          }),
+        try: () => input.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+      });
+    }
+    return input instanceof Uint8Array ? input : new Uint8Array(input);
+  });
 
-const toSource = async (input: BunImageInput): Promise<PortingWorkerSource> => {
-  if (typeof input === "object" && input !== null && "url" in input) {
-    return { type: "url", url: input.url };
-  }
-  if (typeof input === "object" && input !== null && "path" in input) {
-    return { path: input.path, type: "path" };
-  }
-  if (typeof input === "string") {
-    return { path: input, type: "path" };
-  }
+const toSource = (
+  input: BunImageInput
+): Effect.Effect<PortingWorkerSource, BunPortingError, HttpClient.HttpClient> =>
+  Effect.gen(function* () {
+    if (typeof input === "object" && input !== null && "url" in input) {
+      return { type: "url" as const, url: input.url };
+    }
+    if (typeof input === "object" && input !== null && "path" in input) {
+      return { path: input.path, type: "path" as const };
+    }
+    if (typeof input === "string") {
+      return { path: input, type: "path" as const };
+    }
 
-  const bytes = await toUint8Array(input);
-  return {
-    data: Buffer.from(bytes).toString("base64"),
-    type: "bytes-base64",
-  };
+    const bytes = yield* toUint8Array(input);
+    return {
+      data: Buffer.from(bytes).toString("base64"),
+      type: "bytes-base64" as const,
+    };
+  });
+
+const pipelineBytes = (
+  pipeline: PortingWorkerPipelineResult
+): Effect.Effect<Uint8Array, BunPortingError> => {
+  if (pipeline.bytesBase64 === undefined) {
+    return new BunPortingError({ message: "porting-worker bytes missing." });
+  }
+  return Effect.succeed(Buffer.from(pipeline.bytesBase64, "base64"));
 };
 
 /**
@@ -114,76 +172,112 @@ export class WorkerBackedBunImage implements BunImageLike {
     return this.clone([...this.operations, { op: "png", options }]);
   }
 
-  private async execute(
+  private executeEffect(
     terminal: PortingPipelineTerminal
-  ): Promise<PortingWorkerPipelineResult> {
-    const source = await toSource(this.input);
-    const run = await runPortingWorker({
-      maxInputBytes: DEFAULT_MAX_INPUT_BYTES,
-      maxPixels: this.options.maxPixels ?? DEFAULT_MAX_PIXELS,
-      mode: "execute-pipeline",
-      operations: this.operations,
-      source,
-      terminal,
+  ): Effect.Effect<PortingWorkerPipelineResult, WorkerError, WorkerServices> {
+    const { input, options, operations } = this;
+    const self = this;
+
+    return Effect.gen(function* () {
+      const source = yield* toSource(input);
+      const run = yield* runPortingWorkerEffect({
+        maxInputBytes: DEFAULT_MAX_INPUT_BYTES,
+        maxPixels: options.maxPixels ?? DEFAULT_MAX_PIXELS,
+        mode: "execute-pipeline",
+        operations,
+        source,
+        terminal,
+      });
+
+      if (!run.ok) {
+        return yield* new BunPortingError({
+          code: run.code,
+          message: run.error,
+        });
+      }
+
+      if (run.result.pipeline === undefined) {
+        return yield* new BunPortingError({
+          message: "porting-worker returned no pipeline result.",
+        });
+      }
+
+      const { metadata } = run.result.pipeline;
+      if (metadata !== undefined) {
+        self.cachedWidth = metadata.width;
+        self.cachedHeight = metadata.height;
+      }
+
+      return run.result.pipeline;
     });
-
-    if (!run.ok) {
-      throw new Error(run.error);
-    }
-
-    if (run.result.pipeline === undefined) {
-      throw new Error("porting-worker returned no pipeline result.");
-    }
-
-    const { metadata } = run.result.pipeline;
-    if (metadata !== undefined) {
-      this.cachedWidth = metadata.width;
-      this.cachedHeight = metadata.height;
-    }
-
-    return run.result.pipeline;
   }
 
-  async metadata(): Promise<BunImageMetadata> {
-    const pipeline = await this.execute("metadata");
-    if (pipeline.metadata === undefined) {
-      throw new Error("porting-worker metadata missing.");
-    }
-    return pipeline.metadata;
+  metadata(): Promise<BunImageMetadata> {
+    return bunPortingRuntime.runPromise(
+      this.executeEffect("metadata").pipe(
+        Effect.flatMap((pipeline) => {
+          if (pipeline.metadata === undefined) {
+            return new BunPortingError({
+              message: "porting-worker metadata missing.",
+            });
+          }
+          return Effect.succeed(pipeline.metadata);
+        })
+      )
+    );
   }
 
-  async bytes(): Promise<Uint8Array> {
-    const pipeline = await this.execute("bytes");
-    if (pipeline.bytesBase64 === undefined) {
-      throw new Error("porting-worker bytes missing.");
-    }
-    return Buffer.from(pipeline.bytesBase64, "base64");
+  bytes(): Promise<Uint8Array> {
+    return bunPortingRuntime.runPromise(
+      this.executeEffect("bytes").pipe(Effect.flatMap(pipelineBytes))
+    );
   }
 
-  async buffer(): Promise<ArrayBuffer> {
-    const bytes = await this.bytes();
-    return bytes.buffer.slice(
-      bytes.byteOffset,
-      bytes.byteOffset + bytes.byteLength
-    ) as ArrayBuffer;
+  buffer(): Promise<ArrayBuffer> {
+    return bunPortingRuntime.runPromise(
+      this.executeEffect("bytes").pipe(
+        Effect.flatMap(pipelineBytes),
+        Effect.map(
+          (bytes) =>
+            bytes.buffer.slice(
+              bytes.byteOffset,
+              bytes.byteOffset + bytes.byteLength
+            ) as ArrayBuffer
+        )
+      )
+    );
   }
 
-  async blob(): Promise<Blob> {
-    const bytes = await this.bytes();
-    return new Blob([
-      bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength
-      ) as ArrayBuffer,
-    ]);
+  blob(): Promise<Blob> {
+    return bunPortingRuntime.runPromise(
+      this.executeEffect("bytes").pipe(
+        Effect.flatMap(pipelineBytes),
+        Effect.map(
+          (bytes) =>
+            new Blob([
+              bytes.buffer.slice(
+                bytes.byteOffset,
+                bytes.byteOffset + bytes.byteLength
+              ) as ArrayBuffer,
+            ])
+        )
+      )
+    );
   }
 
-  async dataurl(): Promise<string> {
-    const pipeline = await this.execute("dataurl");
-    if (pipeline.dataUrl === undefined) {
-      throw new Error("porting-worker dataurl missing.");
-    }
-    return pipeline.dataUrl;
+  dataurl(): Promise<string> {
+    return bunPortingRuntime.runPromise(
+      this.executeEffect("dataurl").pipe(
+        Effect.flatMap((pipeline) => {
+          if (pipeline.dataUrl === undefined) {
+            return new BunPortingError({
+              message: "porting-worker dataurl missing.",
+            });
+          }
+          return Effect.succeed(pipeline.dataUrl);
+        })
+      )
+    );
   }
 
   get width(): number {
