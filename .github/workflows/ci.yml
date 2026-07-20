@@ -15,25 +15,10 @@ permissions:
   contents: read
   pull-requests: read
 
-env:
-  HUSKY: "0"
-  BETTER_AUTH_SECRET: ci-placeholder-better-auth-secret-32chars
-  BETTER_AUTH_URL: http://localhost:3000
-  CORS_ORIGIN: http://localhost:3000
-  DATABASE_AUTH_TOKEN: ci-placeholder-database-auth-token
-  DATABASE_URL: file::memory:?cache=shared
-  LOG_LEVEL: info
-  NODE_ENV: test
-  R2_ACCESS_KEY_ID: ci-placeholder-r2-access-key-id
-  R2_ACCOUNT_ID: ci-placeholder-r2-account-id
-  R2_BUCKET_NAME: ci-placeholder-r2-bucket
-  R2_SECRET_ACCESS_KEY: ci-placeholder-r2-secret-access-key
-  NEXT_PUBLIC_SERVER_URL: http://localhost:3000
-  RESEND_API_KEY: ci-placeholder-resend-api-key
-  RESEND_FROM_EMAIL: ci@example.com
 jobs:
-  ci:
-    name: Preflight
+  changeset:
+    name: Verify changeset
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -43,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Verify changeset when public packages change
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           BASE_REF: ${{ github.base_ref }}
           PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
@@ -84,6 +69,34 @@ jobs:
 
           echo "::error::This PR changes packages under packages/public/ but has no changeset. Run \`bun run changeset\` and commit the file in .changeset/, or add the \`skip-changeset\` label."
           exit 1
+
+  preflight:
+    name: Preflight
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    env:
+      HUSKY: "0"
+      BETTER_AUTH_SECRET: ci-placeholder-better-auth-secret-32chars
+      BETTER_AUTH_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
+      DATABASE_AUTH_TOKEN: ci-placeholder-database-auth-token
+      DATABASE_URL: file::memory:?cache=shared
+      LOG_LEVEL: info
+      NODE_ENV: test
+      R2_ACCESS_KEY_ID: ci-placeholder-r2-access-key-id
+      R2_ACCOUNT_ID: ci-placeholder-r2-account-id
+      R2_BUCKET_NAME: ci-placeholder-r2-bucket
+      R2_SECRET_ACCESS_KEY: ci-placeholder-r2-secret-access-key
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      RESEND_API_KEY: ci-placeholder-resend-api-key
+      RESEND_FROM_EMAIL: ci@example.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.3.1
+        with:
+          fetch-depth: 0
 
       - name: Cache Bun dependencies
         uses: actions/cache@v4
