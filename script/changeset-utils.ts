@@ -1,24 +1,60 @@
-import { join } from "node:path";
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
 import { Glob } from "bun";
+import { Effect, Schema } from "effect";
+import type { ParseError } from "effect/ParseResult";
+import { scriptRuntime } from "./runtime";
 
-export type Bump = "major" | "minor" | "patch";
+const bumpSchema = Schema.Literal("major", "minor", "patch");
 
-export type ChangesetIntent =
-  | { action: "skip" }
-  | {
-      action: "create";
-      bump: Bump;
-      packages: string[];
-    };
-
-export const repoRoot = join(import.meta.dirname, "..");
-export const publicPackagesRoot = join(repoRoot, "packages/public");
-export const changesetDir = join(repoRoot, ".changeset");
-export const intentPath = join(repoRoot, ".git/vyrel-changeset-intent.json");
-export const pendingChangesetMarkerPath = join(
-  repoRoot,
-  ".git/vyrel-pending-changeset"
+const changesetIntentSchema = Schema.Union(
+  Schema.Struct({ action: Schema.Literal("skip") }),
+  Schema.Struct({
+    action: Schema.Literal("create"),
+    bump: bumpSchema,
+    packages: Schema.Array(Schema.String),
+  })
 );
+
+/** Semver bump — derived from Effect Schema so encode/decode stay aligned. */
+export type Bump = Schema.Schema.Type<typeof bumpSchema>;
+
+/** Changeset intent — `packages` is readonly to match `Schema.Array`. */
+export type ChangesetIntent = Schema.Schema.Type<typeof changesetIntentSchema>;
+
+const paths = scriptRuntime.runSync(
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const root = path.resolve(import.meta.dirname, "..");
+
+    return {
+      changesetDir: path.join(root, ".changeset"),
+      intentPath: path.join(root, ".git/vyrel-changeset-intent.json"),
+      pendingChangesetMarkerPath: path.join(
+        root,
+        ".git/vyrel-pending-changeset"
+      ),
+      publicPackagesRoot: path.join(root, "packages/public"),
+      repoRoot: root,
+    };
+  })
+);
+
+const {
+  changesetDir,
+  intentPath,
+  pendingChangesetMarkerPath,
+  publicPackagesRoot,
+  repoRoot,
+} = paths;
+
+export {
+  changesetDir,
+  intentPath,
+  pendingChangesetMarkerPath,
+  publicPackagesRoot,
+  repoRoot,
+};
 
 const publicTestFilePattern = /\.(test|spec)\.(ts|tsx)$/;
 const packageJsonPathPattern = /\/package\.json$/;
@@ -143,7 +179,7 @@ export const loadPublicPackageNames = (): Map<string, string> => {
     const dirName = packageJsonPath.replace(packageJsonPathPattern, "");
     const prefix = `packages/public/${dirName}/`;
     const { name } = JSON.parse(
-      readTextFile(join(publicPackagesRoot, packageJsonPath))
+      readTextFile(`${publicPackagesRoot}/${packageJsonPath}`)
     ) as { name?: string };
 
     if (name !== undefined && name.length > 0) {
@@ -212,53 +248,75 @@ export const stageFile = (relativePath: string): void => {
   }
 };
 
-export const writeIntent = async (intent: ChangesetIntent): Promise<void> => {
-  await Bun.write(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-};
+const encodeIntentJson = Schema.encode(Schema.parseJson(changesetIntentSchema));
+const decodeIntentJson = Schema.decodeUnknown(
+  Schema.parseJson(changesetIntentSchema)
+);
 
-export const readIntent = async (): Promise<ChangesetIntent | null> => {
-  const file = Bun.file(intentPath);
+export const writeIntent = (
+  intent: ChangesetIntent
+): Effect.Effect<void, ParseError> =>
+  Effect.gen(function* () {
+    const json = yield* encodeIntentJson(intent);
+    yield* Effect.promise(() => Bun.write(intentPath, `${json}\n`));
+  });
 
-  if (!(await file.exists())) {
-    return null;
-  }
+export const readIntent = (): Effect.Effect<
+  ChangesetIntent | null,
+  ParseError
+> =>
+  Effect.gen(function* () {
+    const file = Bun.file(intentPath);
+    const exists = yield* Effect.promise(() => file.exists());
 
-  return JSON.parse(await file.text()) as ChangesetIntent;
-};
+    if (!exists) {
+      return null;
+    }
 
-export const clearIntent = async (): Promise<void> => {
-  const file = Bun.file(intentPath);
+    const text = yield* Effect.promise(() => file.text());
+    return yield* decodeIntentJson(text);
+  });
 
-  if (await file.exists()) {
-    const { unlink } = await import("node:fs/promises");
-    await unlink(intentPath);
-  }
-};
+export const clearIntent = (): Effect.Effect<
+  void,
+  PlatformError,
+  FileSystem.FileSystem
+> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
 
-export const createAndStageChangeset = async ({
+    if (yield* fs.exists(intentPath)) {
+      yield* fs.remove(intentPath);
+    }
+  });
+
+export const createAndStageChangeset = ({
   bump,
   packages,
   summary,
 }: {
   bump: Bump;
-  packages: string[];
+  packages: readonly string[];
   summary: string;
-}): Promise<string> => {
-  const packageBumps = Object.fromEntries(
-    packages.map((name) => [name, bump])
-  ) as Record<string, Bump>;
+}): Effect.Effect<string> =>
+  Effect.gen(function* () {
+    const packageBumps = Object.fromEntries(
+      packages.map((name) => [name, bump])
+    ) as Record<string, Bump>;
 
-  const filename = `auto-${Bun.hash.wyhash(`${summary}:${packages.join(",")}:${bump}`).toString(16)}.md`;
-  const relativePath = `.changeset/${filename}`;
-  const absolutePath = join(changesetDir, filename);
-  const contents = buildChangesetContents(packageBumps, summary);
+    const filename = `auto-${Bun.hash.wyhash(`${summary}:${packages.join(",")}:${bump}`).toString(16)}.md`;
+    const relativePath = `.changeset/${filename}`;
+    const absolutePath = `${changesetDir}/${filename}`;
+    const contents = buildChangesetContents(packageBumps, summary);
 
-  await Bun.write(absolutePath, contents);
-  stageFile(relativePath);
-  await Bun.write(pendingChangesetMarkerPath, relativePath);
+    yield* Effect.promise(() => Bun.write(absolutePath, contents));
+    stageFile(relativePath);
+    yield* Effect.promise(() =>
+      Bun.write(pendingChangesetMarkerPath, relativePath)
+    );
 
-  return relativePath;
-};
+    return relativePath;
+  });
 
 const conventionalCommitPattern = /^(\w+)(?:\([\w.-]+\))?!?:\s*(.+)$/;
 

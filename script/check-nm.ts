@@ -1,5 +1,6 @@
-import { readdirSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { FileSystem, Path } from "@effect/platform";
+import { Effect, Option } from "effect";
+import { scriptRuntime } from "./runtime";
 
 /** Entries that indicate a node_modules folder is only used for tooling caches. */
 const CACHE_ONLY_ENTRIES = new Set([
@@ -50,82 +51,96 @@ function isCacheOnlyNodeModules(entries: string[]): boolean {
   return entries.every((entry) => CACHE_ONLY_ENTRIES.has(entry));
 }
 
-function listNodeModulesEntries(nodeModulesPath: string): string[] {
-  try {
-    return readdirSync(nodeModulesPath);
-  } catch {
-    return [];
-  }
-}
+const listNodeModulesEntries = (
+  nodeModulesPath: string
+): Effect.Effect<string[], never, FileSystem.FileSystem> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    return yield* fs
+      .readDirectory(nodeModulesPath)
+      .pipe(Effect.orElseSucceed(() => [] as string[]));
+  });
 
-function walkForNodeModules(
+const walkForNodeModules = (
   dir: string,
   results: NodeModulesEntry[],
   root: string
-): void {
-  let entries: { isDirectory: () => boolean; name: string }[];
+): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
 
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
+    const entries = yield* fs
+      .readDirectory(dir)
+      .pipe(Effect.orElseSucceed(() => [] as string[]));
 
-  for (const entry of entries) {
-    const entryName = entry.name;
+    for (const entryName of entries) {
+      const fullPath = path.join(dir, entryName);
+      const info = yield* fs.stat(fullPath).pipe(Effect.option);
 
-    if (!entry.isDirectory()) {
-      continue;
+      if (Option.isNone(info) || info.value.type !== "Directory") {
+        continue;
+      }
+
+      if (entryName === "node_modules") {
+        const children = yield* listNodeModulesEntries(fullPath);
+        const relativePath = path.relative(root, fullPath) || "node_modules";
+
+        results.push({
+          entries: children,
+          isCacheOnly: isCacheOnlyNodeModules(children),
+          isRoot: relativePath === "node_modules",
+          path: fullPath,
+          relativePath,
+        });
+        continue;
+      }
+
+      if (SKIP_DIRS.has(entryName) || entryName.startsWith(".")) {
+        continue;
+      }
+
+      yield* walkForNodeModules(fullPath, results, root);
     }
+  });
 
-    const fullPath = join(dir, entryName);
+export const findNodeModulesDirs = (
+  repoRoot: string
+): Effect.Effect<
+  NodeModulesEntry[],
+  never,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const root = path.resolve(repoRoot);
+    const results: NodeModulesEntry[] = [];
 
-    if (entryName === "node_modules") {
-      const children = listNodeModulesEntries(fullPath);
-      const relativePath = relative(root, fullPath) || "node_modules";
+    yield* walkForNodeModules(root, results, root);
 
-      results.push({
-        entries: children,
-        isCacheOnly: isCacheOnlyNodeModules(children),
-        isRoot: relativePath === "node_modules",
-        path: fullPath,
-        relativePath,
-      });
-      continue;
-    }
+    return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  });
 
-    if (SKIP_DIRS.has(entryName) || entryName.startsWith(".")) {
-      continue;
-    }
+export const checkNodeModules = (
+  repoRoot: string
+): Effect.Effect<NodeModulesReport, never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const root = path.resolve(repoRoot);
+    const all = yield* findNodeModulesDirs(root);
+    const cacheOnly = all.filter((entry) => entry.isCacheOnly);
+    const real = all.filter((entry) => !entry.isCacheOnly);
+    const hasOnlyRootNodeModules =
+      real.length === 1 && real[0]?.isRoot === true;
 
-    walkForNodeModules(fullPath, results, root);
-  }
-}
-
-export function findNodeModulesDirs(repoRoot: string): NodeModulesEntry[] {
-  const root = resolve(repoRoot);
-  const results: NodeModulesEntry[] = [];
-
-  walkForNodeModules(root, results, root);
-
-  return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-}
-
-export function checkNodeModules(repoRoot: string): NodeModulesReport {
-  const root = resolve(repoRoot);
-  const all = findNodeModulesDirs(root);
-  const cacheOnly = all.filter((entry) => entry.isCacheOnly);
-  const real = all.filter((entry) => !entry.isCacheOnly);
-  const hasOnlyRootNodeModules = real.length === 1 && real[0]?.isRoot === true;
-
-  return {
-    all,
-    cacheOnly,
-    isHealthy: hasOnlyRootNodeModules,
-    real,
-    root,
-  };
-}
+    return {
+      all,
+      cacheOnly,
+      isHealthy: hasOnlyRootNodeModules,
+      real,
+      root,
+    };
+  });
 
 function formatEntrySummary(entry: NodeModulesEntry): string {
   if (entry.entries.length === 0) {
@@ -140,7 +155,9 @@ function formatEntrySummary(entry: NodeModulesEntry): string {
   const packageCount = entry.entries.filter((name) => name !== ".bin").length;
   const suffix = packageCount > 4 ? `, +${packageCount - 4} more` : "";
 
-  return preview ? `${preview}${suffix}` : `${packageCount} packages`;
+  return preview.length > 0
+    ? `${preview}${suffix}`
+    : `${packageCount} packages`;
 }
 
 const colors = {
@@ -163,107 +180,152 @@ function pad(text: string, width: number): string {
     : `${text}${" ".repeat(width - text.length)}`;
 }
 
-function printSection(title: string): void {
-  console.log("");
-  console.log(colorize(title, "bold"));
-  console.log(colorize("─".repeat(60), "dim"));
-}
+const printSection = (title: string): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log("");
+    yield* Effect.log(colorize(title, "bold"));
+    yield* Effect.log(colorize("─".repeat(60), "dim"));
+  });
 
-export function printNodeModulesReport(report: NodeModulesReport): void {
-  const nested = report.real.filter((entry) => !entry.isRoot);
-  const rootEntry = report.real.find((entry) => entry.isRoot);
+const printReportHeader = (report: NodeModulesReport): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log("");
+    yield* Effect.log(colorize("node_modules check", "bold"));
+    yield* Effect.log(colorize("═".repeat(60), "dim"));
+    yield* Effect.log(`  ${colorize("repo", "cyan")}    ${report.root}`);
+  });
 
-  console.log("");
-  console.log(colorize("node_modules check", "bold"));
-  console.log(colorize("═".repeat(60), "dim"));
-  console.log(`  ${colorize("repo", "cyan")}    ${report.root}`);
-
-  if (report.real.length === 0) {
-    console.log(
-      `  ${colorize("status", "cyan")}  ${colorize("no node_modules found", "yellow")}`
-    );
-    console.log("");
-    return;
-  }
-
-  if (report.isHealthy && rootEntry) {
-    console.log(
+const printHealthyStatus = (rootEntry: NodeModulesEntry): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log(
       `  ${colorize("status", "cyan")}  ${colorize("OK", "green")} — only root node_modules`
     );
-    console.log(
+    yield* Effect.log(
       `  ${colorize("found", "cyan")}   ${rootEntry.entries.length.toLocaleString()} entries in node_modules`
     );
-    console.log("");
-    return;
-  }
+    yield* Effect.log("");
+  });
 
-  console.log(
-    `  ${colorize("status", "cyan")}  ${colorize("NOT OK", "red")} — ${nested.length} nested node_modules`
-  );
-  console.log(
-    `  ${colorize("found", "cyan")}   ${report.real.length} total (${rootEntry ? "1 root" : "0 root"}, ${nested.length} nested)`
-  );
-
-  printSection("Installs");
-
-  const pathWidth = Math.max(
-    "path".length,
-    ...report.real.map((entry) => entry.relativePath.length)
-  );
-
-  console.log(
-    colorize(`  ${pad("kind", 9)} ${pad("path", pathWidth)}  entries`, "dim")
-  );
-
-  const sorted = [
-    ...report.real.filter((entry) => entry.isRoot),
-    ...report.real
-      .filter((entry) => !entry.isRoot)
-      .sort((a, b) => a.relativePath.localeCompare(b.relativePath)),
-  ];
-
-  for (const entry of sorted) {
-    const kind = entry.isRoot ? "root" : "nested";
-    const kindColor = entry.isRoot ? "green" : "red";
-    const marker = entry.isRoot ? "✓" : "✗";
-    const count = entry.entries.length.toLocaleString();
-    const kindLabel = `${marker} ${kind}`;
-
-    console.log(
-      `  ${colorize(pad(kindLabel, 9), kindColor)} ${pad(entry.relativePath, pathWidth)}  ${count}`
+const printUnhealthyStatus = (
+  nestedCount: number,
+  totalCount: number,
+  hasRoot: boolean
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log(
+      `  ${colorize("status", "cyan")}  ${colorize("NOT OK", "red")} — ${nestedCount} nested node_modules`
     );
-    console.log(colorize(`    ${formatEntrySummary(entry)}`, "dim"));
-  }
+    yield* Effect.log(
+      `  ${colorize("found", "cyan")}   ${totalCount} total (${hasRoot ? "1 root" : "0 root"}, ${nestedCount} nested)`
+    );
+  });
 
-  if (report.cacheOnly.length > 0) {
-    printSection(`Ignored cache-only (${report.cacheOnly.length})`);
+const printInstallRows = (report: NodeModulesReport): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const pathWidth = Math.max(
+      "path".length,
+      ...report.real.map((entry) => entry.relativePath.length)
+    );
 
-    for (const entry of report.cacheOnly) {
-      console.log(
+    yield* Effect.log(
+      colorize(`  ${pad("kind", 9)} ${pad("path", pathWidth)}  entries`, "dim")
+    );
+
+    const sorted = [
+      ...report.real.filter((entry) => entry.isRoot),
+      ...report.real
+        .filter((entry) => !entry.isRoot)
+        .sort((a, b) => a.relativePath.localeCompare(b.relativePath)),
+    ];
+
+    for (const entry of sorted) {
+      const kind = entry.isRoot ? "root" : "nested";
+      const kindColor = entry.isRoot ? "green" : "red";
+      const marker = entry.isRoot ? "✓" : "✗";
+      const count = entry.entries.length.toLocaleString();
+      const kindLabel = `${marker} ${kind}`;
+
+      yield* Effect.log(
+        `  ${colorize(pad(kindLabel, 9), kindColor)} ${pad(entry.relativePath, pathWidth)}  ${count}`
+      );
+      yield* Effect.log(colorize(`    ${formatEntrySummary(entry)}`, "dim"));
+    }
+  });
+
+const printCacheOnlySection = (
+  cacheOnly: NodeModulesEntry[]
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    if (cacheOnly.length === 0) {
+      return;
+    }
+
+    yield* printSection(`Ignored cache-only (${cacheOnly.length})`);
+
+    for (const entry of cacheOnly) {
+      yield* Effect.log(
         colorize(
           `  ${entry.relativePath} — ${formatEntrySummary(entry)}`,
           "dim"
         )
       );
     }
-  }
+  });
 
-  printSection("Next step");
-  console.log(
-    colorize(
-      "  Run `bun install` from the repo root, then remove nested node_modules.",
-      "dim"
-    )
-  );
-  console.log("");
-}
+export const printNodeModulesReport = (
+  report: NodeModulesReport
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const nested = report.real.filter((entry) => !entry.isRoot);
+    const rootEntry = report.real.find((entry) => entry.isRoot);
 
-function resolveRepoRoot(): string {
-  return resolve(import.meta.dirname, "..");
-}
+    yield* printReportHeader(report);
+
+    if (report.real.length === 0) {
+      yield* Effect.log(
+        `  ${colorize("status", "cyan")}  ${colorize("no node_modules found", "yellow")}`
+      );
+      yield* Effect.log("");
+      return;
+    }
+
+    if (report.isHealthy && rootEntry !== undefined) {
+      yield* printHealthyStatus(rootEntry);
+      return;
+    }
+
+    yield* printUnhealthyStatus(
+      nested.length,
+      report.real.length,
+      rootEntry !== undefined
+    );
+    yield* printSection("Installs");
+    yield* printInstallRows(report);
+    yield* printCacheOnlySection(report.cacheOnly);
+
+    yield* printSection("Next step");
+    yield* Effect.log(
+      colorize(
+        "  Run `bun install` from the repo root, then remove nested node_modules.",
+        "dim"
+      )
+    );
+    yield* Effect.log("");
+  });
+
+const resolveRepoRoot = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  return path.resolve(import.meta.dirname, "..");
+});
 
 if (import.meta.main) {
-  const report = checkNodeModules(resolveRepoRoot());
-  printNodeModulesReport(report);
-  process.exit(report.isHealthy ? 0 : 1);
+  const exitCode = await scriptRuntime.runPromise(
+    Effect.gen(function* () {
+      const repoRoot = yield* resolveRepoRoot;
+      const report = yield* checkNodeModules(repoRoot);
+      yield* printNodeModulesReport(report);
+      return report.isHealthy ? 0 : 1;
+    })
+  );
+  process.exit(exitCode);
 }

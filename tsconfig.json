@@ -1,5 +1,11 @@
 {
   "extends": "@vyrel/config/tsconfig.base.json",
+  "include": [
+    "eslint.config.ts",
+    "graphql.config.ts",
+    "playwright.config.ts",
+    "script/**/*.ts"
+  ],
   "compilerOptions": {
     "strictNullChecks": true,
     "jsx": "react-jsx",

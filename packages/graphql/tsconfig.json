@@ -8,5 +8,5 @@
       "@vyrel/graphql/*": ["./src/*.ts"]
     }
   },
-  "include": ["src/**/*", "gen/**/*"]
+  "include": ["src/**/*", "gen/**/*", "scripts/**/*"]
 }

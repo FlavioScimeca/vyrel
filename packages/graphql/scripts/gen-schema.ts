@@ -1,13 +1,15 @@
 import { FileSystem, Path } from "@effect/platform";
-import { BunContext, BunRuntime } from "@effect/platform-bun";
+import { BunContext } from "@effect/platform-bun";
 import dotenv from "dotenv";
-import { Effect } from "effect";
+import { Effect, ManagedRuntime } from "effect";
 import { lexicographicSortSchema, printSchema } from "graphql";
 import { collectGraphqlImports } from "./collect-graphql-imports";
 
 dotenv.config({
   path: "../../apps/server/.env",
 });
+
+const runtime = ManagedRuntime.make(BunContext.layer);
 
 const program = Effect.gen(function* () {
   yield* collectGraphqlImports;
@@ -27,5 +29,4 @@ const program = Effect.gen(function* () {
   yield* Effect.log("✅ 🔨 GraphQL schema generated successfully");
 });
 
-// @effect-diagnostics-next-line effect/strictEffectProvide:off
-BunRuntime.runMain(program.pipe(Effect.provide(BunContext.layer)));
+await runtime.runPromise(program);

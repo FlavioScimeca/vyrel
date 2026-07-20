@@ -1,7 +1,7 @@
 import { FileSystem, Path } from "@effect/platform";
-import { BunContext, BunRuntime } from "@effect/platform-bun";
+import { BunContext } from "@effect/platform-bun";
 import dotenv from "dotenv";
-import { Effect } from "effect";
+import { Effect, ManagedRuntime } from "effect";
 
 dotenv.config({
   path: "../../apps/server/.env",
@@ -45,11 +45,11 @@ export const collectGraphqlImports = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  const runtime = ManagedRuntime.make(BunContext.layer);
   const main = Effect.gen(function* () {
     yield* collectGraphqlImports;
     yield* Effect.log("✅ 📋 GraphQL imports collected successfully");
   });
 
-  // @effect-diagnostics-next-line effect/strictEffectProvide:off
-  BunRuntime.runMain(main.pipe(Effect.provide(BunContext.layer)));
+  await runtime.runPromise(main);
 }

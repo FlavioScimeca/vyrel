@@ -1,11 +1,12 @@
-import { Path } from "@effect/platform";
-import { BunContext } from "@effect/platform-bun";
 import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 
 import { BunPortingError } from "../internal/errors";
 import { BunImage, isNativeImageAvailable } from "./bun-image";
 import { PipelineBuilder } from "./pipeline-builder";
+
+const samplePngPath = new URL("../../test-fixtures/sample.png", import.meta.url)
+  .pathname;
 
 describe("BunImage", () => {
   it("reports native availability on this host", () => {
@@ -37,19 +38,13 @@ describe("BunImage", () => {
           return;
         }
 
-        const path = yield* Path.Path;
-        const fixturePath = path.resolve(
-          import.meta.dirname,
-          "../../test-fixtures/sample.png"
-        );
-
         const bytes = yield* Effect.tryPromise({
           catch: (cause) =>
             new BunPortingError({
               cause,
               message: "Failed to read fixture.",
             }),
-          try: () => Bun.file(fixturePath).bytes(),
+          try: () => Bun.file(samplePngPath).bytes(),
         });
         const metadata = yield* Effect.promise(() =>
           new BunImage(bytes).metadata()
@@ -57,11 +52,7 @@ describe("BunImage", () => {
 
         expect(metadata.width).toBe(1);
         expect(metadata.height).toBe(1);
-      }).pipe(
-        // Test entry point: provide Path for fixture resolution.
-        // @effect-diagnostics-next-line effect/strictEffectProvide:off
-        Effect.provide(BunContext.layer)
-      )
+      })
   );
 
   it.effect("resizes and encodes webp when Bun.Image is available", () =>
@@ -70,19 +61,13 @@ describe("BunImage", () => {
         return;
       }
 
-      const path = yield* Path.Path;
-      const fixturePath = path.resolve(
-        import.meta.dirname,
-        "../../test-fixtures/sample.png"
-      );
-
       const bytes = yield* Effect.tryPromise({
         catch: (cause) =>
           new BunPortingError({
             cause,
             message: "Failed to read fixture.",
           }),
-        try: () => Bun.file(fixturePath).bytes(),
+        try: () => Bun.file(samplePngPath).bytes(),
       });
       const output = yield* Effect.promise(() =>
         new BunImage(bytes)
@@ -92,11 +77,7 @@ describe("BunImage", () => {
       );
 
       expect(output.byteLength).toBeGreaterThan(0);
-    }).pipe(
-      // Test entry point: provide Path for fixture resolution.
-      // @effect-diagnostics-next-line effect/strictEffectProvide:off
-      Effect.provide(BunContext.layer)
-    )
+    })
   );
 
   it.effect(
@@ -107,19 +88,13 @@ describe("BunImage", () => {
           return;
         }
 
-        const path = yield* Path.Path;
-        const fixturePath = path.resolve(
-          import.meta.dirname,
-          "../../test-fixtures/sample.png"
-        );
-
         const bytes = yield* Effect.tryPromise({
           catch: (cause) =>
             new BunPortingError({
               cause,
               message: "Failed to read fixture.",
             }),
-          try: () => Bun.file(fixturePath).bytes(),
+          try: () => Bun.file(samplePngPath).bytes(),
         });
 
         const result = yield* Effect.promise(() =>
@@ -136,10 +111,6 @@ describe("BunImage", () => {
 
         expect(result.thumb.byteLength).toBeGreaterThan(0);
         expect(result.placeholder.startsWith("data:image/")).toBe(true);
-      }).pipe(
-        // Test entry point: provide Path for fixture resolution.
-        // @effect-diagnostics-next-line effect/strictEffectProvide:off
-        Effect.provide(BunContext.layer)
-      )
+      })
   );
 });

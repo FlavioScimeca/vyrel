@@ -57,7 +57,7 @@
     "changeset": "changeset",
     "check": "ultracite check",
     "check:docs": "turbo -F docs check-types",
-    "check:effect-ts": "turbo check-effect-ts",
+    "check:effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text && turbo check-effect-ts",
     "check-types": "turbo check-types",
     "commit": "bun run script/commit.ts",
     "db:generate": "turbo -F @vyrel/db db:generate",

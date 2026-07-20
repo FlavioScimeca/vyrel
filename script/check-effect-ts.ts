@@ -1,8 +1,8 @@
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
-import { BunContext } from "@effect/platform-bun";
 import { Effect, Schema } from "effect";
 import type { ParseError } from "effect/ParseResult";
+import { scriptRuntime } from "./runtime";
 
 const ROOT_TSCONFIG = "tsconfig.json";
 
@@ -131,12 +131,7 @@ export const checkEffectProjectsEffect = (
 export function checkEffectProjects(
   repoRoot: string
 ): Promise<EffectCheckReport> {
-  return Effect.runPromise(
-    checkEffectProjectsEffect(repoRoot).pipe(
-      // @effect-diagnostics-next-line effect/strictEffectProvide:off
-      Effect.provide(BunContext.layer)
-    )
-  );
+  return scriptRuntime.runPromise(checkEffectProjectsEffect(repoRoot));
 }
 
 const getFailedResult = (
@@ -160,11 +155,6 @@ const main = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
-  const exitCode = await Effect.runPromise(
-    main.pipe(
-      // @effect-diagnostics-next-line effect/strictEffectProvide:off
-      Effect.provide(BunContext.layer)
-    )
-  );
+  const exitCode = await scriptRuntime.runPromise(main);
   process.exit(exitCode);
 }

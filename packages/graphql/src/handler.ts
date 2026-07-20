@@ -15,17 +15,17 @@ import { getProfile } from "./utils/profiler";
 const isProd = env.NODE_ENV === "production";
 
 export const graphqlYogaServer = createYoga({
-  // @effect-diagnostics-next-line effect/asyncFunction:off
-  context: async ({ request }) => {
+  context: ({ request }) => {
     const store = getProfile();
     const t0 = performance.now();
-    const context = await createGraphqlContext(request);
 
-    if (store !== undefined) {
-      store.authMs = performance.now() - t0;
-    }
+    return createGraphqlContext(request).then((context) => {
+      if (store !== undefined) {
+        store.authMs = performance.now() - t0;
+      }
 
-    return context;
+      return context;
+    });
   },
   fetchAPI: createFetch({
     formDataLimits: {
