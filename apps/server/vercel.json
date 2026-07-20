@@ -4,6 +4,17 @@
   "installCommand": "cd ../.. && bun install && bun run script/swap-typescript-for-vercel.ts",
   "buildCommand": "cd ../.. && bun run build --filter=server",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
   "env": {
     "VERCEL_EXPERIMENTAL_BACKENDS": "1"
   }
