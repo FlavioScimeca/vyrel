@@ -1,0 +1,81 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev: server",
+      "type": "shell",
+      "command": "bash -lc 'trap \"echo; echo Dev server stopped. Terminal kept open.\" INT; bun run dev; echo; echo Dev server stopped. Terminal kept open.; exec ${SHELL:-/bin/bash} -l'",
+      "icon": {
+        "id": "server-process",
+        "color": "terminal.ansiRed"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/apps/server",
+        "env": {
+          "FORCE_COLOR": "1"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "server",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "localhost:3000"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "close": false
+      }
+    },
+    {
+      "label": "dev: web",
+      "type": "shell",
+      "command": "bash -lc 'trap \"echo; echo Web dev server stopped. Terminal kept open.\" INT; bun run dev; echo; echo Web dev server stopped. Terminal kept open.; exec ${SHELL:-/bin/bash} -l'",
+      "icon": {
+        "id": "globe",
+        "color": "terminal.ansiBlue"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web",
+        "env": {
+          "FORCE_COLOR": "1"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "web",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "localhost:3001"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "close": false
+      }
+    },
+    {
+      "label": "dev",
+      "dependsOn": ["dev: server", "dev: web", "dev: extension"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
