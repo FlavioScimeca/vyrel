@@ -24,16 +24,11 @@ import {
   OrganizationListItemFragment,
   type OrganizationListItemRef,
 } from "@/features/dashboard/organization/graphql/fragments";
+import { formatMediumDate } from "@/lib/format-date";
 
 type OrganizationListProps = {
   organizations: readonly OrganizationListItemRef[];
 };
-
-function formatCreatedAt(createdAt: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-  }).format(new Date(createdAt));
-}
 
 function OrganizationCard({
   organization,
@@ -74,7 +69,7 @@ function OrganizationCard({
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground text-sm">
-          Created {formatCreatedAt(org.createdAt)}
+          Created {formatMediumDate(org.createdAt)}
         </p>
       </CardContent>
     </Card>

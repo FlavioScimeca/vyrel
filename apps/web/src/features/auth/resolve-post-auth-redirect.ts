@@ -2,7 +2,7 @@ import { createEdenClient } from "@/lib/eden-client";
 import { defaultRouteForOrganization } from "@/lib/proxy-routes";
 import { getWebApiBaseURL } from "@/lib/web-api-base-url";
 
-function isSafeRedirectPath(path: string): boolean {
+export function isSafeRedirectPath(path: string): boolean {
   return (
     path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/auth")
   );

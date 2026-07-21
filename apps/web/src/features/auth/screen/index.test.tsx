@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthMode } from "@/features/auth/form.schema";
 import { AuthForm } from "./auth-form";
@@ -19,9 +19,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
-vi.mock("framer-motion", async () => {
+vi.mock("motion/react", async () => {
   const actual =
-    await vi.importActual<typeof import("framer-motion")>("framer-motion");
+    await vi.importActual<typeof import("motion/react")>("motion/react");
 
   return {
     ...actual,
@@ -49,19 +49,13 @@ function AuthFormHarness({
   onSuccess: () => Promise<void>;
 }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const switchToSignIn = useCallback(() => {
-    setMode("signin");
-  }, []);
-  const switchToSignUp = useCallback(() => {
-    setMode("signup");
-  }, []);
 
   return (
     <>
-      <button onClick={switchToSignIn} type="button">
+      <button onClick={() => setMode("signin")} type="button">
         Switch to sign in
       </button>
-      <button onClick={switchToSignUp} type="button">
+      <button onClick={() => setMode("signup")} type="button">
         Switch to sign up
       </button>
       <AuthForm mode={mode} onSuccessAction={onSuccess} />
@@ -83,7 +77,7 @@ beforeEach(() => {
 
 describe("AuthScreen", () => {
   it("shows sign in fields by default and links to sign up mode", () => {
-    const view = render(<AuthScreen />);
+    const view = render(<AuthScreen mode="signin" safeNext={null} />);
 
     expect(screen.getByText("Welcome back")).toBeVisible();
     expect(screen.getByLabelText("Email")).toBeVisible();
@@ -99,8 +93,7 @@ describe("AuthScreen", () => {
       screen.getByRole("link", { name: "Forgot password?" })
     ).toHaveAttribute("href", "/auth/reset-password");
 
-    mocks.search = "mode=signup";
-    view.rerender(<AuthScreen />);
+    view.rerender(<AuthScreen mode="signup" safeNext={null} />);
 
     expect(screen.getByText("Create an account")).toBeVisible();
     expect(screen.getByLabelText("Name")).toBeVisible();

@@ -1,7 +1,7 @@
 "use client";
 
 import { IconChecklist, IconHome, IconWallet } from "@tabler/icons-react";
-import { motion } from "framer-motion";
+import { LazyMotion, m } from "motion/react";
 import type { Route } from "@/components/sidebar-02/nav-main";
 import DashboardNavigation from "@/components/sidebar-02/nav-main";
 import { NavManagement } from "@/components/sidebar-02/nav-management";
@@ -15,6 +15,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { loadMotionDomAnimation } from "@/lib/motion-features";
 import { cn } from "@/lib/utils";
 
 const sampleNotifications = [
@@ -83,19 +84,21 @@ export function DashboardSidebar() {
       >
         <OrganizationSwitcher />
 
-        <motion.div
-          animate={{ opacity: 1 }}
-          className={cn(
-            "flex items-center gap-2",
-            isCollapsed ? "flex-row md:flex-col-reverse" : "flex-row"
-          )}
-          initial={{ opacity: 0 }}
-          key={isCollapsed ? "header-collapsed" : "header-expanded"}
-          transition={{ duration: 0.8 }}
-        >
-          <NotificationsPopover notifications={sampleNotifications} />
-          <SidebarTrigger />
-        </motion.div>
+        <LazyMotion features={loadMotionDomAnimation} strict>
+          <m.div
+            animate={{ opacity: 1 }}
+            className={cn(
+              "flex items-center gap-2",
+              isCollapsed ? "flex-row md:flex-col-reverse" : "flex-row"
+            )}
+            initial={{ opacity: 0 }}
+            key={isCollapsed ? "header-collapsed" : "header-expanded"}
+            transition={{ duration: 0.8 }}
+          >
+            <NotificationsPopover notifications={sampleNotifications} />
+            <SidebarTrigger />
+          </m.div>
+        </LazyMotion>
       </SidebarHeader>
       <SidebarContent className="gap-4 px-2 py-4">
         <DashboardNavigation routes={dashboardRoutes} />

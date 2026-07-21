@@ -2,7 +2,7 @@
 
 import { IconPhoto, IconX } from "@tabler/icons-react";
 import Image from "next/image";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import {
   type Control,
   type FieldPath,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/attachment";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
+import { useObjectUrl } from "@/hooks/use-object-url";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -89,39 +90,16 @@ export function TaskImageField<T extends TaskImageFormValues>({
   const inputRef = useRef<HTMLInputElement>(null);
   const fieldName = "image" as FieldPath<T>;
   const { field } = useController({ control, name: fieldName });
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const file = field.value as File | undefined;
+  const previewUrl = useObjectUrl(file);
   const validationMessage = error?.message;
   const hasFile = file !== undefined;
+  const labelId = `${inputId}-label`;
   const hasExistingImage =
     !hasFile &&
     existingImageUrl !== null &&
     existingImageUrl !== undefined &&
     existingImageUrl.length > 0;
-
-  useEffect(() => {
-    if (file === undefined) {
-      setPreviewUrl((current) => {
-        if (current !== null) {
-          URL.revokeObjectURL(current);
-        }
-        return null;
-      });
-      return;
-    }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl((current) => {
-      if (current !== null) {
-        URL.revokeObjectURL(current);
-      }
-      return nextPreviewUrl;
-    });
-
-    return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
-    };
-  }, [file]);
 
   const attachmentState = (() => {
     if (isSubmitting) {
@@ -136,42 +114,36 @@ export function TaskImageField<T extends TaskImageFormValues>({
     return "idle" as const;
   })();
 
-  const handleFileChange = useCallback(
-    (nextFile: File | undefined) => {
-      if (nextFile === undefined) {
-        clearErrors(fieldName);
-        field.onChange(undefined as PathValue<T, FieldPath<T>>);
-        return;
-      }
-
-      const message = validateImageFile(nextFile);
-      if (message !== null) {
-        setError(fieldName, { message });
-        return;
-      }
-
+  const handleFileChange = (nextFile: File | undefined) => {
+    if (nextFile === undefined) {
       clearErrors(fieldName);
-      field.onChange(nextFile as PathValue<T, FieldPath<T>>);
-    },
-    [clearErrors, field, fieldName, setError]
-  );
+      field.onChange(undefined as PathValue<T, FieldPath<T>>);
+      return;
+    }
 
-  const handleClear = useCallback(() => {
+    const message = validateImageFile(nextFile);
+    if (message !== null) {
+      setError(fieldName, { message });
+      return;
+    }
+
+    clearErrors(fieldName);
+    field.onChange(nextFile as PathValue<T, FieldPath<T>>);
+  };
+
+  const handleClear = () => {
     handleFileChange(undefined);
-  }, [handleFileChange]);
+  };
 
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const nextFile = event.target.files?.[0];
-      handleFileChange(nextFile);
-      event.target.value = "";
-    },
-    [handleFileChange]
-  );
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0];
+    handleFileChange(nextFile);
+    event.target.value = "";
+  };
 
-  const handleOpenFilePicker = useCallback(() => {
+  const handleOpenFilePicker = () => {
     inputRef.current?.click();
-  }, []);
+  };
 
   const media = (() => {
     if (attachmentState === "uploading") {
@@ -244,9 +216,12 @@ export function TaskImageField<T extends TaskImageFormValues>({
 
   return (
     <Field data-invalid={validationMessage !== undefined}>
-      <FieldLabel htmlFor={inputId}>Image</FieldLabel>
+      <FieldLabel htmlFor={inputId} id={labelId}>
+        Image
+      </FieldLabel>
       <input
         accept="image/png,image/jpeg,image/webp,image/gif"
+        aria-label="Image"
         className="sr-only"
         id={inputId}
         name={`${formId}-image`}
@@ -274,6 +249,7 @@ export function TaskImageField<T extends TaskImageFormValues>({
         ) : null}
         <AttachmentTrigger
           aria-label="Choose image"
+          aria-labelledby={labelId}
           className="cursor-pointer"
           onClick={handleOpenFilePicker}
           type="button"

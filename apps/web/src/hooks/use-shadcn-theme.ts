@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { Color } from "three";
 
 /**
@@ -179,6 +179,8 @@ function readColors(previous?: ShadcnThemeColors): ShadcnThemeColors {
 
 export type ThemeMode = "auto" | "light" | "dark";
 
+const SERVER_DEFAULTS = createDefaults();
+
 /**
  * Bridges your shadcn/ui CSS variables into Three.js.
  *
@@ -191,38 +193,43 @@ export type ThemeMode = "auto" | "light" | "dark";
  *   force a palette by temporarily toggling a detached probe element.
  */
 export function useShadcnTheme(mode: ThemeMode = "auto"): ShadcnThemeColors {
-  const [colors, setColors] = useState<ShadcnThemeColors>(() =>
-    createDefaults()
+  const cacheRef = useRef(SERVER_DEFAULTS);
+
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") {
+        return () => {
+          /* noop */
+        };
+      }
+
+      const refresh = () => {
+        cacheRef.current =
+          mode === "auto"
+            ? readColors(cacheRef.current)
+            : readForcedMode(mode, cacheRef.current);
+        onStoreChange();
+      };
+
+      refresh();
+
+      if (mode !== "auto") {
+        return () => {
+          /* forced mode has no live subscription */
+        };
+      }
+
+      const root = document.documentElement;
+      const observer = new MutationObserver(refresh);
+      observer.observe(root, {
+        attributes: true,
+        attributeFilter: ["class", "style", "data-theme"],
+      });
+      return () => observer.disconnect();
+    },
+    () => cacheRef.current,
+    () => SERVER_DEFAULTS
   );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    // These reads pull the live values out of an external system (the DOM's
-    // computed CSS variables), which is a legitimate effect → state sync.
-    if (mode !== "auto") {
-      setColors((prev) => readForcedMode(mode, prev));
-      return;
-    }
-
-    // Initial read once mounted (handles hydration + system theme).
-    setColors((prev) => readColors(prev));
-
-    const root = document.documentElement;
-    const observer = new MutationObserver(() => {
-      setColors((prev) => readColors(prev));
-    });
-    observer.observe(root, {
-      attributes: true,
-      attributeFilter: ["class", "style", "data-theme"],
-    });
-
-    return () => observer.disconnect();
-  }, [mode]);
-
-  return colors;
 }
 
 /**

@@ -2,25 +2,31 @@
 
 import { IconMoon, IconSun } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Switch } from "@/components/ui/switch";
+
+function subscribe() {
+  return () => {
+    /* noop — client snapshot is constant after hydrate */
+  };
+}
+
+function getClientSnapshot() {
+  return true;
+}
+
+function getServerSnapshot() {
+  return false;
+}
 
 export function ThemeModeSwitch() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isDark = resolvedTheme === "dark";
-
-  const handleCheckedChange = useCallback(
-    (checked: boolean) => {
-      setTheme(checked ? "dark" : "light");
-    },
-    [setTheme]
+  const mounted = useSyncExternalStore(
+    subscribe,
+    getClientSnapshot,
+    getServerSnapshot
   );
+  const isDark = resolvedTheme === "dark";
 
   return (
     <div className="flex items-center justify-between gap-3 px-2 py-2">
@@ -32,7 +38,9 @@ export function ThemeModeSwitch() {
         aria-label="Toggle dark mode"
         checked={mounted ? isDark : false}
         disabled={!mounted}
-        onCheckedChange={handleCheckedChange}
+        onCheckedChange={(checked) => {
+          setTheme(checked ? "dark" : "light");
+        }}
       />
       <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
         <span>Dark</span>

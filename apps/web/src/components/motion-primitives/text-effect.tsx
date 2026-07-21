@@ -2,13 +2,15 @@
 
 import {
   AnimatePresence,
-  motion,
+  LazyMotion,
+  m,
   type TargetAndTransition,
   type Transition,
   type Variant,
   type Variants,
 } from "motion/react";
-import React from "react";
+import type React from "react";
+import { loadMotionDomAnimation } from "@/lib/motion-features";
 import { cn } from "@/lib/utils";
 
 type PresetType = "blur" | "fade-in-blur" | "scale" | "fade" | "slide";
@@ -110,47 +112,52 @@ const presetVariants: Record<
   },
 };
 
-const AnimationComponent: React.FC<{
+function AnimationComponent({
+  segment,
+  variants,
+  per,
+  segmentWrapperClassName,
+}: {
   segment: string;
   variants: Variants;
   per: "line" | "word" | "char";
   segmentWrapperClassName?: string;
-}> = React.memo(({ segment, variants, per, segmentWrapperClassName }) => {
+}) {
   let content: React.ReactNode;
 
   if (per === "line") {
     content = (
-      <motion.span className="block" variants={variants}>
+      <m.span className="block" variants={variants}>
         {segment}
-      </motion.span>
+      </m.span>
     );
   } else if (per === "word") {
     content = (
-      <motion.span
+      <m.span
         aria-hidden="true"
         className="inline-block whitespace-pre"
         variants={variants}
       >
         {segment}
-      </motion.span>
+      </m.span>
     );
   } else {
     content = (
-      <motion.span className="inline-block whitespace-pre">
+      <m.span className="inline-block whitespace-pre">
         {segment.split("").reduce<React.ReactElement[]>((nodes, char) => {
           nodes.push(
-            <motion.span
+            <m.span
               aria-hidden="true"
               className="inline-block whitespace-pre"
               key={`char-${nodes.length}-${char}`}
               variants={variants}
             >
               {char}
-            </motion.span>
+            </m.span>
           );
           return nodes;
         }, [])}
-      </motion.span>
+      </m.span>
     );
   }
 
@@ -165,9 +172,7 @@ const AnimationComponent: React.FC<{
       {content}
     </span>
   );
-});
-
-AnimationComponent.displayName = "AnimationComponent";
+}
 
 const WORD_SPLIT_REGEX = /(\s+)/;
 
@@ -240,7 +245,7 @@ export function TextEffect({
   style,
 }: TextEffectProps) {
   const segments = splitText(children, per);
-  const MotionTag = motion[as as keyof typeof motion] as typeof motion.div;
+  const MotionTag = m[as as keyof typeof m] as typeof m.div;
 
   const baseVariants = preset
     ? presetVariants[preset]
@@ -279,31 +284,42 @@ export function TextEffect({
     }),
   };
 
+  const occurrence = new Map<string, number>();
+
   return (
-    <AnimatePresence mode="popLayout">
-      {trigger ? (
-        <MotionTag
-          animate="visible"
-          className={className}
-          exit="exit"
-          initial="hidden"
-          onAnimationComplete={onAnimationComplete}
-          onAnimationStart={onAnimationStart}
-          style={style}
-          variants={computedVariants.container}
-        >
-          {per === "line" ? null : <span className="sr-only">{children}</span>}
-          {segments.map((segment, index) => (
-            <AnimationComponent
-              key={`${per}-${segment}-${String(index)}`}
-              per={per}
-              segment={segment}
-              segmentWrapperClassName={segmentWrapperClassName}
-              variants={computedVariants.item}
-            />
-          ))}
-        </MotionTag>
-      ) : null}
-    </AnimatePresence>
+    <LazyMotion features={loadMotionDomAnimation} strict>
+      <AnimatePresence mode="popLayout">
+        {trigger ? (
+          <MotionTag
+            animate="visible"
+            className={className}
+            exit="exit"
+            initial="hidden"
+            onAnimationComplete={onAnimationComplete}
+            onAnimationStart={onAnimationStart}
+            style={style}
+            variants={computedVariants.container}
+          >
+            {per === "line" ? null : (
+              <span className="sr-only">{children}</span>
+            )}
+            {segments.map((segment) => {
+              const base = `${per}-${segment}`;
+              const count = occurrence.get(base) ?? 0;
+              occurrence.set(base, count + 1);
+              return (
+                <AnimationComponent
+                  key={`${base}-${count}`}
+                  per={per}
+                  segment={segment}
+                  segmentWrapperClassName={segmentWrapperClassName}
+                  variants={computedVariants.item}
+                />
+              );
+            })}
+          </MotionTag>
+        ) : null}
+      </AnimatePresence>
+    </LazyMotion>
   );
 }

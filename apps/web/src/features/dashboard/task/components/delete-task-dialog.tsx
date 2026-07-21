@@ -2,7 +2,7 @@
 
 import { IconTrash } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import {
   AlertDialog,
@@ -31,11 +31,11 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
   const [deleteTask] = useDeleteTaskMutation();
   const refreshTasks = useRefreshTasks();
 
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
+  const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-  }, []);
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     const mutation = deleteTask({
       variables: {
         input: {
@@ -51,7 +51,7 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
     } catch {
       // Mutation errors use its toast; refetch errors surface via query state.
     }
-  }, [deleteTask, handleOpenChange, item.id, refreshTasks]);
+  };
 
   return (
     <AlertDialog onOpenChange={handleOpenChange} open={open}>

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPencil } from "@tabler/icons-react";
 import { taskUpdateSchema } from "@vyrel/api/models/task/types/base.types";
 import { readFragment } from "gql.tada";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
 
@@ -79,15 +79,12 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
     }
   }, [form, item.description, item.title, open]);
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setOpen(nextOpen);
-      if (!nextOpen) {
-        form.clearErrors();
-      }
-    },
-    [form]
-  );
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      form.clearErrors();
+    }
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { organizationCreateSchema } from "@vyrel/api/models/organization/types/base.types";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type z from "zod/v4";
 
@@ -59,20 +59,17 @@ export function CreateOrganizationDialog({
   const pending = form.formState.isSubmitting;
   const slugIsDirty = form.formState.dirtyFields.slug === true;
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     form.reset(createOrganizationDefaultValues);
     form.clearErrors();
-  }, [form]);
+  };
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setOpen(nextOpen);
-      if (!nextOpen) {
-        resetForm();
-      }
-    },
-    [resetForm]
-  );
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      resetForm();
+    }
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");

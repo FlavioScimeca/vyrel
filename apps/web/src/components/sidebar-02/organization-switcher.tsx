@@ -4,7 +4,6 @@ import { useQuery } from "@apollo/client/react";
 import { IconBuilding, IconCheck } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -82,9 +81,9 @@ function OrganizationOption({
   const org = readFragment(OrganizationListItemFragment, organization);
   const imageSrc = org.imageThumb ?? org.imageFull;
 
-  const handleSelect = useCallback(() => {
+  const handleSelect = () => {
     onSelect(org.id);
-  }, [onSelect, org.id]);
+  };
 
   return (
     <DropdownMenuItem
@@ -123,17 +122,14 @@ export function OrganizationSwitcher() {
     ? readFragment(OrganizationListItemFragment, activeOrganizationRef)
     : null;
 
-  const handleSelect = useCallback(
-    async (organizationId: string) => {
-      if (organizationId === activeOrganizationId) {
-        return;
-      }
+  const handleSelect = async (organizationId: string) => {
+    if (organizationId === activeOrganizationId) {
+      return;
+    }
 
-      await authClient.organization.setActive({ organizationId });
-      router.refresh();
-    },
-    [activeOrganizationId, router]
-  );
+    await authClient.organization.setActive({ organizationId });
+    router.refresh();
+  };
 
   if (loading || !activeOrganization) {
     return (

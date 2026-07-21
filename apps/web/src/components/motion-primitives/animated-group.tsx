@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, type Variants } from "motion/react";
+import { LazyMotion, m, type Variants } from "motion/react";
 import React, { type ReactNode } from "react";
+import { loadMotionDomAnimation } from "@/lib/motion-features";
 
 type PresetType =
   | "fade"
@@ -23,8 +24,6 @@ type AnimatedGroupProps = {
     item?: Variants;
   };
   preset?: PresetType;
-  as?: React.ElementType;
-  asChild?: React.ElementType;
 };
 
 const defaultContainerVariants: Variants = {
@@ -105,8 +104,6 @@ export function AnimatedGroup({
   className,
   variants,
   preset,
-  as = "div",
-  asChild = "div",
 }: AnimatedGroupProps) {
   const selectedVariants = {
     item: addDefaultVariants(preset ? presetVariants[preset] : {}),
@@ -115,33 +112,38 @@ export function AnimatedGroup({
   const containerVariants = variants?.container || selectedVariants.container;
   const itemVariants = variants?.item || selectedVariants.item;
 
-  const MotionComponent = React.useMemo(
-    () => motion.create(as as keyof React.JSX.IntrinsicElements),
-    [as]
-  );
-  const MotionChild = React.useMemo(
-    () => motion.create(asChild as keyof React.JSX.IntrinsicElements),
-    [asChild]
-  );
+  const occurrence = new Map<string, number>();
+  const childEntries = React.Children.toArray(children).map((child) => {
+    if (
+      React.isValidElement(child) &&
+      child.key !== null &&
+      child.key !== undefined
+    ) {
+      return { child, key: String(child.key) };
+    }
+    const typeLabel = React.isValidElement(child)
+      ? String(child.type)
+      : typeof child;
+    const base = `animated-group-${typeLabel}`;
+    const count = occurrence.get(base) ?? 0;
+    occurrence.set(base, count + 1);
+    return { child, key: `${base}-${count}` };
+  });
 
   return (
-    <MotionComponent
-      animate="visible"
-      className={className}
-      initial="hidden"
-      variants={containerVariants}
-    >
-      {React.Children.map(children, (child, index) => {
-        const key = React.isValidElement(child)
-          ? (child.key ?? `animated-group-item-${index}`)
-          : `animated-group-item-${index}`;
-
-        return (
-          <MotionChild key={key} variants={itemVariants}>
+    <LazyMotion features={loadMotionDomAnimation} strict>
+      <m.div
+        animate="visible"
+        className={className}
+        initial="hidden"
+        variants={containerVariants}
+      >
+        {childEntries.map(({ child, key }) => (
+          <m.div key={key} variants={itemVariants}>
             {child}
-          </MotionChild>
-        );
-      })}
-    </MotionComponent>
+          </m.div>
+        ))}
+      </m.div>
+    </LazyMotion>
   );
 }

@@ -25,16 +25,11 @@ import {
   UserProfileFragment,
   type UserProfileRef,
 } from "@/features/dashboard/user/graphql/fragments";
+import { formatMediumDate } from "@/lib/format-date";
 
 type UserProfileProps = {
   user: UserProfileRef | null | undefined;
 };
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-  }).format(new Date(value));
-}
 
 export function UserProfile({ user }: UserProfileProps) {
   if (user === null || user === undefined) {
@@ -89,8 +84,8 @@ export function UserProfile({ user }: UserProfileProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-1 text-muted-foreground text-sm">
-        <p>Created {formatDate(profile.createdAt)}</p>
-        <p>Updated {formatDate(profile.updatedAt)}</p>
+        <p>Created {formatMediumDate(profile.createdAt)}</p>
+        <p>Updated {formatMediumDate(profile.updatedAt)}</p>
       </CardContent>
     </Card>
   );

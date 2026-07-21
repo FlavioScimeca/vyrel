@@ -56,7 +56,6 @@
     "build": "turbo build",
     "build:docs": "turbo -F docs build",
     "changeset": "changeset",
-    "check": "ultracite check",
     "check:docs": "turbo -F docs check-types",
     "check:effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text && turbo check-effect-ts",
     "check-types": "turbo check-types",

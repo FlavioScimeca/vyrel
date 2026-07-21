@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
 type TaskFilterQueryVariables = {
@@ -24,34 +24,30 @@ export function useTaskFilters(): UseTaskFiltersResult {
   const [createdRange, setCreatedRange] = useState<DateRange | undefined>();
   const deferredSearch = useDeferredValue(search);
 
-  const queryVariables = useMemo((): TaskFilterQueryVariables => {
-    const trimmedSearch = deferredSearch.trim();
-    const variables: TaskFilterQueryVariables = {};
+  const trimmedSearch = deferredSearch.trim();
+  const queryVariables: TaskFilterQueryVariables = {};
 
-    if (trimmedSearch.length > 0) {
-      variables.search = trimmedSearch;
-    }
+  if (trimmedSearch.length > 0) {
+    queryVariables.search = trimmedSearch;
+  }
 
-    if (createdRange?.from !== undefined) {
-      variables.createdFrom = createdRange.from.toISOString();
-    }
+  if (createdRange?.from !== undefined) {
+    queryVariables.createdFrom = createdRange.from.toISOString();
+  }
 
-    if (createdRange?.to !== undefined) {
-      variables.createdTo = createdRange.to.toISOString();
-    }
-
-    return variables;
-  }, [createdRange, deferredSearch]);
+  if (createdRange?.to !== undefined) {
+    queryVariables.createdTo = createdRange.to.toISOString();
+  }
 
   const hasActiveFilters =
     search.trim().length > 0 ||
     createdRange?.from !== undefined ||
     createdRange?.to !== undefined;
 
-  const clearFilters = useCallback(() => {
+  const clearFilters = () => {
     setSearch("");
     setCreatedRange(undefined);
-  }, []);
+  };
 
   return {
     clearFilters,

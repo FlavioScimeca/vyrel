@@ -1,4 +1,4 @@
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "motion/react";
 import type { Route } from "next";
 import type { AuthMode } from "@/features/auth/form.schema";
 
@@ -14,14 +14,16 @@ export type MotionTransition = {
 
 export function buildAuthModeHref(
   mode: AuthMode,
-  searchParams: URLSearchParams
+  safeNext: string | null
 ): Route {
-  const params = new URLSearchParams(searchParams.toString());
+  const params = new URLSearchParams();
 
   if (mode === "signup") {
     params.set("mode", "signup");
-  } else {
-    params.delete("mode");
+  }
+
+  if (safeNext !== null) {
+    params.set("next", safeNext);
   }
 
   const query = params.toString();

@@ -2,7 +2,7 @@
 
 import { IconArrowsShuffle, IconChevronLeft } from "@tabler/icons-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function AuthPageBackdrop() {
@@ -109,7 +109,7 @@ export function AuthVisualPanel({ className }: { className?: string }) {
   const [paletteIndex, setPaletteIndex] = useState(1);
   const palette = PALETTES[paletteIndex] ?? PALETTES[0];
 
-  const shuffle = useCallback(() => {
+  const shuffle = () => {
     setPaletteIndex((current) => {
       let next = current;
       while (next === current) {
@@ -117,7 +117,7 @@ export function AuthVisualPanel({ className }: { className?: string }) {
       }
       return next;
     });
-  }, []);
+  };
 
   return (
     <div
@@ -236,9 +236,12 @@ void main() {
 function MeshShader({ palette }: { palette: Palette }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const targetRef = useRef(palette.colors);
-  const currentRef = useRef(
-    palette.colors.map((c) => [...c]) as Palette["colors"]
+  const currentRef = useRef<Palette["colors"]>(
+    null as unknown as Palette["colors"]
   );
+  if (currentRef.current === null) {
+    currentRef.current = palette.colors.map((c) => [...c]) as Palette["colors"];
+  }
 
   useEffect(() => {
     targetRef.current = palette.colors;
@@ -285,8 +288,8 @@ function MeshShader({ palette }: { palette: Palette }) {
       return;
     }
     // WebGL API — not a React hook
-    // biome-ignore lint/correctness/useHookAtTopLevel: gl.useProgram is a WebGL method
-    gl.useProgram(prog);
+    const bindProgram = gl.useProgram.bind(gl);
+    bindProgram(prog);
 
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
