@@ -1,8 +1,9 @@
 import { cors } from "@elysiajs/cors";
 import { env } from "@vyrel/env/server";
+import { Effect } from "effect";
 import { Elysia } from "elysia";
 import "./lib/bun-porting";
-import { faviconPath } from "./lib/favicon";
+import { getFaviconPath, runFavicon } from "./lib/favicon";
 import { authPlugin } from "./plugins/auth";
 import { graphqlPlugin } from "./plugins/graphql";
 import { organizationRestPlugin } from "./plugins/organization-rest";
@@ -23,7 +24,18 @@ export const app = new Elysia()
   .use(authPlugin)
   .get("/favicon.ico", ({ set }) => {
     set.headers["cache-control"] = "public, max-age=3600";
-    return Bun.file(faviconPath);
+    // runPromise belongs here (handler edge), not at module top-level
+    return runFavicon(
+      Effect.gen(function* () {
+        const path = yield* getFaviconPath;
+        return Bun.file(path);
+      }).pipe(
+        Effect.catchAll(() => {
+          set.status = 404;
+          return Effect.succeed("Not Found");
+        })
+      )
+    );
   })
   .get("/", () => "OK");
 

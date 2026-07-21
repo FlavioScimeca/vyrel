@@ -17,13 +17,26 @@ const program = Effect.gen(function* () {
     return 0;
   }
 
+  // Next.js still requires classic typescript/lib/typescript.js (TS 5/6 API).
+  // TypeScript 7 does not ship it, so point `typescript` at typescript6 for builds.
   if (yield* fs.exists(typescriptPath)) {
+    const existing = yield* fs
+      .readLink(typescriptPath)
+      .pipe(Effect.catchAll(() => Effect.succeed(null)));
+
+    if (existing === typescript6Path) {
+      yield* Effect.log(
+        "swap-typescript-for-vercel: typescript already points at typescript6"
+      );
+      return 0;
+    }
+
     yield* fs.remove(typescriptPath, { force: true, recursive: true });
   }
 
   yield* fs.symlink(typescript6Path, typescriptPath);
   yield* Effect.log(
-    "swap-typescript-for-vercel: symlinked typescript6 -> typescript for Vercel builders"
+    "swap-typescript-for-vercel: symlinked typescript6 -> typescript for Next.js builders"
   );
   return 0;
 });

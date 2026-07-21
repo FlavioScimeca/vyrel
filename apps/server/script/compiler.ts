@@ -57,7 +57,9 @@ const program = Effect.gen(function* () {
         entry: "bundle.[ext]",
       },
       outdir,
-      sourcemap: "linked",
+      // Linked sourcemaps are unsupported by Vercel's Bun decoder
+      // ("Could not decode sourcemap ... UnsupportedFormat").
+      sourcemap: "none",
       target: "bun",
     })
   );

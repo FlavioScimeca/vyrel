@@ -53,7 +53,7 @@
     }
   },
   "scripts": {
-    "build": "turbo build",
+    "build": "bun run script/swap-typescript-for-vercel.ts && turbo build",
     "build:docs": "turbo -F docs build",
     "changeset": "changeset",
     "check:docs": "turbo -F docs check-types",
