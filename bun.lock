@@ -311,6 +311,7 @@
         "@vyrel/env": "workspace:*",
         "dotenv": "catalog:",
         "drizzle-orm": "1.0.0-rc.4",
+        "effect": "catalog:",
         "libsql": "catalog:",
         "zod": "catalog:",
       },
@@ -327,6 +328,7 @@
         "@t3-oss/env-core": "^0.13.11",
         "@t3-oss/env-nextjs": "^0.13.11",
         "dotenv": "catalog:",
+        "effect": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {

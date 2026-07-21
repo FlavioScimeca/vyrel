@@ -1,9 +1,15 @@
+import { Config, Effect } from "effect";
 import { createLogger } from "evlog";
 
-const logLevel = process.env.LOG_LEVEL || "info";
+const { env, logLevel } = Effect.runSync(
+  Effect.all({
+    env: Config.string("NODE_ENV").pipe(Config.withDefault("development")),
+    logLevel: Config.string("LOG_LEVEL").pipe(Config.withDefault("info")),
+  })
+);
 
 export const logger = createLogger({
-  env: process.env.NODE_ENV || "development",
+  env,
   level: logLevel,
 });
 

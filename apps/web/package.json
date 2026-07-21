@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "prebuild": "bun run script/prebuild.ts",
-    "build": "bun run --bun next build",
+    "build": "bunx next build",
     "build-storybook": "storybook build",
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
     "predev": "bun run graphql:schema && bun run gql:generate && bun run gql:client",
     "dev": "concurrently --kill-others --names next,gql-client \"bun run --bun next dev --port 3001\" \"bun run gql:client:watch\"",

@@ -1,9 +1,9 @@
-import { readdir, stat } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { BunContext } from "@effect/platform-bun";
+import { Effect, ManagedRuntime } from "effect";
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const distDir = join(packageRoot, "dist");
+const runtime = ManagedRuntime.make(BunContext.layer);
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
@@ -17,96 +17,108 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const listDistFiles = async (
+type DistFile = { path: string; size: number };
+
+const listDistFiles = (
+  fs: FileSystem.FileSystem,
+  path: Path.Path,
   directory: string
-): Promise<{ path: string; size: number }[]> => {
-  const entries = await readdir(directory, { withFileTypes: true });
+): Effect.Effect<DistFile[], PlatformError> =>
+  Effect.gen(function* () {
+    const files: DistFile[] = [];
 
-  const nested = await Promise.all(
-    entries.map(async (entry) => {
-      const fullPath = join(directory, entry.name);
+    for (const entry of yield* fs.readDirectory(directory)) {
+      const fullPath = path.join(directory, entry);
+      const info = yield* fs.stat(fullPath);
 
-      if (entry.isDirectory()) {
-        return listDistFiles(fullPath);
+      if (info.type === "Directory") {
+        files.push(...(yield* listDistFiles(fs, path, fullPath)));
+      } else if (info.type === "File") {
+        files.push({ path: fullPath, size: Number(info.size) });
       }
+    }
 
-      if (entry.isFile()) {
-        const fileStat = await stat(fullPath);
-        return [{ path: fullPath, size: fileStat.size }];
-      }
-
-      return [];
-    })
-  );
-
-  return nested.flat();
-};
-
-const distExists = await stat(distDir).catch(() => null);
-
-if (!distExists?.isDirectory()) {
-  throw new Error("dist/ not found. Run `bun run build` first.");
-}
+    return files;
+  });
 
 const WORKER_SIZE_WARNING_BYTES = 80 * 1024 * 1024;
 
-const files = await listDistFiles(distDir);
-const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-const runtimeEntry = files.find((file) => file.path.endsWith("/bundle.js"));
-const workerEntry = files.find((file) =>
-  file.path.endsWith("/bin/porting-worker")
-);
+const program = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const packageRoot = path.join(import.meta.dirname, "..");
+  const distDir = path.join(packageRoot, "dist");
+  const distExists = yield* fs.exists(distDir);
 
-console.log("server dist size\n");
-console.log("File".padEnd(28), "Size");
-console.log("-".repeat(40));
+  if (!distExists) {
+    return yield* Effect.die(
+      new Error("dist/ not found. Run `bun run build` first.")
+    );
+  }
 
-for (const file of files.toSorted((left, right) => right.size - left.size)) {
-  const label = relative(distDir, file.path);
-  console.log(label.padEnd(28), formatBytes(file.size));
-}
+  const files = yield* listDistFiles(fs, path, distDir);
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  const runtimeEntry = files.find((file) => file.path.endsWith("/bundle.js"));
+  const workerEntry = files.find((file) =>
+    file.path.endsWith("/bin/porting-worker")
+  );
 
-console.log("-".repeat(40));
-console.log("Total on disk".padEnd(28), formatBytes(totalBytes));
+  yield* Effect.log("server dist size\n");
+  yield* Effect.log(`${"File".padEnd(28)} Size`);
+  yield* Effect.log("-".repeat(40));
 
-if (workerEntry) {
-  console.log(
-    "Porting worker (bin/porting-worker)".padEnd(28),
-    formatBytes(workerEntry.size)
+  for (const file of files.toSorted((left, right) => right.size - left.size)) {
+    const label = path.relative(distDir, file.path);
+    yield* Effect.log(`${label.padEnd(28)} ${formatBytes(file.size)}`);
+  }
+
+  yield* Effect.log("-".repeat(40));
+  yield* Effect.log("Total on disk".padEnd(28) + formatBytes(totalBytes));
+
+  if (workerEntry === undefined) {
+    yield* Effect.logError("\nError: dist/bin/porting-worker is missing");
+    return yield* Effect.die(new Error("dist/bin/porting-worker is missing"));
+  }
+  yield* Effect.log(
+    "Porting worker (bin/porting-worker)".padEnd(28) +
+      formatBytes(workerEntry.size)
   );
 
   if (workerEntry.size > WORKER_SIZE_WARNING_BYTES) {
-    console.log(
+    yield* Effect.log(
       `\nWarning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
     );
   }
-} else {
-  console.error("\nError: dist/bin/porting-worker is missing");
-  process.exit(1);
-}
 
-if (runtimeEntry) {
-  console.log(
-    "Runtime bundle (bundle.js)".padEnd(28),
-    formatBytes(runtimeEntry.size)
-  );
-}
-
-if (runtimeEntry) {
-  const bundle = await Bun.file(runtimeEntry.path).text();
-  const unresolvedWorkspaceImports = bundle.match(
-    /from\s+["']@vyrel\/[^"']+["']/g
-  );
-
-  if (unresolvedWorkspaceImports?.length) {
-    console.log(
-      "\nWarning: unresolved workspace imports detected in runtime bundle"
+  if (runtimeEntry !== undefined) {
+    yield* Effect.log(
+      "Runtime bundle (bundle.js)".padEnd(28) + formatBytes(runtimeEntry.size)
     );
-    for (const unresolvedImport of unresolvedWorkspaceImports) {
-      console.log(`- ${unresolvedImport}`);
-    }
-    process.exit(1);
-  }
 
-  console.log("\nWorkspace imports: bundled");
-}
+    const bundle = yield* Effect.promise(() =>
+      Bun.file(runtimeEntry.path).text()
+    );
+    const unresolvedWorkspaceImports = bundle.match(
+      /from\s+["']@vyrel\/[^"']+["']/g
+    );
+
+    if (
+      unresolvedWorkspaceImports !== null &&
+      unresolvedWorkspaceImports.length > 0
+    ) {
+      yield* Effect.log(
+        "\nWarning: unresolved workspace imports detected in runtime bundle"
+      );
+      for (const unresolvedImport of unresolvedWorkspaceImports) {
+        yield* Effect.log(`- ${unresolvedImport}`);
+      }
+      return yield* Effect.die(
+        new Error("Unresolved workspace imports in runtime bundle")
+      );
+    }
+
+    yield* Effect.log("\nWorkspace imports: bundled");
+  }
+});
+
+await runtime.runPromise(program);

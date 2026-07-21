@@ -22,6 +22,9 @@
         "name": "gql.tada/ts-plugin",
         "schema": "./schema.graphql",
         "tadaOutputLocation": "./graphql-env.d.ts"
+      },
+      {
+        "name": "@effect/language-service"
       }
     ],
     "paths": {

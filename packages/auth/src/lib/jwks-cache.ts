@@ -1,4 +1,5 @@
 import { JWKS_CACHE_TTL_MS } from "@vyrel/consts/server";
+import { Clock, Effect } from "effect";
 import { createLocalJWKSet, type JSONWebKeySet } from "jose";
 import { auth } from "..";
 
@@ -10,14 +11,20 @@ const TTL_MS = JWKS_CACHE_TTL_MS;
  * Cached JWKS for JWT verification.
  * Uses `auth.api.getJwks()` (in-process) to avoid HTTP/network latency.
  */
-export async function getJwks(): Promise<ReturnType<typeof createLocalJWKSet>> {
-  const now = Date.now();
-  if (cachedJwks && now - fetchedAt < TTL_MS) {
-    return cachedJwks;
-  }
+export const getJwks = (): Promise<ReturnType<typeof createLocalJWKSet>> =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis;
 
-  const set = (await auth.api.getJwks()) as JSONWebKeySet;
-  cachedJwks = createLocalJWKSet(set);
-  fetchedAt = now;
-  return cachedJwks;
-}
+      if (cachedJwks !== null && now - fetchedAt < TTL_MS) {
+        return cachedJwks;
+      }
+
+      const set = (yield* Effect.promise(() =>
+        auth.api.getJwks()
+      )) as JSONWebKeySet;
+      cachedJwks = createLocalJWKSet(set);
+      fetchedAt = now;
+      return cachedJwks;
+    })
+  );

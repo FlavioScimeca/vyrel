@@ -1,13 +1,24 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
+import { Path } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
 import {
   configureBunPorting,
   PORTING_WORKER_BINARY_NAME,
 } from "@vyrel/bun-porting/bootstrap";
+import { Effect, ManagedRuntime } from "effect";
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const runtime = ManagedRuntime.make(BunContext.layer);
 const binary = PORTING_WORKER_BINARY_NAME;
+
+const paths = runtime.runSync(
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    return {
+      cwd: path.resolve("."),
+      packageRoot: path.resolve(import.meta.dirname, "../.."),
+      path,
+    };
+  })
+);
 
 /**
  * Configure bun-porting path resolution for this server package.
@@ -18,13 +29,15 @@ const binary = PORTING_WORKER_BINARY_NAME;
  * Vercel paths are the reliable production lookups.
  */
 export const initBunPorting = (): void => {
+  const { cwd, packageRoot, path } = paths;
+
   configureBunPorting({
     binaryPathCandidates: [
-      join(process.cwd(), "bin", binary),
-      join(process.cwd(), "dist/bin", binary),
-      join(process.cwd(), "apps/server/dist/bin", binary),
-      join(packageRoot, "dist/bin", binary),
-      join(packageRoot, "bin", binary),
+      path.join(cwd, "bin", binary),
+      path.join(cwd, "dist/bin", binary),
+      path.join(cwd, "apps/server/dist/bin", binary),
+      path.join(packageRoot, "dist/bin", binary),
+      path.join(packageRoot, "bin", binary),
       `/var/task/bin/${binary}`,
       `/var/task/dist/bin/${binary}`,
       `/var/task/apps/server/dist/bin/${binary}`,
