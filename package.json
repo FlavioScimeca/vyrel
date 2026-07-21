@@ -34,6 +34,7 @@
       "@effect/vitest": "^0.29.0",
       "vitest": "4.1.8",
       "@vitest/ui": "4.1.8",
+      "react-doctor": "^0.8.1",
       "@vitest/coverage-v8": "4.1.8",
       "jsdom": "^29.1.1",
       "@playwright/test": "^1.61.1",
