@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { taskCreateSchema } from "@vyrel/api/models/task/types/base.types";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type z from "zod/v4";
 
@@ -56,20 +56,17 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
 
   const pending = form.formState.isSubmitting;
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     form.reset(createTaskDefaultValues);
     form.clearErrors();
-  }, [form]);
+  };
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setOpen(nextOpen);
-      if (!nextOpen) {
-        resetForm();
-      }
-    },
-    [resetForm]
-  );
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      resetForm();
+    }
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");

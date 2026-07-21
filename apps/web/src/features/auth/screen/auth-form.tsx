@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LazyMotion, m } from "motion/react";
 import { useEffect, useRef } from "react";
 import {
   FormProvider,
@@ -35,6 +35,7 @@ import {
   type MotionTransition,
   useAuthMotion,
 } from "@/features/auth/screen/auth-shared";
+import { loadMotionDomAnimation } from "@/lib/motion-features";
 
 const SIGN_IN_FORM_ID = "auth-form-signin";
 const SIGN_UP_FORM_ID = "auth-form-signup";
@@ -301,17 +302,19 @@ function SubmitButton({
       {pending ? (
         <Spinner className="size-4" />
       ) : (
-        <AnimatePresence initial={false} mode="wait">
-          <motion.span
-            animate={{ opacity: 1 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            key={submitLabel}
-            transition={fieldTransition}
-          >
-            {submitLabel}
-          </motion.span>
-        </AnimatePresence>
+        <LazyMotion features={loadMotionDomAnimation} strict>
+          <AnimatePresence initial={false} mode="wait">
+            <m.span
+              animate={{ opacity: 1 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+              initial={prefersReducedMotion ? false : { opacity: 0 }}
+              key={submitLabel}
+              transition={fieldTransition}
+            >
+              {submitLabel}
+            </m.span>
+          </AnimatePresence>
+        </LazyMotion>
       )}
     </Button>
   );

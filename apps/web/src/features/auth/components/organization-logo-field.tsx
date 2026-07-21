@@ -2,7 +2,7 @@
 
 import { IconBuilding, IconX } from "@tabler/icons-react";
 import Image from "next/image";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import {
   type Control,
   type FieldError as RhfFieldError,
@@ -10,7 +10,6 @@ import {
   type UseFormSetError,
   useController,
 } from "react-hook-form";
-
 import {
   Attachment,
   AttachmentAction,
@@ -24,6 +23,7 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import type { OnboardingFormValues } from "@/features/auth/onboarding-form.schema";
+import { useObjectUrl } from "@/hooks/use-object-url";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -128,33 +128,10 @@ function LogoAttachment({
   setError: UseFormSetError<OnboardingFormValues>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrl = useObjectUrl(file);
   const validationMessage = error?.message;
   const hasFile = file !== undefined;
-
-  useEffect(() => {
-    if (file === undefined) {
-      setPreviewUrl((current) => {
-        if (current !== null) {
-          URL.revokeObjectURL(current);
-        }
-        return null;
-      });
-      return;
-    }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl((current) => {
-      if (current !== null) {
-        URL.revokeObjectURL(current);
-      }
-      return nextPreviewUrl;
-    });
-
-    return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
-    };
-  }, [file]);
+  const labelId = `${inputId}-label`;
 
   const attachmentState = (() => {
     if (isSubmitting) {
@@ -169,48 +146,45 @@ function LogoAttachment({
     return "idle" as const;
   })();
 
-  const handleFileChange = useCallback(
-    (nextFile: File | undefined) => {
-      if (nextFile === undefined) {
-        clearErrors("logo");
-        onChange(undefined);
-        return;
-      }
-
-      const message = validateLogoFile(nextFile);
-      if (message !== null) {
-        setError("logo", { message });
-        return;
-      }
-
+  const handleFileChange = (nextFile: File | undefined) => {
+    if (nextFile === undefined) {
       clearErrors("logo");
-      onChange(nextFile);
-    },
-    [clearErrors, onChange, setError]
-  );
+      onChange(undefined);
+      return;
+    }
 
-  const handleClear = useCallback(() => {
+    const message = validateLogoFile(nextFile);
+    if (message !== null) {
+      setError("logo", { message });
+      return;
+    }
+
+    clearErrors("logo");
+    onChange(nextFile);
+  };
+
+  const handleClear = () => {
     handleFileChange(undefined);
-  }, [handleFileChange]);
+  };
 
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const nextFile = event.target.files?.[0];
-      handleFileChange(nextFile);
-      event.target.value = "";
-    },
-    [handleFileChange]
-  );
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0];
+    handleFileChange(nextFile);
+    event.target.value = "";
+  };
 
-  const handleOpenFilePicker = useCallback(() => {
+  const handleOpenFilePicker = () => {
     inputRef.current?.click();
-  }, []);
+  };
 
   return (
     <Field data-invalid={validationMessage !== undefined}>
-      <FieldLabel htmlFor={inputId}>Logo</FieldLabel>
+      <FieldLabel htmlFor={inputId} id={labelId}>
+        Logo
+      </FieldLabel>
       <input
         accept="image/png,image/jpeg,image/webp,image/gif"
+        aria-label="Logo"
         className="sr-only"
         id={inputId}
         name={`${formId}-logo`}
@@ -243,6 +217,7 @@ function LogoAttachment({
         ) : null}
         <AttachmentTrigger
           aria-label="Choose logo"
+          aria-labelledby={labelId}
           className="cursor-pointer"
           onClick={handleOpenFilePicker}
           type="button"

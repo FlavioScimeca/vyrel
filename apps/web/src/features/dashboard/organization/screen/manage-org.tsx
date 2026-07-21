@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
-import { useCallback } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,9 +11,9 @@ import { ListOrganizationsDocument } from "@/features/dashboard/organization/gra
 export default function ManageOrg() {
   const { data, error, loading, refetch } = useQuery(ListOrganizationsDocument);
 
-  const handleOrganizationCreated = useCallback(() => {
+  const handleOrganizationCreated = () => {
     refetch();
-  }, [refetch]);
+  };
 
   const organizations = data?.organizations ?? [];
 

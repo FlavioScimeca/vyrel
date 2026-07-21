@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
-import { type ReactNode, useCallback } from "react";
+import type { ReactNode } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -97,14 +97,14 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   const { data, error, loading, refetch } = useQuery(ListTasksDocument, {
     variables: { organizationId, ...queryVariables },
   });
-  const refreshTasks = useCallback(async (): Promise<void> => {
+  const refreshTasks = async (): Promise<void> => {
     await refetch();
-  }, [refetch]);
-  const handleRetry = useCallback(() => {
+  };
+  const handleRetry = () => {
     refreshTasks().catch(() => {
       // Error surfaces via the query `error` state.
     });
-  }, [refreshTasks]);
+  };
 
   return (
     <TaskRefreshProvider refreshTasks={refreshTasks}>

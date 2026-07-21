@@ -22,6 +22,7 @@ import { DeleteTaskDialog } from "@/features/dashboard/task/components/delete-ta
 import { EditTaskDialog } from "@/features/dashboard/task/components/edit-task-dialog";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import { formatMediumDate } from "@/lib/format-date";
 
 const WHITESPACE_PATTERN = /\s+/;
 
@@ -30,12 +31,6 @@ type TaskListProps = {
   onClearFilters?: () => void;
   tasks: readonly TaskListItemRef[];
 };
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-  }).format(new Date(value));
-}
 
 function TaskCard({ task }: { task: TaskListItemRef }) {
   const item = readFragment(TaskListItemFragment, task);
@@ -82,8 +77,8 @@ function TaskCard({ task }: { task: TaskListItemRef }) {
       <CardContent>
         <p className="text-muted-foreground text-sm">
           {wasUpdated
-            ? `Updated ${formatDate(item.updatedAt)}`
-            : `Created ${formatDate(item.createdAt)}`}
+            ? `Updated ${formatMediumDate(item.updatedAt)}`
+            : `Created ${formatMediumDate(item.createdAt)}`}
         </p>
       </CardContent>
     </Card>

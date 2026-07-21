@@ -2,12 +2,7 @@
 
 import { IconCheck, IconChevronLeft } from "@tabler/icons-react";
 import Link from "next/link";
-import {
-  type ChangeEvent,
-  type SubmitEvent,
-  useCallback,
-  useState,
-} from "react";
+import { type ChangeEvent, type SubmitEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,31 +20,28 @@ export function AuthResetPasswordShowcasePage() {
   const [sent, setSent] = useState(false);
   const [pending, setPending] = useState(false);
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setSent(false);
     setEmail("");
-  }, []);
+  };
 
-  const onEmailChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const onEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
     setEmail(event.target.value);
-  }, []);
+  };
 
-  const onSubmit = useCallback(
-    (event: SubmitEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!email.trim() || pending) {
-        return;
-      }
-      setPending(true);
-      window.setTimeout(() => {
-        setPending(false);
-        setSent(true);
-      }, 700);
-    },
-    [email, pending]
-  );
+  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email.trim() || pending) {
+      return;
+    }
+    setPending(true);
+    window.setTimeout(() => {
+      setPending(false);
+      setSent(true);
+    }, 700);
+  };
 
-  const onResend = useCallback(() => {
+  const onResend = () => {
     if (!email.trim() || pending) {
       return;
     }
@@ -57,15 +49,15 @@ export function AuthResetPasswordShowcasePage() {
     window.setTimeout(() => {
       setPending(false);
     }, 700);
-  }, [email, pending]);
+  };
 
-  const toggleDemoState = useCallback(() => {
+  const toggleDemoState = () => {
     if (sent) {
       reset();
       return;
     }
     setSent(true);
-  }, [reset, sent]);
+  };
 
   return (
     <div className="relative flex min-h-svh items-center justify-center bg-background px-4">

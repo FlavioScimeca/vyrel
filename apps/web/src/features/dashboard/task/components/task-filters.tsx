@@ -1,7 +1,7 @@
 "use client";
 
 import { IconCalendar, IconSearch, IconX } from "@tabler/icons-react";
-import { type ChangeEvent, useCallback } from "react";
+import type { ChangeEvent } from "react";
 import type { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatMediumDate } from "@/lib/format-date";
 
 type TaskFiltersProps = {
   clearFilters: () => void;
@@ -26,22 +27,16 @@ type TaskFiltersProps = {
   search: string;
 };
 
-function formatDateLabel(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-  }).format(date);
-}
-
 function formatCreatedRangeLabel(range: DateRange | undefined): string {
   if (range?.from === undefined) {
     return "Created date";
   }
 
   if (range.to === undefined) {
-    return formatDateLabel(range.from);
+    return formatMediumDate(range.from);
   }
 
-  return `${formatDateLabel(range.from)} – ${formatDateLabel(range.to)}`;
+  return `${formatMediumDate(range.from)} – ${formatMediumDate(range.to)}`;
 }
 
 export function TaskFilters({
@@ -52,12 +47,9 @@ export function TaskFilters({
   onSearchChange,
   search,
 }: TaskFiltersProps) {
-  const handleSearchChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onSearchChange(event.target.value);
-    },
-    [onSearchChange]
-  );
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onSearchChange(event.target.value);
+  };
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

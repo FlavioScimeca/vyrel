@@ -2,7 +2,7 @@
 
 import { IconUser, IconX } from "@tabler/icons-react";
 import Image from "next/image";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import {
   type FieldError as RhfFieldError,
   useController,
@@ -22,6 +22,7 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import type { SignUpFormValues } from "@/features/auth/form.schema";
+import { useObjectUrl } from "@/hooks/use-object-url";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -117,33 +118,10 @@ function AvatarAttachment({
   setError: (name: "avatar", error: { message: string }) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrl = useObjectUrl(file);
   const validationMessage = error?.message;
   const hasFile = file !== undefined;
-
-  useEffect(() => {
-    if (file === undefined) {
-      setPreviewUrl((current) => {
-        if (current !== null) {
-          URL.revokeObjectURL(current);
-        }
-        return null;
-      });
-      return;
-    }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl((current) => {
-      if (current !== null) {
-        URL.revokeObjectURL(current);
-      }
-      return nextPreviewUrl;
-    });
-
-    return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
-    };
-  }, [file]);
+  const labelId = `${inputId}-label`;
 
   const attachmentState = (() => {
     if (isSubmitting) {
@@ -158,48 +136,45 @@ function AvatarAttachment({
     return "idle" as const;
   })();
 
-  const handleFileChange = useCallback(
-    (nextFile: File | undefined) => {
-      if (nextFile === undefined) {
-        clearErrors("avatar");
-        onChange(undefined);
-        return;
-      }
-
-      const message = validateAvatarFile(nextFile);
-      if (message !== null) {
-        setError("avatar", { message });
-        return;
-      }
-
+  const handleFileChange = (nextFile: File | undefined) => {
+    if (nextFile === undefined) {
       clearErrors("avatar");
-      onChange(nextFile);
-    },
-    [clearErrors, onChange, setError]
-  );
+      onChange(undefined);
+      return;
+    }
 
-  const handleClear = useCallback(() => {
+    const message = validateAvatarFile(nextFile);
+    if (message !== null) {
+      setError("avatar", { message });
+      return;
+    }
+
+    clearErrors("avatar");
+    onChange(nextFile);
+  };
+
+  const handleClear = () => {
     handleFileChange(undefined);
-  }, [handleFileChange]);
+  };
 
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const nextFile = event.target.files?.[0];
-      handleFileChange(nextFile);
-      event.target.value = "";
-    },
-    [handleFileChange]
-  );
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0];
+    handleFileChange(nextFile);
+    event.target.value = "";
+  };
 
-  const handleOpenFilePicker = useCallback(() => {
+  const handleOpenFilePicker = () => {
     inputRef.current?.click();
-  }, []);
+  };
 
   return (
     <Field data-invalid={validationMessage !== undefined}>
-      <FieldLabel htmlFor={inputId}>Profile photo</FieldLabel>
+      <FieldLabel htmlFor={inputId} id={labelId}>
+        Profile photo
+      </FieldLabel>
       <input
         accept="image/png,image/jpeg,image/webp,image/gif"
+        aria-label="Profile photo"
         className="sr-only"
         id={inputId}
         name={`${formId}-avatar`}
@@ -234,6 +209,7 @@ function AvatarAttachment({
         ) : null}
         <AttachmentTrigger
           aria-label="Choose profile photo"
+          aria-labelledby={labelId}
           className="cursor-pointer"
           onClick={handleOpenFilePicker}
           type="button"

@@ -4,7 +4,7 @@ import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import type { Route as NextRoute } from "next";
 import Link from "next/link";
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -48,12 +48,9 @@ function CollapsibleRouteItem({
 }: CollapsibleRouteItemProps) {
   const hasSubRoutes = !!route.subs?.length;
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      onOpenChange(open ? route.id : null);
-    },
-    [onOpenChange, route.id]
-  );
+  const handleOpenChange = (open: boolean) => {
+    onOpenChange(open ? route.id : null);
+  };
 
   return (
     <Collapsible

@@ -1,6 +1,6 @@
 "use client";
 import { IconMenu, IconX } from "@tabler/icons-react";
-import { useScroll } from "motion/react";
+import { useMotionValueEvent, useScroll } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
@@ -21,16 +21,13 @@ export const HeroHeader = () => {
 
   const { scrollYProgress } = useScroll();
 
-  const toggleMenu = React.useCallback(() => {
-    setMenuState((open) => !open);
-  }, []);
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    setScrolled(latest > 0.05);
+  });
 
-  React.useEffect(() => {
-    const unsubscribe = scrollYProgress.on("change", (latest) => {
-      setScrolled(latest > 0.05);
-    });
-    return () => unsubscribe();
-  }, [scrollYProgress]);
+  const toggleMenu = () => {
+    setMenuState((open) => !open);
+  };
 
   return (
     <header>

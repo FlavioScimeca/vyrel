@@ -9,7 +9,6 @@ import {
 } from "@tabler/icons-react";
 import type { Route as NextRoute } from "next";
 import Link from "next/link";
-import { useCallback } from "react";
 import { ThemeModeSwitch } from "@/components/sidebar-02/theme-mode-switch";
 import {
   DropdownMenu,
@@ -41,13 +40,13 @@ const managementLinks = [
   },
 ] as const;
 
+async function handleSignOut() {
+  await authClient.signOut();
+  window.location.assign("/auth");
+}
+
 export function NavManagement() {
   const { isMobile } = useSidebar();
-
-  const handleSignOut = useCallback(async () => {
-    await authClient.signOut();
-    window.location.assign("/auth");
-  }, []);
 
   return (
     <SidebarMenu>
