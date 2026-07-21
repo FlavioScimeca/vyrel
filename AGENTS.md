@@ -199,6 +199,10 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 - Use `class` and `for` attributes (not `className` or `htmlFor`)
 
+**Expo**
+
+- Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+
 ---
 
 ## Testing

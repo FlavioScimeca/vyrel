@@ -14,6 +14,10 @@
     "effect-mcp": {
       "command": "npx",
       "args": ["-y", "@niklaserik/effect-mcp"]
+    },
+    "heroui-native": {
+      "command": "npx",
+      "args": ["-y", "@heroui/native-mcp@latest"]
     }
   }
 }
