@@ -2,20 +2,32 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const monorepoRoot = join(packageRoot, "../..");
 
-const run = (script: string): void => {
-  console.log(`\n> web ${script}`);
+const run = (cmd: string[], cwd: string, label: string): void => {
+  console.log(`\n> web ${label}`);
   const result = Bun.spawnSync({
-    cmd: ["bun", "run", script],
-    cwd: packageRoot,
+    cmd,
+    cwd,
     stderr: "inherit",
     stdout: "inherit",
   });
 
   if (result.exitCode !== 0) {
-    throw new Error(`web ${script} failed`);
+    throw new Error(`web ${label} failed`);
   }
 };
+
+const runScript = (script: string): void => {
+  run(["bun", "run", script], packageRoot, script);
+};
+
+// Next.js needs classic typescript/lib/typescript.js; TS 7 does not ship it.
+run(
+  ["bun", "run", "script/swap-typescript-for-vercel.ts"],
+  monorepoRoot,
+  "swap-typescript-for-vercel"
+);
 
 const skipSchemaGeneration =
   process.env.SKIP_GRAPHQL_SCHEMA === "1" || process.env.VERCEL === "1";
@@ -25,8 +37,8 @@ if (skipSchemaGeneration) {
     "web prebuild: skipping graphql:schema (using committed apps/web/schema.graphql)"
   );
 } else {
-  run("graphql:schema");
+  runScript("graphql:schema");
 }
 
-run("gql:generate");
-run("gql:client");
+runScript("gql:generate");
+runScript("gql:client");

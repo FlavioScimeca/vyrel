@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "bun run --cwd ../.. script/swap-typescript-for-vercel.ts",
     "build": "bunx next build",
     "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
