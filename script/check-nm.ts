@@ -1,4 +1,6 @@
 import { FileSystem, Path } from "@effect/platform";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect, Option } from "effect";
 import { scriptRuntime } from "./runtime";
 
@@ -181,29 +183,31 @@ function pad(text: string, width: number): string {
 }
 
 const printSection = (title: string): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(colorize(title, "bold"));
-    yield* Effect.log(colorize("─".repeat(60), "dim"));
+  Effect.sync(() => {
+    log.info("check-nm", "");
+    log.info("check-nm", colorize(title, "bold"));
+    log.info("check-nm", colorize("─".repeat(60), "dim"));
   });
 
 const printReportHeader = (report: NodeModulesReport): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(colorize("node_modules check", "bold"));
-    yield* Effect.log(colorize("═".repeat(60), "dim"));
-    yield* Effect.log(`  ${colorize("repo", "cyan")}    ${report.root}`);
+  Effect.sync(() => {
+    log.info("check-nm", "");
+    log.info("check-nm", colorize("node_modules check", "bold"));
+    log.info("check-nm", colorize("═".repeat(60), "dim"));
+    log.info("check-nm", `  ${colorize("repo", "cyan")}    ${report.root}`);
   });
 
 const printHealthyStatus = (rootEntry: NodeModulesEntry): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log(
+  Effect.sync(() => {
+    log.info(
+      "check-nm",
       `  ${colorize("status", "cyan")}  ${colorize("OK", "green")} — only root node_modules`
     );
-    yield* Effect.log(
+    log.info(
+      "check-nm",
       `  ${colorize("found", "cyan")}   ${rootEntry.entries.length.toLocaleString()} entries in node_modules`
     );
-    yield* Effect.log("");
+    log.info("check-nm", "");
   });
 
 const printUnhealthyStatus = (
@@ -211,23 +215,26 @@ const printUnhealthyStatus = (
   totalCount: number,
   hasRoot: boolean
 ): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log(
+  Effect.sync(() => {
+    log.info(
+      "check-nm",
       `  ${colorize("status", "cyan")}  ${colorize("NOT OK", "red")} — ${nestedCount} nested node_modules`
     );
-    yield* Effect.log(
+    log.info(
+      "check-nm",
       `  ${colorize("found", "cyan")}   ${totalCount} total (${hasRoot ? "1 root" : "0 root"}, ${nestedCount} nested)`
     );
   });
 
 const printInstallRows = (report: NodeModulesReport): Effect.Effect<void> =>
-  Effect.gen(function* () {
+  Effect.sync(() => {
     const pathWidth = Math.max(
       "path".length,
       ...report.real.map((entry) => entry.relativePath.length)
     );
 
-    yield* Effect.log(
+    log.info(
+      "check-nm",
       colorize(`  ${pad("kind", 9)} ${pad("path", pathWidth)}  entries`, "dim")
     );
 
@@ -245,10 +252,11 @@ const printInstallRows = (report: NodeModulesReport): Effect.Effect<void> =>
       const count = entry.entries.length.toLocaleString();
       const kindLabel = `${marker} ${kind}`;
 
-      yield* Effect.log(
+      log.info(
+        "check-nm",
         `  ${colorize(pad(kindLabel, 9), kindColor)} ${pad(entry.relativePath, pathWidth)}  ${count}`
       );
-      yield* Effect.log(colorize(`    ${formatEntrySummary(entry)}`, "dim"));
+      log.info("check-nm", colorize(`    ${formatEntrySummary(entry)}`, "dim"));
     }
   });
 
@@ -263,7 +271,8 @@ const printCacheOnlySection = (
     yield* printSection(`Ignored cache-only (${cacheOnly.length})`);
 
     for (const entry of cacheOnly) {
-      yield* Effect.log(
+      log.info(
+        "check-nm",
         colorize(
           `  ${entry.relativePath} — ${formatEntrySummary(entry)}`,
           "dim"
@@ -282,10 +291,11 @@ export const printNodeModulesReport = (
     yield* printReportHeader(report);
 
     if (report.real.length === 0) {
-      yield* Effect.log(
+      log.info(
+        "check-nm",
         `  ${colorize("status", "cyan")}  ${colorize("no node_modules found", "yellow")}`
       );
-      yield* Effect.log("");
+      log.info("check-nm", "");
       return;
     }
 
@@ -304,13 +314,14 @@ export const printNodeModulesReport = (
     yield* printCacheOnlySection(report.cacheOnly);
 
     yield* printSection("Next step");
-    yield* Effect.log(
+    log.info(
+      "check-nm",
       colorize(
         "  Run `bun install` from the repo root, then remove nested node_modules.",
         "dim"
       )
     );
-    yield* Effect.log("");
+    log.info("check-nm", "");
   });
 
 const resolveRepoRoot = Effect.gen(function* () {
@@ -319,6 +330,7 @@ const resolveRepoRoot = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "check-nm" });
   const exitCode = await scriptRuntime.runPromise(
     Effect.gen(function* () {
       const repoRoot = yield* resolveRepoRoot;

@@ -1,11 +1,15 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
+
+initScriptLogging({ script: "web-prebuild" });
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const monorepoRoot = join(packageRoot, "../..");
 
 const run = (cmd: string[], cwd: string, label: string): void => {
-  console.log(`\n> web ${label}`);
+  log.info("web-prebuild", `\n> web ${label}`);
   const result = Bun.spawnSync({
     cmd,
     cwd,
@@ -18,7 +22,7 @@ const run = (cmd: string[], cwd: string, label: string): void => {
   }
 };
 
-const runScript = (script: string): void => {
+const runNamedScript = (script: string): void => {
   run(["bun", "run", script], packageRoot, script);
 };
 
@@ -33,12 +37,13 @@ const skipSchemaGeneration =
   process.env.SKIP_GRAPHQL_SCHEMA === "1" || process.env.VERCEL === "1";
 
 if (skipSchemaGeneration) {
-  console.log(
+  log.info(
+    "web-prebuild",
     "web prebuild: skipping graphql:schema (using committed apps/web/schema.graphql)"
   );
 } else {
-  runScript("graphql:schema");
+  runNamedScript("graphql:schema");
 }
 
-runScript("gql:generate");
-runScript("gql:client");
+runNamedScript("gql:generate");
+runNamedScript("gql:client");

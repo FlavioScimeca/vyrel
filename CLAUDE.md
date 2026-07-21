@@ -39,7 +39,7 @@ This file provides context about the project for AI assistants.
 - AI: vercel-ai
 - Email: resend
 - Job Queue: bullmq
-- Logging: evlog
+- Logging: evlog via `@vyrel/logging`
 
 ## Project Structure
 
@@ -47,13 +47,19 @@ This file provides context about the project for AI assistants.
 vyrel/
 ├── apps/
 │   ├── web/         # Frontend application
-│   └── server/      # Backend API
+│   ├── server/      # Backend API
+│   ├── docs/        # Documentation site
+│   └── extension/   # Browser extension
 ├── packages/
 │   ├── api/         # API layer (domain resolvers, auth context)
 │   ├── auth/        # Authentication
 │   ├── bun-porting/ # Bun API porting for Vercel (e.g. BunImage via standalone worker)
 │   ├── db/          # Database schema
-│   └── graphql/     # GraphQL infrastructure (Pothos, Yoga)
+│   ├── graphql/     # GraphQL infrastructure (Pothos, Yoga)
+│   ├── logging/     # Shared evlog facade (`@vyrel/logging`)
+│   └── public/
+│       ├── graphql-client/ # Apollo optimistic CRUD and schema metadata codegen
+│       └── morph/          # Drizzle/Zod/Pothos model bridge
 ```
 
 ## Common Commands

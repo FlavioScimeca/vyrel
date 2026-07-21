@@ -4,6 +4,8 @@ import {
   compilePortingWorker,
   createVercelEntryTracingSnippet,
 } from "@vyrel/bun-porting/bootstrap";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Config, Effect, ManagedRuntime, Schema } from "effect";
 
 import { initBunPorting } from "../src/lib/bun-porting";
@@ -65,8 +67,8 @@ const program = Effect.gen(function* () {
   );
 
   if (!result.success) {
-    for (const log of result.logs) {
-      yield* Effect.logError(log);
+    for (const entry of result.logs) {
+      log.error("server-compiler", String(entry));
     }
     return yield* Effect.die(new Error("Bun build failed"));
   }
@@ -76,7 +78,7 @@ const program = Effect.gen(function* () {
       path.join(outdir, "meta.json"),
       encodeMetaJson(result.metafile)
     );
-    yield* Effect.log("Wrote bundle metafile to dist/meta.json");
+    log.info("server-compiler", "Wrote bundle metafile to dist/meta.json");
   }
 
   const bundlePath = path.join(outdir, "bundle.js");
@@ -127,13 +129,17 @@ if (!process.env.VERCEL) {
     yield* fs.copy(publicDir, path.join(outdir, "public"), {
       overwrite: true,
     });
-    yield* Effect.log("Copied public/ to dist/public/");
+    log.info("server-compiler", "Copied public/ to dist/public/");
   }
 
-  yield* Effect.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
-  yield* Effect.log(`Wrote ${outfile} (Vercel entry shim)`);
+  log.info(
+    "server-compiler",
+    `Built ${bundlePath} (${formatBytes(bundle.length)})`
+  );
+  log.info("server-compiler", `Wrote ${outfile} (Vercel entry shim)`);
 
   yield* Effect.promise(() => compilePortingWorker({ outdir }));
 });
 
+initScriptLogging({ script: "server-compiler" });
 await runtime.runPromise(program);

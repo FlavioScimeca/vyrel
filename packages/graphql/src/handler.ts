@@ -35,7 +35,7 @@ export const graphqlYogaServer = createYoga({
   }),
   graphiql: !isProd,
   graphqlEndpoint: "/api/graphql",
-  logging: env.NODE_ENV === "development" ? "debug" : "warn",
+  logging: false,
   maskedErrors: {
     maskError: (error, message) => formatError(error, message, !isProd),
   },

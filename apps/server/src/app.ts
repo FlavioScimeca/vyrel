@@ -1,5 +1,6 @@
 import { cors } from "@elysiajs/cors";
 import { env } from "@vyrel/env/server";
+import { createVyrelElysiaPlugin } from "@vyrel/logging/elysia";
 import { Effect } from "effect";
 import { Elysia } from "elysia";
 import "./lib/bun-porting";
@@ -10,6 +11,7 @@ import { organizationRestPlugin } from "./plugins/organization-rest";
 import { userRestPlugin } from "./plugins/user-rest";
 
 export const app = new Elysia()
+  .use(createVyrelElysiaPlugin({ service: "vyrel-server" }))
   .use(
     cors({
       allowedHeaders: ["Content-Type", "Authorization"],

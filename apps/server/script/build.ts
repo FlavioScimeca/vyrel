@@ -1,5 +1,7 @@
 import { Path } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect, ManagedRuntime } from "effect";
 
 const runtime = ManagedRuntime.make(BunContext.layer);
@@ -10,7 +12,7 @@ const program = Effect.gen(function* () {
 
   const run = (script: string) =>
     Effect.gen(function* () {
-      yield* Effect.log(`\n> server ${script}`);
+      log.info("server-build", `\n> server ${script}`);
       const result = Bun.spawnSync({
         cmd: ["bun", "run", script],
         cwd: packageRoot,
@@ -27,4 +29,5 @@ const program = Effect.gen(function* () {
   yield* run("script/compiler.ts");
 });
 
+initScriptLogging({ script: "server-build" });
 await runtime.runPromise(program);

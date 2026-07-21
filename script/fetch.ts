@@ -1,5 +1,7 @@
 import { Path } from "@effect/platform";
 import confirm from "@inquirer/confirm";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import chalk from "chalk";
 import { Effect } from "effect";
 import { scriptRuntime } from "./runtime";
@@ -157,43 +159,44 @@ const printBranchReport = (
     );
     const current = branches.find((entry) => entry.isCurrent);
 
-    yield* Effect.log(chalk.dim(`  base branch: ${base}`));
-    yield* Effect.log("");
+    log.info("fetch", chalk.dim(`  base branch: ${base}`));
+    log.info("fetch", "");
 
     if (merged.length > 0) {
-      yield* Effect.log(chalk.green(`  merged (${merged.length})`));
+      log.info("fetch", chalk.green(`  merged (${merged.length})`));
       for (const entry of merged) {
-        yield* Effect.log(chalk.green(`    - ${entry.branch}`));
+        log.info("fetch", chalk.green(`    - ${entry.branch}`));
       }
-      yield* Effect.log("");
+      log.info("fetch", "");
     }
 
     if (unmerged.length > 0) {
-      yield* Effect.log(chalk.yellow(`  not merged (${unmerged.length})`));
+      log.info("fetch", chalk.yellow(`  not merged (${unmerged.length})`));
       for (const entry of unmerged) {
-        yield* Effect.log(chalk.yellow(`    - ${entry.branch}`));
+        log.info("fetch", chalk.yellow(`    - ${entry.branch}`));
       }
-      yield* Effect.log("");
+      log.info("fetch", "");
     }
 
     if (current !== undefined) {
-      yield* Effect.log(
+      log.info(
+        "fetch",
         chalk.cyan(`  current branch (kept): ${current.branch}`)
       );
-      yield* Effect.log("");
+      log.info("fetch", "");
     }
 
     if (merged.length === 0 && unmerged.length === 0) {
-      yield* Effect.log(chalk.dim("  no local branches to clean up"));
+      log.info("fetch", chalk.dim("  no local branches to clean up"));
     }
   });
 
 const pruneAndFetch = (repoRoot: string): Effect.Effect<void> =>
   Effect.gen(function* () {
-    yield* Effect.log(chalk.bold("Fetching from remote..."));
+    log.info("fetch", chalk.bold("Fetching from remote..."));
     yield* runGitOrThrow(repoRoot, ["fetch", "--prune"]);
-    yield* Effect.log(chalk.green("  ✓ remote branches pruned"));
-    yield* Effect.log("");
+    log.info("fetch", chalk.green("  ✓ remote branches pruned"));
+    log.info("fetch", "");
   });
 
 const deleteBranches = (
@@ -208,10 +211,10 @@ const deleteBranches = (
     for (const branch of branches) {
       if (yield* deleteBranch(repoRoot, branch, force)) {
         deleted.push(branch);
-        yield* Effect.log(chalk.green(`  ✓ deleted ${branch}`));
+        log.info("fetch", chalk.green(`  ✓ deleted ${branch}`));
       } else {
         failed.push(branch);
-        yield* Effect.log(chalk.red(`  ✗ failed to delete ${branch}`));
+        log.info("fetch", chalk.red(`  ✗ failed to delete ${branch}`));
       }
     }
 
@@ -233,12 +236,12 @@ const promptDeleteMerged = (
     );
 
     if (!shouldDeleteMerged) {
-      yield* Effect.log(chalk.dim("\n  skipped merged branch cleanup"));
+      log.info("fetch", chalk.dim("\n  skipped merged branch cleanup"));
       return;
     }
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Deleting merged branches..."));
+    log.info("fetch", "");
+    log.info("fetch", chalk.bold("Deleting merged branches..."));
     const { failed } = yield* deleteBranches(repoRoot, branches, false);
 
     if (failed.length > 0) {
@@ -252,8 +255,9 @@ const promptDeleteUnmerged = (
   base: string
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(
+    log.info("fetch", "");
+    log.info(
+      "fetch",
       chalk.yellow(
         `  ${branches.length} branch${branches.length === 1 ? "" : "es"} not merged into ${base}`
       )
@@ -269,12 +273,12 @@ const promptDeleteUnmerged = (
     );
 
     if (!shouldForceDelete) {
-      yield* Effect.log(chalk.dim("  kept unmerged branches"));
+      log.info("fetch", chalk.dim("  kept unmerged branches"));
       return;
     }
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Force-deleting unmerged branches..."));
+    log.info("fetch", "");
+    log.info("fetch", chalk.bold("Force-deleting unmerged branches..."));
     const { failed } = yield* deleteBranches(repoRoot, branches, true);
 
     if (failed.length > 0) {
@@ -298,8 +302,8 @@ export const syncBranches = (): Effect.Effect<void, never, Path.Path> =>
       currentBranch
     );
 
-    yield* Effect.log(chalk.bold("Local branches"));
-    yield* Effect.log(chalk.dim("  ─".repeat(28)));
+    log.info("fetch", chalk.bold("Local branches"));
+    log.info("fetch", chalk.dim("  ─".repeat(28)));
     yield* printBranchReport(branches, base);
 
     const mergedToDelete = branches
@@ -322,10 +326,11 @@ export const syncBranches = (): Effect.Effect<void, never, Path.Path> =>
       yield* promptDeleteUnmerged(repoRoot, unmergedCandidates, base);
     }
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.green("  ✓ branch sync complete"));
+    log.info("fetch", "");
+    log.info("fetch", chalk.green("  ✓ branch sync complete"));
   });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "fetch" });
   await scriptRuntime.runPromise(syncBranches());
 }

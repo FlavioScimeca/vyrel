@@ -39,7 +39,7 @@ This file provides context about the project for AI assistants.
 - AI: vercel-ai
 - Email: resend
 - Job Queue: bullmq
-- Logging: evlog
+- Logging: evlog via `@vyrel/logging`
 
 ## Project Structure
 
@@ -47,17 +47,29 @@ This file provides context about the project for AI assistants.
 vyrel/
 ├── apps/
 │   ├── web/         # Frontend application
-│   └── server/      # Backend API
+│   ├── server/      # Backend API
+│   ├── docs/        # Documentation site
+│   └── extension/   # Browser extension
 ├── packages/
 │   ├── api/         # API layer (domain resolvers, auth context)
 │   ├── auth/        # Authentication
 │   ├── bun-porting/ # Bun API porting for Vercel (e.g. BunImage via standalone worker)
 │   ├── db/          # Database schema
 │   ├── graphql/     # GraphQL infrastructure (Pothos, Yoga)
+│   ├── logging/     # Shared evlog facade (`@vyrel/logging`)
 │   └── public/
 │       ├── graphql-client/ # Apollo optimistic CRUD and schema metadata codegen
 │       └── morph/          # Drizzle/Zod/Pothos model bridge
 ```
+
+## Logging
+
+- **Single entry point**: import only from `@vyrel/logging` (and subpaths). Do not import `evlog` or `@logtape/*` directly outside `packages/logging`.
+- **Apps**: call `initLogging()` at process boot (server `index.ts`, Next `instrumentation.ts`).
+- **Elysia**: use `createVyrelElysiaPlugin()` from `@vyrel/logging/elysia`.
+- **Next.js**: use `createVyrelNextInstrumentation()` / `createVyrelNextLogging()` from `@vyrel/logging/next`.
+- **Drizzle**: use `createDrizzleLogger()` from `@vyrel/logging/drizzle`.
+- **Scripts**: call `initScriptLogging({ script })` from `@vyrel/logging/script`, or `runScript(name, program)` from `script/runtime.ts`. Prefer `log.info/warn/error` over `Effect.log` / `console.*`.
 
 ## Common Commands
 

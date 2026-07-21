@@ -2,6 +2,7 @@ import type { FieldMap, GenericFieldRef, SchemaTypes } from "@pothos/core";
 import { z } from "zod/v4";
 
 import { buildDrizzleGraphqlEnumRegistry } from "./drizzle-graphql-enum-registry";
+import { morphWarn } from "./warn";
 import {
   createPothosArgsFromZodSchema,
   createPothosInputsFromZodSchema,
@@ -256,7 +257,7 @@ const handleUnmappedExposeField = (
       return;
     case "warn":
       if (process.env.NODE_ENV !== "production") {
-        console.warn(`${message} Omitting field.`);
+        morphWarn(`${message} Omitting field.`);
       }
       return;
     default:

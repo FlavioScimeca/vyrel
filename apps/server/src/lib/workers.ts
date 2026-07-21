@@ -1,3 +1,4 @@
+import { createLogger, log } from "@vyrel/logging";
 import { type Job, Worker } from "bullmq";
 import { DateTime, Effect } from "effect";
 
@@ -17,14 +18,20 @@ export const emailWorker = new Worker<EmailJobData>(
     Effect.runPromise(
       Effect.gen(function* () {
         const { to } = job.data;
+        const jobLog = createLogger({
+          queue: "email",
+          jobId: job.id,
+          to,
+        });
 
-        yield* Effect.log(`Processing email job ${job.id}: sending to ${to}`);
+        jobLog.set({ event: "job.start" });
 
         // TODO: Implement your email sending logic here
         // Simulate email sending
         yield* Effect.sleep("1 second");
 
-        yield* Effect.log(`Email job ${job.id} completed: sent to ${to}`);
+        jobLog.set({ event: "job.complete", sent: true });
+        jobLog.emit();
 
         return {
           sent: true,
@@ -52,16 +59,21 @@ export const notificationWorker = new Worker<NotificationJobData>(
     Effect.runPromise(
       Effect.gen(function* () {
         const { userId, type } = job.data;
+        const jobLog = createLogger({
+          queue: "notification",
+          jobId: job.id,
+          userId,
+          type,
+        });
 
-        yield* Effect.log(
-          `Processing notification job ${job.id}: ${type} to user ${userId}`
-        );
+        jobLog.set({ event: "job.start" });
 
         // TODO: Implement your notification logic here
         // Simulate notification processing
         yield* Effect.sleep("500 millis");
 
-        yield* Effect.log(`Notification job ${job.id} completed`);
+        jobLog.set({ event: "job.complete", sent: true });
+        jobLog.emit();
 
         return {
           sent: true,
@@ -79,27 +91,33 @@ export const notificationWorker = new Worker<NotificationJobData>(
 
 // Event handlers for monitoring
 emailWorker.on("completed", (job) => {
-  Effect.runSync(Effect.log(`Email job ${job.id} has completed`));
+  log.info({ event: "worker.completed", queue: "email", jobId: job.id });
 });
 
 emailWorker.on("failed", (job, err) => {
-  Effect.runSync(
-    Effect.logError(
-      `Email job ${job?.id} has failed with error: ${err.message}`
-    )
-  );
+  log.error({
+    event: "worker.failed",
+    queue: "email",
+    jobId: job?.id,
+    error: err.message,
+  });
 });
 
 notificationWorker.on("completed", (job) => {
-  Effect.runSync(Effect.log(`Notification job ${job.id} has completed`));
+  log.info({
+    event: "worker.completed",
+    queue: "notification",
+    jobId: job.id,
+  });
 });
 
 notificationWorker.on("failed", (job, err) => {
-  Effect.runSync(
-    Effect.logError(
-      `Notification job ${job?.id} has failed with error: ${err.message}`
-    )
-  );
+  log.error({
+    event: "worker.failed",
+    queue: "notification",
+    jobId: job?.id,
+    error: err.message,
+  });
 });
 
 /**
@@ -120,9 +138,8 @@ export const closeWorkers = () =>
  * to ensure they're running or to restart after being paused
  */
 export function startWorkers() {
-  Effect.runSync(Effect.log("BullMQ workers started"));
-  Effect.runSync(Effect.log("- Email worker: processing 'email' queue"));
-  Effect.runSync(
-    Effect.log("- Notification worker: processing 'notification' queue")
-  );
+  log.info({
+    event: "workers.started",
+    queues: ["email", "notification"],
+  });
 }

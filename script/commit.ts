@@ -1,5 +1,7 @@
 import confirm from "@inquirer/confirm";
 import select from "@inquirer/select";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import chalk from "chalk";
 import { Effect } from "effect";
 import type { ParseError } from "effect/ParseResult";
@@ -25,13 +27,13 @@ const promptChangesetIntent = (
   changedPackages: string[]
 ): Effect.Effect<void, ParseError> =>
   Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Changeset"));
-    yield* Effect.log(chalk.dim("  Public package changes detected:"));
+    log.info("commit", "");
+    log.info("commit", chalk.bold("Changeset"));
+    log.info("commit", chalk.dim("  Public package changes detected:"));
     for (const packageName of changedPackages) {
-      yield* Effect.log(chalk.cyan(`    - ${packageName}`));
+      log.info("commit", chalk.cyan(`    - ${packageName}`));
     }
-    yield* Effect.log("");
+    log.info("commit", "");
 
     const shouldCreate = yield* Effect.promise(() =>
       confirm({
@@ -42,13 +44,14 @@ const promptChangesetIntent = (
 
     if (!shouldCreate) {
       yield* writeIntent({ action: "skip" });
-      yield* Effect.log(chalk.dim("  Skipping changeset for this commit"));
-      yield* Effect.log(
+      log.info("commit", chalk.dim("  Skipping changeset for this commit"));
+      log.info(
+        "commit",
         chalk.dim(
           "  Tip: add the skip-changeset label on the PR if CI asks for one"
         )
       );
-      yield* Effect.log("");
+      log.info("commit", "");
       return;
     }
 
@@ -67,12 +70,13 @@ const promptChangesetIntent = (
       packages: changedPackages,
     });
 
-    yield* Effect.log(
+    log.info(
+      "commit",
       chalk.dim(
         `  Will create a ${bump} changeset after you finish the commit message`
       )
     );
-    yield* Effect.log("");
+    log.info("commit", "");
   });
 
 const runCzg = (): number => {
@@ -102,9 +106,9 @@ export const runCommit = (): Effect.Effect<number, ParseError> =>
       const skipReason = getChangesetSkipReason(stagedFiles, changedPackages);
 
       if (skipReason !== null) {
-        yield* Effect.log("");
-        yield* Effect.log(chalk.dim(`Changeset: ${skipReason}`));
-        yield* Effect.log("");
+        log.info("commit", "");
+        log.info("commit", chalk.dim(`Changeset: ${skipReason}`));
+        log.info("commit", "");
       }
     }
 
@@ -112,6 +116,7 @@ export const runCommit = (): Effect.Effect<number, ParseError> =>
   });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "commit" });
   const exitCode = await scriptRuntime.runPromise(runCommit());
   process.exit(exitCode);
 }

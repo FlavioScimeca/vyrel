@@ -1,5 +1,7 @@
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect, Schema } from "effect";
 import type { ParseError } from "effect/ParseResult";
 import { scriptRuntime } from "./runtime";
@@ -116,7 +118,8 @@ export const checkEffectProjectsEffect = (
     const path = yield* Path.Path;
     const root = path.resolve(repoRoot);
 
-    yield* Effect.log(
+    log.info(
+      "check-effect-ts",
       "Effect language service (@effect/language-service) diagnostics"
     );
 
@@ -149,12 +152,13 @@ const main = Effect.gen(function* () {
     return failed.exitCode;
   }
 
-  yield* Effect.log("");
-  yield* Effect.log("Effect language service checks passed.");
+  log.info("check-effect-ts", "");
+  log.info("check-effect-ts", "Effect language service checks passed.");
   return 0;
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "check-effect-ts" });
   const exitCode = await scriptRuntime.runPromise(main);
   process.exit(exitCode);
 }

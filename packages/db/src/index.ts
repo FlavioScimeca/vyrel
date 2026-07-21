@@ -1,6 +1,6 @@
 import { createClient } from "@libsql/client";
-import { getLogger } from "@logtape/drizzle-orm";
 import { env } from "@vyrel/env/server";
+import { createDrizzleLogger } from "@vyrel/logging/drizzle";
 import { drizzle } from "drizzle-orm/libsql";
 
 import { relations } from "./relations";
@@ -12,6 +12,6 @@ const client = createClient({
 
 export const db = drizzle({
   client,
-  logger: getLogger({ category: ["vyrel", "database"] }),
+  logger: createDrizzleLogger("database"),
   relations,
 });

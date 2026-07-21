@@ -1,5 +1,7 @@
 import { FileSystem, Path } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import dotenv from "dotenv";
 import { Effect, ManagedRuntime } from "effect";
 
@@ -45,10 +47,14 @@ export const collectGraphqlImports = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "collect-graphql-imports" });
   const runtime = ManagedRuntime.make(BunContext.layer);
   const main = Effect.gen(function* () {
     yield* collectGraphqlImports;
-    yield* Effect.log("✅ 📋 GraphQL imports collected successfully");
+    log.info(
+      "collect-graphql-imports",
+      "✅ 📋 GraphQL imports collected successfully"
+    );
   });
 
   await runtime.runPromise(main);

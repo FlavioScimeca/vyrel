@@ -6,20 +6,49 @@
   "exports": {
     ".": {
       "default": "./src/logging.ts"
+    },
+    "./script": {
+      "default": "./src/script.ts"
+    },
+    "./elysia": {
+      "default": "./src/elysia.ts"
+    },
+    "./next": {
+      "default": "./src/next.ts"
+    },
+    "./drizzle": {
+      "default": "./src/drizzle.ts"
     }
   },
   "scripts": {
-    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@logtape/logtape": "^2.1.5",
-    "@logtape/pretty": "^2.2.4",
-    "@vyrel/env": "workspace:*",
-    "effect": "catalog:"
+    "evlog": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@vyrel/config": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.4",
+    "elysia": "catalog:",
+    "next": "catalog:",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "1.0.0-rc.4",
+    "elysia": "catalog:",
+    "next": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    },
+    "elysia": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    }
   }
 }

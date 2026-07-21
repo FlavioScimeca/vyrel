@@ -1,4 +1,5 @@
 import { env } from "@vyrel/env/server";
+import { log } from "@vyrel/logging";
 import { Data, Effect, Option } from "effect";
 import { jwtVerify } from "jose";
 
@@ -43,7 +44,14 @@ export const verifyBearer = (
             issuer: issuerAudience,
           }),
       }).pipe(
-        Effect.tapError((error) => Effect.logError(error)),
+        Effect.tapError((error) =>
+          Effect.sync(() => {
+            log.warn({
+              event: "auth.verifyBearer.failed",
+              error: error instanceof Error ? error.message : String(error),
+            });
+          })
+        ),
         Effect.option
       );
 

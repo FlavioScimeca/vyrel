@@ -1,4 +1,6 @@
 import { Path } from "@effect/platform";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect } from "effect";
 import { scriptRuntime } from "./runtime";
 
@@ -34,7 +36,7 @@ const buildVerified = (repoRoot: string): Effect.Effect<number> =>
     ]);
 
     if (exitCode !== 0) {
-      yield* Effect.logError(output);
+      log.error("release", output);
       return exitCode;
     }
 
@@ -54,11 +56,11 @@ const publishPackages = (repoRoot: string): Effect.Effect<number> =>
     }
 
     if (alreadyPublishedPattern.test(output)) {
-      yield* Effect.log("Packages already published on npm — skipping.");
+      log.info("release", "Packages already published on npm — skipping.");
       return 0;
     }
 
-    yield* Effect.logError(output);
+    log.error("release", output);
     return exitCode;
   });
 
@@ -75,5 +77,6 @@ const program = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "release" });
   process.exit(await scriptRuntime.runPromise(program));
 }

@@ -26,6 +26,7 @@
     "@vyrel/consts": "workspace:*",
     "@vyrel/db": "workspace:*",
     "@vyrel/env": "workspace:*",
+    "@vyrel/logging": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "effect": "catalog:",

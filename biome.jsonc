@@ -71,6 +71,19 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/logging/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          },
+          "style": {
+            "noExportedImports": "off"
+          }
+        }
+      }
     }
   ]
 }

@@ -35,6 +35,7 @@
     "@vyrel/consts": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql-client": "workspace:*",
+    "@vyrel/logging": "workspace:*",
     "apollo-upload-client": "^19.0.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "better-auth": "catalog:",

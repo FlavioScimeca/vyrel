@@ -1,4 +1,6 @@
 import { FileSystem, Path } from "@effect/platform";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect, Option } from "effect";
 import { findNodeModulesDirs } from "./check-nm";
 import { scriptRuntime } from "./runtime";
@@ -190,10 +192,10 @@ export const cleanupRepo = (
   });
 
 const printSection = (title: string): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(colorize(title, "bold"));
-    yield* Effect.log(colorize("─".repeat(60), "dim"));
+  Effect.sync(() => {
+    log.info("clean-up", "");
+    log.info("clean-up", colorize(title, "bold"));
+    log.info("clean-up", colorize("─".repeat(60), "dim"));
   });
 
 function countByKind(targets: CleanupTarget[]): Record<CleanupKind, number> {
@@ -211,20 +213,23 @@ export const printCleanupReport = (
   Effect.gen(function* () {
     const deletedCounts = countByKind(report.deleted);
 
-    yield* Effect.log("");
-    yield* Effect.log(colorize("repo cleanup", "bold"));
-    yield* Effect.log(colorize("═".repeat(60), "dim"));
-    yield* Effect.log(`  ${colorize("repo", "cyan")}     ${report.root}`);
-    yield* Effect.log(
+    log.info("clean-up", "");
+    log.info("clean-up", colorize("repo cleanup", "bold"));
+    log.info("clean-up", colorize("═".repeat(60), "dim"));
+    log.info("clean-up", `  ${colorize("repo", "cyan")}     ${report.root}`);
+    log.info(
+      "clean-up",
       `  ${colorize("deleted", "cyan")}  ${colorize(String(report.deleted.length), report.deleted.length > 0 ? "green" : "dim")} paths`
     );
-    yield* Effect.log(
+    log.info(
+      "clean-up",
       `  ${colorize("skipped", "cyan")}  ${report.skippedCacheOnly.length} cache-only node_modules`
     );
 
     if (report.deleted.length > 0) {
       yield* printSection("Deleted");
-      yield* Effect.log(
+      log.info(
+        "clean-up",
         colorize(
           `  dist: ${deletedCounts.dist}  ·  .turbo: ${deletedCounts[".turbo"]}  ·  node_modules: ${deletedCounts.node_modules}`,
           "dim"
@@ -232,11 +237,14 @@ export const printCleanupReport = (
       );
 
       for (const target of report.deleted) {
-        yield* Effect.log(`  ${colorize("✓", "green")} ${target.relativePath}`);
+        log.info(
+          "clean-up",
+          `  ${colorize("✓", "green")} ${target.relativePath}`
+        );
       }
     } else {
       yield* printSection("Deleted");
-      yield* Effect.log(colorize("  nothing to clean", "dim"));
+      log.info("clean-up", colorize("  nothing to clean", "dim"));
     }
 
     if (report.skippedCacheOnly.length > 0) {
@@ -245,7 +253,7 @@ export const printCleanupReport = (
       );
 
       for (const target of report.skippedCacheOnly) {
-        yield* Effect.log(colorize(`  ${target.relativePath}`, "dim"));
+        log.info("clean-up", colorize(`  ${target.relativePath}`, "dim"));
       }
     }
 
@@ -253,13 +261,14 @@ export const printCleanupReport = (
       yield* printSection("Errors");
 
       for (const error of report.errors) {
-        yield* Effect.log(
+        log.info(
+          "clean-up",
           `  ${colorize("✗", "red")} ${error.path} — ${error.message}`
         );
       }
     }
 
-    yield* Effect.log("");
+    log.info("clean-up", "");
   });
 
 const resolveRepoRoot = Effect.gen(function* () {
@@ -268,6 +277,7 @@ const resolveRepoRoot = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "clean-up" });
   const exitCode = await scriptRuntime.runPromise(
     Effect.gen(function* () {
       const repoRoot = yield* resolveRepoRoot;

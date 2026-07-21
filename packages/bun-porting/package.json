@@ -17,6 +17,7 @@
   "dependencies": {
     "@effect/platform": "catalog:",
     "@effect/platform-bun": "catalog:",
+    "@vyrel/logging": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
