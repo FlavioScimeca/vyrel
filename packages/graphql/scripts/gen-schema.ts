@@ -1,5 +1,7 @@
 import { FileSystem, Path } from "@effect/platform";
 import { BunContext } from "@effect/platform-bun";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import dotenv from "dotenv";
 import { Effect, ManagedRuntime } from "effect";
 import { lexicographicSortSchema, printSchema } from "graphql";
@@ -26,7 +28,8 @@ const program = Effect.gen(function* () {
   );
   yield* fs.writeFileString(outputFile, sdl);
 
-  yield* Effect.log("✅ 🔨 GraphQL schema generated successfully");
+  log.info("gen-schema", "✅ 🔨 GraphQL schema generated successfully");
 });
 
+initScriptLogging({ script: "gen-schema" });
 await runtime.runPromise(program);

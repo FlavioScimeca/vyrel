@@ -1,17 +1,32 @@
 {
   "version": 1,
   "skills": {
+    "analyze-logs": {
+      "source": "evlog.dev",
+      "sourceType": "well-known",
+      "computedHash": "28bd8254997b767ebba1f7f2cf4567ddb6c51b1fcdca9baf9b9cd7ee3ca51d7c"
+    },
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
       "skillPath": "better-auth/best-practices/SKILL.md",
       "computedHash": "a4c830509e85557b59339d8d93a4e243e9e59c686e7678854d39230e12c2a6dc"
     },
+    "build-audit-logs": {
+      "source": "evlog.dev",
+      "sourceType": "well-known",
+      "computedHash": "388a431857eaaef8cfc40edad0e7f05c17ebfbbad7ed51071d12fbe01ed12ea4"
+    },
     "elysiajs": {
       "source": "elysiajs/skills",
       "sourceType": "github",
       "skillPath": "elysia/SKILL.md",
       "computedHash": "55268e69a2c766ed67e56a0db57544f60cc52dba0c7f024a974baf965e525e1b"
+    },
+    "review-logging-patterns": {
+      "source": "evlog.dev",
+      "sourceType": "well-known",
+      "computedHash": "16e0e91b358067492201f82c113269bc42936a02d1150bece06b106d1601b458"
     },
     "turborepo": {
       "source": "vercel/turborepo",

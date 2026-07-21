@@ -72,6 +72,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vyrel/config": "workspace:*",
+    "@vyrel/logging": "workspace:*",
     "graphql": "catalog:",
     "jsdom": "catalog:",
     "knip": "^6.25.0",

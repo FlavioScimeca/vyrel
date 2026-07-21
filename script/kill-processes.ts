@@ -1,4 +1,6 @@
 import { Path } from "@effect/platform";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect } from "effect";
 import { scriptRuntime } from "./runtime";
 
@@ -116,27 +118,31 @@ export const killProjectProcesses = (
   });
 
 const printReport = (report: KillProcessesReport): Effect.Effect<void> =>
-  Effect.gen(function* () {
-    yield* Effect.log("Stopped project processes.");
+  Effect.sync(() => {
+    log.info("kill-processes", "Stopped project processes.");
 
     if (report.killedPatterns.length > 0) {
-      yield* Effect.log(`Matched patterns (${report.killedPatterns.length}):`);
+      log.info(
+        "kill-processes",
+        `Matched patterns (${report.killedPatterns.length}):`
+      );
       for (const pattern of report.killedPatterns) {
-        yield* Effect.log(`  - ${pattern}`);
+        log.info("kill-processes", `  - ${pattern}`);
       }
     } else {
-      yield* Effect.log("No matching process patterns were running.");
+      log.info("kill-processes", "No matching process patterns were running.");
     }
 
     if (report.killedPorts.length > 0) {
-      yield* Effect.log("Freed ports:");
+      log.info("kill-processes", "Freed ports:");
       for (const { port, pids } of report.killedPorts) {
-        yield* Effect.log(
+        log.info(
+          "kill-processes",
           `  - :${port} (${pids} process${pids === 1 ? "" : "es"})`
         );
       }
     } else {
-      yield* Effect.log("No listeners found on dev ports.");
+      log.info("kill-processes", "No listeners found on dev ports.");
     }
   });
 
@@ -148,5 +154,6 @@ const program = Effect.gen(function* () {
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "kill-processes" });
   await scriptRuntime.runPromise(program);
 }

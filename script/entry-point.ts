@@ -1,6 +1,8 @@
 import { type FileSystem, Path } from "@effect/platform";
 import confirm from "@inquirer/confirm";
 import select from "@inquirer/select";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import chalk from "chalk";
 import { Console, Effect } from "effect";
 import { checkEffectProjects } from "./check-effect-ts";
@@ -51,38 +53,43 @@ const resolveRepoRoot = Effect.gen(function* () {
 const printBanner = (repoRoot: string): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Console.clear;
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold.cyan("  vyrel scripts"));
-    yield* Effect.log(chalk.dim("  ─".repeat(28)));
-    yield* Effect.log(chalk.dim(`  ${repoRoot}`));
-    yield* Effect.log("");
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold.cyan("  vyrel scripts"));
+    log.info("entry-point", chalk.dim("  ─".repeat(28)));
+    log.info("entry-point", chalk.dim(`  ${repoRoot}`));
+    log.info("entry-point", "");
   });
 
-const printDivider = Effect.log(chalk.dim("  ─".repeat(60)));
+const printDivider = () => {
+  log.info("entry-point", chalk.dim("  ─".repeat(60)));
+};
 
 const runCheck = (
   repoRoot: string
 ): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
   Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Running node_modules check..."));
-    yield* printDivider;
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold("Running node_modules check..."));
+    printDivider();
 
     const report = yield* checkNodeModules(repoRoot);
     yield* printNodeModulesReport(report);
 
     if (report.isHealthy) {
-      yield* Effect.log(chalk.green("  ✓ workspace looks healthy"));
+      log.info("entry-point", chalk.green("  ✓ workspace looks healthy"));
     } else {
-      yield* Effect.log(chalk.yellow("  ! nested node_modules detected"));
+      log.info("entry-point", chalk.yellow("  ! nested node_modules detected"));
     }
   });
 
 const runEffectCheck = (repoRoot: string): Effect.Effect<void> =>
   Effect.gen(function* () {
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Running Effect language service check..."));
-    yield* printDivider;
+    log.info("entry-point", "");
+    log.info(
+      "entry-point",
+      chalk.bold("Running Effect language service check...")
+    );
+    printDivider();
 
     const report = yield* Effect.promise(() => checkEffectProjects(repoRoot));
     const failed = report.results.find(
@@ -90,12 +97,15 @@ const runEffectCheck = (repoRoot: string): Effect.Effect<void> =>
     );
 
     if (failed !== undefined) {
-      yield* Effect.log(chalk.red("  ✗ Effect diagnostics failed"));
+      log.info("entry-point", chalk.red("  ✗ Effect diagnostics failed"));
       return;
     }
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.green("  ✓ Effect language service checks passed"));
+    log.info("entry-point", "");
+    log.info(
+      "entry-point",
+      chalk.green("  ✓ Effect language service checks passed")
+    );
   });
 
 const runCleanup = (
@@ -105,12 +115,12 @@ const runCleanup = (
     const { skippedCacheOnly, targets } =
       yield* collectCleanupTargets(repoRoot);
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Cleanup preview"));
-    yield* printDivider;
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold("Cleanup preview"));
+    printDivider();
 
     if (targets.length === 0) {
-      yield* Effect.log(chalk.dim("  nothing to clean"));
+      log.info("entry-point", chalk.dim("  nothing to clean"));
       return;
     }
 
@@ -122,24 +132,29 @@ const runCleanup = (
       (target) => target.kind === "node_modules"
     ).length;
 
-    yield* Effect.log(chalk.white(`  ${targets.length} paths ready to delete`));
-    yield* Effect.log(
+    log.info(
+      "entry-point",
+      chalk.white(`  ${targets.length} paths ready to delete`)
+    );
+    log.info(
+      "entry-point",
       chalk.dim(
         `  dist: ${distCount}  ·  .turbo: ${turboCount}  ·  node_modules: ${nodeModulesCount}`
       )
     );
 
     if (skippedCacheOnly.length > 0) {
-      yield* Effect.log(
+      log.info(
+        "entry-point",
         chalk.dim(
           `  ${skippedCacheOnly.length} cache-only node_modules will be kept`
         )
       );
     }
 
-    yield* Effect.log("");
+    log.info("entry-point", "");
     for (const target of targets) {
-      yield* Effect.log(chalk.red(`  - ${target.relativePath}`));
+      log.info("entry-point", chalk.red(`  - ${target.relativePath}`));
     }
 
     const shouldCleanup = yield* Effect.promise(() =>
@@ -150,21 +165,22 @@ const runCleanup = (
     );
 
     if (!shouldCleanup) {
-      yield* Effect.log(chalk.dim("\n  cleanup cancelled"));
+      log.info("entry-point", chalk.dim("\n  cleanup cancelled"));
       return;
     }
 
-    yield* Effect.log("");
-    yield* Effect.log(chalk.bold("Cleaning up..."));
-    yield* printDivider;
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold("Cleaning up..."));
+    printDivider();
 
     const report = yield* cleanupRepo(repoRoot);
     yield* printCleanupReport(report);
 
     if (report.errors.length > 0) {
-      yield* Effect.log(chalk.red("  cleanup finished with errors"));
+      log.info("entry-point", chalk.red("  cleanup finished with errors"));
     } else if (report.deleted.length > 0) {
-      yield* Effect.log(
+      log.info(
+        "entry-point",
         chalk.green(`  ✓ removed ${report.deleted.length} paths`)
       );
     }
@@ -208,21 +224,21 @@ const runScriptMenuStep = (
         yield* runCleanup(repoRoot);
         break;
       case "exit":
-        yield* Effect.log("");
-        yield* Effect.log(chalk.dim("  bye"));
-        yield* Effect.log("");
+        log.info("entry-point", "");
+        log.info("entry-point", chalk.dim("  bye"));
+        log.info("entry-point", "");
         return;
       default:
         break;
     }
 
-    yield* Effect.log("");
+    log.info("entry-point", "");
     const shouldContinue = yield* promptContinue;
 
     if (!shouldContinue) {
-      yield* Effect.log("");
-      yield* Effect.log(chalk.dim("  bye"));
-      yield* Effect.log("");
+      log.info("entry-point", "");
+      log.info("entry-point", chalk.dim("  bye"));
+      log.info("entry-point", "");
       return;
     }
 
@@ -238,5 +254,6 @@ export const runScriptMenu = (
   });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "entry-point" });
   await scriptRuntime.runPromise(runScriptMenu());
 }

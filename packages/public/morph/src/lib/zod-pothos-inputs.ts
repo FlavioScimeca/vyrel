@@ -4,6 +4,8 @@ import "@pothos/plugin-validation";
 import "@pothos/plugin-with-input";
 import { z } from "zod/v4";
 
+import { morphWarn } from "./warn";
+
 export type PothosSchemaBuilder<Types extends SchemaTypes = SchemaTypes> =
   PothosSchemaTypes.SchemaBuilder<Types>;
 
@@ -201,7 +203,7 @@ const buildAutoDiscoveredEnumTypesCache = <Types extends SchemaTypes>(
 
   if (process.env.NODE_ENV !== "production") {
     for (const [valuesKey, names] of ambiguous) {
-      console.warn(
+      morphWarn(
         `[pothosInputsFromZodSchema] Ambiguous GraphQL enums for values [${valuesKey.replaceAll("\0", ", ")}]: ${names.join(", ")}. Use fieldTypes.`
       );
     }
@@ -407,7 +409,7 @@ const resolveUnmappedInputField = <Types extends SchemaTypes>(
       return;
     case "warn":
       if (process.env.NODE_ENV !== "production") {
-        console.warn(`${message} Falling back to String.`);
+        morphWarn(`${message} Falling back to String.`);
       }
       return t.input.string({ description, required, validate: field });
     default:
@@ -589,7 +591,7 @@ const buildUnmappedQueryArg = <Types extends SchemaTypes>(
       return;
     case "warn":
       if (process.env.NODE_ENV !== "production") {
-        console.warn(`${message} Falling back to String.`);
+        morphWarn(`${message} Falling back to String.`);
       }
       return t.arg.string({ description, required });
     default:

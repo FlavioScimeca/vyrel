@@ -1,6 +1,10 @@
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
+
+initScriptLogging({ script: "graphql-client-size" });
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(packageRoot, "dist");
@@ -83,27 +87,39 @@ if (!distExists?.isDirectory()) {
 const files = await listDistFiles(distDir);
 const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 
-console.log("@vyrel/graphql-client dist size\n");
-console.log("File".padEnd(32), "Size");
-console.log("-".repeat(44));
+log.info("graphql-client-size", "@vyrel/graphql-client dist size\n");
+log.info("graphql-client-size", `${"File".padEnd(32)} Size`);
+log.info("graphql-client-size", "-".repeat(44));
 
 for (const file of files.toSorted((left, right) => right.size - left.size)) {
-  console.log(relative(distDir, file.path).padEnd(32), formatBytes(file.size));
+  log.info(
+    "graphql-client-size",
+    `${relative(distDir, file.path).padEnd(32)} ${formatBytes(file.size)}`
+  );
 }
 
-console.log("-".repeat(44));
-console.log("Total on disk".padEnd(32), formatBytes(totalBytes));
+log.info("graphql-client-size", "-".repeat(44));
+log.info(
+  "graphql-client-size",
+  `${"Total on disk".padEnd(32)} ${formatBytes(totalBytes)}`
+);
 
 const packSummary = await readPackSummary();
 
-console.log("\nbun publish estimate\n");
-console.log(
-  "Tarball (compressed)".padEnd(32),
-  formatBytes(packSummary.tarballBytes)
+log.info("graphql-client-size", "\nbun publish estimate\n");
+log.info(
+  "graphql-client-size",
+  `${"Tarball (compressed)".padEnd(32)} ${formatBytes(packSummary.tarballBytes)}`
 );
 if (packSummary.unpackedSize) {
-  console.log("Installed (unpacked)".padEnd(32), packSummary.unpackedSize);
+  log.info(
+    "graphql-client-size",
+    `${"Installed (unpacked)".padEnd(32)} ${packSummary.unpackedSize}`
+  );
 }
 if (packSummary.totalFiles) {
-  console.log("Files in package".padEnd(32), packSummary.totalFiles);
+  log.info(
+    "graphql-client-size",
+    `${"Files in package".padEnd(32)} ${packSummary.totalFiles}`
+  );
 }

@@ -17,6 +17,7 @@
     "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
+    "@vyrel/logging": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

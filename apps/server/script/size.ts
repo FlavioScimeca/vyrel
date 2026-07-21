@@ -1,6 +1,8 @@
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
 import { BunContext } from "@effect/platform-bun";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect, ManagedRuntime } from "effect";
 
 const runtime = ManagedRuntime.make(BunContext.layer);
@@ -63,35 +65,38 @@ const program = Effect.gen(function* () {
     file.path.endsWith("/bin/porting-worker")
   );
 
-  yield* Effect.log("server dist size\n");
-  yield* Effect.log(`${"File".padEnd(28)} Size`);
-  yield* Effect.log("-".repeat(40));
+  log.info("server-size", "server dist size\n");
+  log.info("server-size", `${"File".padEnd(28)} Size`);
+  log.info("server-size", "-".repeat(40));
 
   for (const file of files.toSorted((left, right) => right.size - left.size)) {
     const label = path.relative(distDir, file.path);
-    yield* Effect.log(`${label.padEnd(28)} ${formatBytes(file.size)}`);
+    log.info("server-size", `${label.padEnd(28)} ${formatBytes(file.size)}`);
   }
 
-  yield* Effect.log("-".repeat(40));
-  yield* Effect.log("Total on disk".padEnd(28) + formatBytes(totalBytes));
+  log.info("server-size", "-".repeat(40));
+  log.info("server-size", "Total on disk".padEnd(28) + formatBytes(totalBytes));
 
   if (workerEntry === undefined) {
-    yield* Effect.logError("\nError: dist/bin/porting-worker is missing");
+    log.error("server-size", "\nError: dist/bin/porting-worker is missing");
     return yield* Effect.die(new Error("dist/bin/porting-worker is missing"));
   }
-  yield* Effect.log(
+  log.info(
+    "server-size",
     "Porting worker (bin/porting-worker)".padEnd(28) +
       formatBytes(workerEntry.size)
   );
 
   if (workerEntry.size > WORKER_SIZE_WARNING_BYTES) {
-    yield* Effect.log(
+    log.info(
+      "server-size",
       `\nWarning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
     );
   }
 
   if (runtimeEntry !== undefined) {
-    yield* Effect.log(
+    log.info(
+      "server-size",
       "Runtime bundle (bundle.js)".padEnd(28) + formatBytes(runtimeEntry.size)
     );
 
@@ -106,19 +111,21 @@ const program = Effect.gen(function* () {
       unresolvedWorkspaceImports !== null &&
       unresolvedWorkspaceImports.length > 0
     ) {
-      yield* Effect.log(
+      log.info(
+        "server-size",
         "\nWarning: unresolved workspace imports detected in runtime bundle"
       );
       for (const unresolvedImport of unresolvedWorkspaceImports) {
-        yield* Effect.log(`- ${unresolvedImport}`);
+        log.info("server-size", `- ${unresolvedImport}`);
       }
       return yield* Effect.die(
         new Error("Unresolved workspace imports in runtime bundle")
       );
     }
 
-    yield* Effect.log("\nWorkspace imports: bundled");
+    log.info("server-size", "\nWorkspace imports: bundled");
   }
 });
 
+initScriptLogging({ script: "server-size" });
 await runtime.runPromise(program);

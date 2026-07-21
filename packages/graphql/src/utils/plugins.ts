@@ -1,11 +1,9 @@
 import { env } from "@vyrel/env/server";
-import { getAppLogger } from "@vyrel/logging";
 import { GraphQLError } from "graphql";
 import type { Plugin } from "graphql-yoga";
+import { graphqlRequestLoggers } from "../context";
 import { getProfile, truncateSql } from "./profiler";
 import { isPublicGraphqlOperation } from "./public-operations";
-
-const graphqlLogger = getAppLogger("graphql");
 
 const isProd = env.NODE_ENV === "production";
 
@@ -68,12 +66,14 @@ export const timingPlugin: Plugin = {
 
     const ms = performance.now() - start;
     const opName = requestOpName.get(request) ?? "unknown";
-    graphqlLogger.info("GraphQL request", {
-      durationMs: Number(ms.toFixed(2)),
-      method: request.method,
-      op: opName,
-      status: response.status,
-      url: request.url,
+    graphqlRequestLoggers.get(request)?.set({
+      graphql: {
+        durationMs: Number(ms.toFixed(2)),
+        method: request.method,
+        op: opName,
+        status: response.status,
+        url: request.url,
+      },
     });
   },
 };
@@ -122,38 +122,31 @@ export const profilingPlugin: Plugin = {
     const parse = store.parseMs ?? 0;
     const validate = store.validateMs ?? 0;
     const execute = store.executeMs ?? 0;
-
-    graphqlLogger.info("GraphQL profile", {
-      authMs: Number(auth.toFixed(2)),
-      executeMs: Number(execute.toFixed(2)),
-      method: request.method,
-      op,
-      parseMs: Number(parse.toFixed(2)),
-      sqlCount,
-      sqlSumMs: Number(sqlSum.toFixed(2)),
-      status: response.status,
-      totalMs: Number(total.toFixed(2)),
-      url: request.url,
-      validateMs: Number(validate.toFixed(2)),
-    });
-
     const limit = env.PROFILE_SQL_LIMIT;
-    for (let i = 0; i < Math.min(store.sql.length, limit); i += 1) {
-      const e = store.sql[i];
-      if (e === undefined) {
-        continue;
-      }
-      graphqlLogger.debug("GraphQL SQL", {
-        durationMs: Number(e.ms.toFixed(2)),
-        index: i,
-        sql: truncateSql(e.sql, 220),
-      });
-    }
-    if (store.sql.length > limit) {
-      graphqlLogger.debug("GraphQL SQL truncated", {
-        hiddenCount: store.sql.length - limit,
-      });
-    }
+
+    graphqlRequestLoggers.get(request)?.set({
+      graphql: {
+        authMs: Number(auth.toFixed(2)),
+        executeMs: Number(execute.toFixed(2)),
+        method: request.method,
+        op,
+        parseMs: Number(parse.toFixed(2)),
+        sqlCount,
+        sqlSumMs: Number(sqlSum.toFixed(2)),
+        status: response.status,
+        totalMs: Number(total.toFixed(2)),
+        url: request.url,
+        validateMs: Number(validate.toFixed(2)),
+        sql: store.sql.slice(0, limit).map((e, index) => ({
+          durationMs: Number(e.ms.toFixed(2)),
+          index,
+          sql: truncateSql(e.sql, 220),
+        })),
+        ...(store.sql.length > limit
+          ? { sqlHiddenCount: store.sql.length - limit }
+          : {}),
+      },
+    });
   },
   onValidate() {
     const store = getProfile();

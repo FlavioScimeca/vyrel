@@ -1,6 +1,8 @@
 import { Command, FileSystem, Path } from "@effect/platform";
 import type { CommandExecutor } from "@effect/platform/CommandExecutor";
 import type { PlatformError } from "@effect/platform/Error";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Config, Effect, Option, Schema } from "effect";
 import type { ConfigError } from "effect/ConfigError";
 import type { ParseError } from "effect/ParseResult";
@@ -98,7 +100,7 @@ const assertCompilerVersion = (
       });
     }
 
-    yield* Effect.log(`Using compiler ${trimmed}`);
+    log.info("compile-worker", `Using compiler ${trimmed}`);
   });
 
 const compileWithTarget = (
@@ -238,7 +240,8 @@ const compilePortingWorkerEffect = (
         return yield* primaryAttempt.left;
       }
 
-      yield* Effect.logWarning(
+      log.warn(
+        "compile-worker",
         `Primary target ${primaryTarget} failed, retrying with ${fallbackTarget}`
       );
       yield* fs.remove(workerOutfile, { force: true });
@@ -261,12 +264,14 @@ const compilePortingWorkerEffect = (
       });
     }
 
-    yield* Effect.log(
+    log.info(
+      "compile-worker",
       `Built ${workerOutfile} (${formatBytes(sizeBytes)}) target=${compiledTarget}`
     );
 
     if (sizeBytes > WORKER_SIZE_WARNING_BYTES) {
-      yield* Effect.logWarning(
+      log.warn(
+        "compile-worker",
         `Warning: porting-worker exceeds ${formatBytes(WORKER_SIZE_WARNING_BYTES)}`
       );
     }
@@ -283,14 +288,19 @@ const compilePortingWorkerEffect = (
             type: "path",
           },
         });
-        yield* Effect.log("porting-worker probe-image self-test passed");
+        log.info(
+          "compile-worker",
+          "porting-worker probe-image self-test passed"
+        );
       } else {
-        yield* Effect.logWarning(
+        log.warn(
+          "compile-worker",
           `Skipping probe-image self-test: ${fixturePath} not found`
         );
       }
     } else {
-      yield* Effect.logWarning(
+      log.warn(
+        "compile-worker",
         `Skipping porting-worker self-test for cross-compiled target ${compiledTarget} on ${process.platform}/${process.arch}`
       );
     }
@@ -304,5 +314,7 @@ const compilePortingWorkerEffect = (
 
 export const compilePortingWorker = (
   options: CompilePortingWorkerOptions
-): Promise<CompilePortingWorkerResult> =>
-  bunPortingRuntime.runPromise(compilePortingWorkerEffect(options));
+): Promise<CompilePortingWorkerResult> => {
+  initScriptLogging({ script: "compile-worker" });
+  return bunPortingRuntime.runPromise(compilePortingWorkerEffect(options));
+};

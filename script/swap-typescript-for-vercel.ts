@@ -1,4 +1,6 @@
 import { FileSystem, Path } from "@effect/platform";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect } from "effect";
 import { scriptRuntime } from "./runtime";
 
@@ -11,7 +13,8 @@ const program = Effect.gen(function* () {
   const typescript6Path = path.join(root, "node_modules/typescript6");
 
   if (!(yield* fs.exists(typescript6Path))) {
-    yield* Effect.log(
+    log.info(
+      "swap-typescript-for-vercel",
       "swap-typescript-for-vercel: typescript6 is not installed, skipping"
     );
     return 0;
@@ -25,7 +28,8 @@ const program = Effect.gen(function* () {
       .pipe(Effect.catchAll(() => Effect.succeed(null)));
 
     if (existing === typescript6Path) {
-      yield* Effect.log(
+      log.info(
+        "swap-typescript-for-vercel",
         "swap-typescript-for-vercel: typescript already points at typescript6"
       );
       return 0;
@@ -35,12 +39,14 @@ const program = Effect.gen(function* () {
   }
 
   yield* fs.symlink(typescript6Path, typescriptPath);
-  yield* Effect.log(
+  log.info(
+    "swap-typescript-for-vercel",
     "swap-typescript-for-vercel: symlinked typescript6 -> typescript for Next.js builders"
   );
   return 0;
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "swap-typescript-for-vercel" });
   process.exit(await scriptRuntime.runPromise(program));
 }

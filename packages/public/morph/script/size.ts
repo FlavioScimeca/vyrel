@@ -1,6 +1,10 @@
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
+
+initScriptLogging({ script: "morph-size" });
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(packageRoot, "dist");
@@ -93,37 +97,46 @@ const files = await listDistFiles(distDir);
 const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 const runtimeEntry = files.find((file) => file.path.endsWith("/index.js"));
 
-console.log("@vyrel/morph dist size\n");
-console.log("File".padEnd(28), "Size");
-console.log("-".repeat(40));
+log.info("morph-size", "@vyrel/morph dist size\n");
+log.info("morph-size", `${"File".padEnd(28)} Size`);
+log.info("morph-size", "-".repeat(40));
 
 for (const file of files.toSorted((a, b) => b.size - a.size)) {
   const label = relative(distDir, file.path);
-  console.log(label.padEnd(28), formatBytes(file.size));
+  log.info("morph-size", `${label.padEnd(28)} ${formatBytes(file.size)}`);
 }
 
-console.log("-".repeat(40));
-console.log("Total on disk".padEnd(28), formatBytes(totalBytes));
+log.info("morph-size", "-".repeat(40));
+log.info(
+  "morph-size",
+  `${"Total on disk".padEnd(28)} ${formatBytes(totalBytes)}`
+);
 
 if (runtimeEntry) {
-  console.log(
-    "Runtime entry (index.js)".padEnd(28),
-    formatBytes(runtimeEntry.size)
+  log.info(
+    "morph-size",
+    `${"Runtime entry (index.js)".padEnd(28)} ${formatBytes(runtimeEntry.size)}`
   );
 }
 
 const packSummary = await readPackSummary();
 
-console.log("\nbun publish estimate\n");
-console.log(
-  "Tarball (compressed)".padEnd(28),
-  formatBytes(packSummary.tarballBytes)
+log.info("morph-size", "\nbun publish estimate\n");
+log.info(
+  "morph-size",
+  `${"Tarball (compressed)".padEnd(28)} ${formatBytes(packSummary.tarballBytes)}`
 );
 
 if (packSummary.unpackedSize) {
-  console.log("Installed (unpacked)".padEnd(28), packSummary.unpackedSize);
+  log.info(
+    "morph-size",
+    `${"Installed (unpacked)".padEnd(28)} ${packSummary.unpackedSize}`
+  );
 }
 
 if (packSummary.totalFiles) {
-  console.log("Files in package".padEnd(28), packSummary.totalFiles);
+  log.info(
+    "morph-size",
+    `${"Files in package".padEnd(28)} ${packSummary.totalFiles}`
+  );
 }

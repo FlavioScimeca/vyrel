@@ -60,6 +60,7 @@
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@vyrel/config": "workspace:*",
+    "@vyrel/logging": "workspace:*",
     "knip": "^6.25.0",
     "typescript": "catalog:",
     "ultracite": "7.9.2",
@@ -70,7 +71,13 @@
     "@pothos/core": "^4.13.0",
     "@pothos/plugin-validation": "^4.3.0",
     "@pothos/plugin-with-input": "^4.1.4",
+    "@vyrel/logging": "workspace:*",
     "zod": "^4.4.3"
+  },
+  "peerDependenciesMeta": {
+    "@vyrel/logging": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=20"

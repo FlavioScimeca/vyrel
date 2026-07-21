@@ -1,6 +1,10 @@
 import { rm } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
+
+initScriptLogging({ script: "graphql-client-compiler" });
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outdir = join(packageRoot, "dist");
@@ -34,8 +38,8 @@ const buildEntry = async (entrypoint: string, client: boolean) => {
   });
 
   if (!result.success) {
-    for (const log of result.logs) {
-      console.error(log);
+    for (const entry of result.logs) {
+      log.error("graphql-client-compiler", String(entry));
     }
     throw new Error("Bun build failed");
   }
@@ -55,7 +59,10 @@ if (analyze) {
     join(outdir, "meta.json"),
     JSON.stringify(metafiles, null, 2)
   );
-  console.log("Wrote bundle metafiles to dist/meta.json");
+  log.info(
+    "graphql-client-compiler",
+    "Wrote bundle metafiles to dist/meta.json"
+  );
 }
 
 const types = Bun.spawnSync({

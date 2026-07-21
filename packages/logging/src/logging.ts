@@ -1,69 +1,59 @@
 import {
-  configure,
-  getConsoleSink,
-  getLogger,
-  type Logger,
+  type AuditableLogger,
+  createLogger,
+  type EvlogConfig,
+  initLogger,
+  isEnabled,
+  isLevelEnabled,
   type LogLevel,
-} from "@logtape/logtape";
-import { getPrettyFormatter } from "@logtape/pretty";
-import { env } from "@vyrel/env/server";
-import { Effect } from "effect";
+  log,
+} from "evlog";
 
-const LOG_LEVELS = [
-  "trace",
-  "debug",
-  "info",
-  "warning",
-  "error",
-  "fatal",
-] as const satisfies readonly LogLevel[];
+import {
+  defineVyrelLogging,
+  type InitLoggingOptions,
+  mapLogLevel,
+  toVyrelLoggerConfig,
+  type VyrelEnvLogLevel,
+} from "./config";
 
-const ROOT_CATEGORY = "vyrel" as const;
+let initialized = false;
 
-function resolveLogLevel(value: string | undefined): LogLevel {
-  if (value !== undefined && LOG_LEVELS.includes(value as LogLevel)) {
-    return value as LogLevel;
-  }
-
-  return env.NODE_ENV === "production" ? "info" : "debug";
-}
-
-let configured = false;
-
-export const configureLogging = Effect.gen(function* () {
-  if (configured) {
+/**
+ * Initialize the global evlog logger once. Safe to call repeatedly.
+ */
+export function initLogging(options: InitLoggingOptions = {}): void {
+  if (initialized) {
     return;
   }
 
-  const lowestLevel = resolveLogLevel(env.LOG_LEVEL);
-  const isDev = env.NODE_ENV === "development";
-
-  yield* Effect.promise(() =>
-    configure({
-      loggers: [
-        {
-          category: ["logtape", "meta"],
-          lowestLevel: "warning",
-          sinks: ["console"],
-        },
-        {
-          category: [ROOT_CATEGORY],
-          lowestLevel,
-          sinks: ["console"],
-        },
-      ],
-      reset: true,
-      sinks: {
-        console: getConsoleSink({
-          formatter: isDev ? getPrettyFormatter() : undefined,
-        }),
-      },
-    })
-  );
-
-  configured = true;
-});
-
-export function getAppLogger(...category: string[]): Logger {
-  return getLogger([ROOT_CATEGORY, ...category]);
+  initLogger(toVyrelLoggerConfig(options));
+  initialized = true;
 }
+
+/** Whether {@link initLogging} (or {@link initScriptLogging}) has run. */
+export function isLoggingInitialized(): boolean {
+  return initialized;
+}
+
+/** Reset init guard — intended for tests only. */
+export function resetLoggingForTests(): void {
+  initialized = false;
+}
+
+export type {
+  AuditableLogger,
+  EvlogConfig,
+  InitLoggingOptions,
+  LogLevel,
+  VyrelEnvLogLevel,
+};
+export {
+  createLogger,
+  defineVyrelLogging,
+  isEnabled,
+  isLevelEnabled,
+  log,
+  mapLogLevel,
+  toVyrelLoggerConfig,
+};

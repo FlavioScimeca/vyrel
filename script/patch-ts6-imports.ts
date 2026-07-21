@@ -1,5 +1,7 @@
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
+import { log } from "@vyrel/logging";
+import { initScriptLogging } from "@vyrel/logging/script";
 import { Effect } from "effect";
 import { scriptRuntime } from "./runtime";
 
@@ -132,15 +134,20 @@ const program = Effect.gen(function* () {
   const report = yield* patchTypeScriptImports();
 
   if (report.skipped) {
-    yield* Effect.log(`patch-ts6-imports: skipped (${report.skipReason})`);
+    log.info(
+      "patch-ts6-imports",
+      `patch-ts6-imports: skipped (${report.skipReason})`
+    );
     return;
   }
 
-  yield* Effect.log(
+  log.info(
+    "patch-ts6-imports",
     `patch-ts6-imports: rewired ${report.replacements} import(s) across ${report.filesPatched} file(s) to typescript6`
   );
 });
 
 if (import.meta.main) {
+  initScriptLogging({ script: "patch-ts6-imports" });
   await scriptRuntime.runPromise(program);
 }
