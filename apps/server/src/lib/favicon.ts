@@ -5,11 +5,8 @@ import { Effect, ManagedRuntime } from "effect";
 const runtime = ManagedRuntime.make(BunContext.layer);
 
 /**
- * Resolve favicon on demand (not at import time).
- * FileSystem.exists is async — must use runPromise, never runSync.
- * Keeping this off the module-init path means a missing favicon cannot
- * block or crash `export default` (and avoids top-level await, which
- * has triggered TDZ races in Vercel's Bun loader).
+ * FileSystem.exists is async, so this Effect cannot use runSync.
+ * Resolve once at module load via runPromise (top-level await).
  */
 const resolveFaviconPath = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -32,19 +29,11 @@ const resolveFaviconPath = Effect.gen(function* () {
     }
   }
 
-  return yield* Effect.fail(
+  return yield* Effect.die(
     new Error(
       `favicon.ico not found. Tried:\n${candidates.map((c) => `  - ${c}`).join("\n")}`
     )
   );
 });
 
-const cachedResolve = Effect.cached(resolveFaviconPath);
-
-export const getFaviconPath = (): Promise<string> =>
-  runtime.runPromise(
-    Effect.gen(function* () {
-      const getPath = yield* cachedResolve;
-      return yield* getPath;
-    })
-  );
+export const faviconPath = await runtime.runPromise(resolveFaviconPath);
