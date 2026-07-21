@@ -1,4 +1,6 @@
-import { resolve } from "node:path";
+import { Path } from "@effect/platform";
+import { Effect } from "effect";
+import { scriptRuntime } from "./runtime";
 
 const DEV_PORTS = [3000, 3001, 4000, 5555, 6006] as const;
 
@@ -10,11 +12,10 @@ const GLOBAL_PROCESS_PATTERNS = [
   "gql-tada",
 ] as const;
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const escapeRegex = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function buildRepoScopedPatterns(repoRoot: string): string[] {
+const buildRepoScopedPatterns = (repoRoot: string): string[] => {
   const root = escapeRegex(repoRoot);
 
   return [
@@ -32,106 +33,120 @@ function buildRepoScopedPatterns(repoRoot: string): string[] {
     `${root}.*storybook`,
     `${root}.*bun run --hot`,
   ];
-}
+};
 
-function runCommand(command: string[]): { status: number; stdout: string } {
-  const result = Bun.spawnSync(command, {
-    stderr: "pipe",
-    stdout: "pipe",
+const runCommand = (
+  command: string[]
+): Effect.Effect<{ status: number; stdout: string }> =>
+  Effect.sync(() => {
+    const result = Bun.spawnSync(command, {
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+
+    return {
+      status: result.exitCode,
+      stdout: result.stdout.toString(),
+    };
   });
 
-  return {
-    status: result.exitCode,
-    stdout: result.stdout.toString(),
-  };
-}
+const pkillPattern = (pattern: string): Effect.Effect<boolean> =>
+  runCommand(["pkill", "-f", pattern]).pipe(
+    Effect.map((result) => result.status === 0)
+  );
 
-function pkillPattern(pattern: string): boolean {
-  const result = runCommand(["pkill", "-f", pattern]);
-  return result.status === 0;
-}
+const stopTurboDaemon = (): Effect.Effect<void> =>
+  runCommand(["bunx", "turbo", "daemon", "stop"]).pipe(Effect.asVoid);
 
-function stopTurboDaemon(): void {
-  runCommand(["bunx", "turbo", "daemon", "stop"]);
-}
+const killPort = (port: number): Effect.Effect<number> =>
+  Effect.gen(function* () {
+    const lookup = yield* runCommand(["lsof", "-ti", `:${port}`]);
 
-function killPort(port: number): number {
-  const lookup = runCommand(["lsof", "-ti", `:${port}`]);
+    if (lookup.status !== 0 || lookup.stdout.trim().length === 0) {
+      return 0;
+    }
 
-  if (lookup.status !== 0 || lookup.stdout.trim().length === 0) {
-    return 0;
-  }
+    const pids = lookup.stdout
+      .trim()
+      .split("\n")
+      .map((pid) => pid.trim())
+      .filter((pid) => pid.length > 0);
 
-  const pids = lookup.stdout
-    .trim()
-    .split("\n")
-    .map((pid) => pid.trim())
-    .filter((pid) => pid.length > 0);
+    for (const pid of pids) {
+      yield* runCommand(["kill", "-9", pid]);
+    }
 
-  for (const pid of pids) {
-    runCommand(["kill", "-9", pid]);
-  }
-
-  return pids.length;
-}
+    return pids.length;
+  });
 
 export interface KillProcessesReport {
   killedPatterns: string[];
   killedPorts: { port: number; pids: number }[];
 }
 
-export function killProjectProcesses(repoRoot: string): KillProcessesReport {
-  const killedPatterns: string[] = [];
-  const killedPorts: KillProcessesReport["killedPorts"] = [];
+export const killProjectProcesses = (
+  repoRoot: string
+): Effect.Effect<KillProcessesReport> =>
+  Effect.gen(function* () {
+    const killedPatterns: string[] = [];
+    const killedPorts: KillProcessesReport["killedPorts"] = [];
 
-  stopTurboDaemon();
+    yield* stopTurboDaemon();
 
-  for (const pattern of GLOBAL_PROCESS_PATTERNS) {
-    if (pkillPattern(pattern)) {
-      killedPatterns.push(pattern);
+    for (const pattern of GLOBAL_PROCESS_PATTERNS) {
+      if (yield* pkillPattern(pattern)) {
+        killedPatterns.push(pattern);
+      }
     }
-  }
 
-  for (const pattern of buildRepoScopedPatterns(repoRoot)) {
-    if (pkillPattern(pattern)) {
-      killedPatterns.push(pattern);
+    for (const pattern of buildRepoScopedPatterns(repoRoot)) {
+      if (yield* pkillPattern(pattern)) {
+        killedPatterns.push(pattern);
+      }
     }
-  }
 
-  for (const port of DEV_PORTS) {
-    const pids = killPort(port);
-    if (pids > 0) {
-      killedPorts.push({ port, pids });
+    for (const port of DEV_PORTS) {
+      const pids = yield* killPort(port);
+      if (pids > 0) {
+        killedPorts.push({ port, pids });
+      }
     }
-  }
 
-  return { killedPatterns, killedPorts };
-}
+    return { killedPatterns, killedPorts };
+  });
 
-function printReport(report: KillProcessesReport): void {
-  console.log("Stopped project processes.");
+const printReport = (report: KillProcessesReport): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log("Stopped project processes.");
 
-  if (report.killedPatterns.length > 0) {
-    console.log(`Matched patterns (${report.killedPatterns.length}):`);
-    for (const pattern of report.killedPatterns) {
-      console.log(`  - ${pattern}`);
+    if (report.killedPatterns.length > 0) {
+      yield* Effect.log(`Matched patterns (${report.killedPatterns.length}):`);
+      for (const pattern of report.killedPatterns) {
+        yield* Effect.log(`  - ${pattern}`);
+      }
+    } else {
+      yield* Effect.log("No matching process patterns were running.");
     }
-  } else {
-    console.log("No matching process patterns were running.");
-  }
 
-  if (report.killedPorts.length > 0) {
-    console.log("Freed ports:");
-    for (const { port, pids } of report.killedPorts) {
-      console.log(`  - :${port} (${pids} process${pids === 1 ? "" : "es"})`);
+    if (report.killedPorts.length > 0) {
+      yield* Effect.log("Freed ports:");
+      for (const { port, pids } of report.killedPorts) {
+        yield* Effect.log(
+          `  - :${port} (${pids} process${pids === 1 ? "" : "es"})`
+        );
+      }
+    } else {
+      yield* Effect.log("No listeners found on dev ports.");
     }
-  } else {
-    console.log("No listeners found on dev ports.");
-  }
-}
+  });
+
+const program = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const report = yield* killProjectProcesses(repoRoot);
+  yield* printReport(report);
+});
 
 if (import.meta.main) {
-  const repoRoot = resolve(import.meta.dirname, "..");
-  const report = killProjectProcesses(repoRoot);
-  printReport(report);
+  await scriptRuntime.runPromise(program);
 }

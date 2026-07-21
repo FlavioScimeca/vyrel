@@ -91,8 +91,8 @@ export const encodeImagePlaceholder = (
 ): Effect.Effect<string, ImageOptimizeError> =>
   Effect.tryPromise({
     catch: (cause) => new ImageOptimizeError({ cause }),
-    try: async () => {
-      const { placeholder } = await BunImage.batch(sourcePng, {
+    try: () =>
+      BunImage.batch(sourcePng, {
         maxPixels: MAX_IMAGE_PIXELS,
         pipelines: {
           placeholder: (img) =>
@@ -103,9 +103,7 @@ export const encodeImagePlaceholder = (
               .webp({ quality: PLACEHOLDER_WEBP_QUALITY }),
         },
         terminals: { placeholder: "dataurl" },
-      });
-      return placeholder;
-    },
+      }).then(({ placeholder }) => placeholder),
   });
 
 export const optimizePreviewImages = (
@@ -113,8 +111,8 @@ export const optimizePreviewImages = (
 ): Effect.Effect<OptimizedPreviewVariants, ImageOptimizeError> =>
   Effect.tryPromise({
     catch: (cause) => new ImageOptimizeError({ cause }),
-    try: async () => {
-      const { full, thumb } = await BunImage.batch(sourcePng, {
+    try: () =>
+      BunImage.batch(sourcePng, {
         maxPixels: MAX_IMAGE_PIXELS,
         pipelines: {
           full: (img) =>
@@ -133,7 +131,8 @@ export const optimizePreviewImages = (
               })
               .webp({ quality: 80 }),
         },
-      });
-      return { full: toVariant(full), thumb: toVariant(thumb) };
-    },
+      }).then(({ full, thumb }) => ({
+        full: toVariant(full),
+        thumb: toVariant(thumb),
+      })),
   });

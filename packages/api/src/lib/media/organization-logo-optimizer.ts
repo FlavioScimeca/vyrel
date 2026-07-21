@@ -24,8 +24,8 @@ export const optimizeOrganizationLogoImages = (
 ): Effect.Effect<OptimizedPreviewImages, ImageOptimizeError> =>
   Effect.tryPromise({
     catch: (cause) => new ImageOptimizeError({ cause }),
-    try: async () => {
-      const { full, placeholder, thumb } = await BunImage.batch(source, {
+    try: () =>
+      BunImage.batch(source, {
         maxPixels: MAX_PIXELS,
         pipelines: {
           full: (img) =>
@@ -52,12 +52,9 @@ export const optimizeOrganizationLogoImages = (
               .webp({ quality: 82 }),
         },
         terminals: { placeholder: "dataurl" },
-      });
-
-      return {
+      }).then(({ full, placeholder, thumb }) => ({
         full: toVariant(full),
         placeholder,
         thumb: toVariant(thumb),
-      };
-    },
+      })),
   });

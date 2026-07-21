@@ -1,7 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import { Config, Effect } from "effect";
+
+const isCi = Effect.runSync(
+  Config.boolean("CI").pipe(Config.withDefault(false))
+);
 
 export default defineConfig({
-  forbidOnly: !!process.env.CI,
+  forbidOnly: isCi,
   fullyParallel: true,
   projects: [
     {
@@ -18,7 +23,7 @@ export default defineConfig({
     },
   ],
   reporter: "html",
-  retries: process.env.CI ? 2 : 0,
+  retries: isCi ? 2 : 0,
   testDir: "./apps/web/e2e",
   use: {
     baseURL: "http://localhost:3001",
@@ -26,8 +31,8 @@ export default defineConfig({
   },
   webServer: {
     command: "bun dev",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !isCi,
     url: "http://localhost:3001",
   },
-  workers: process.env.CI ? 1 : undefined,
+  workers: isCi ? 1 : undefined,
 });

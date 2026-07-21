@@ -1,6 +1,6 @@
 import { FileSystem, Path } from "@effect/platform";
-import { BunContext, BunRuntime } from "@effect/platform-bun";
 import { Data, Effect } from "effect";
+import { scriptRuntime } from "./runtime";
 
 class StageChangesetError extends Data.TaggedError("StageChangesetError")<{
   readonly relativePath: string;
@@ -86,5 +86,4 @@ const program = Effect.gen(function* () {
   yield* writeLog(`Amended commit to include ${relativePath}`);
 });
 
-// @effect-diagnostics-next-line effect/strictEffectProvide:off
-BunRuntime.runMain(program.pipe(Effect.provide(BunContext.layer)));
+await scriptRuntime.runPromise(program);

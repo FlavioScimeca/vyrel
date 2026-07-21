@@ -1,4 +1,5 @@
 import { type Job, Worker } from "bullmq";
+import { DateTime, Effect } from "effect";
 
 import {
   connection,
@@ -12,22 +13,26 @@ import {
  */
 export const emailWorker = new Worker<EmailJobData>(
   "email",
-  async (job: Job<EmailJobData>) => {
-    const { to } = job.data;
+  (job: Job<EmailJobData>) =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const { to } = job.data;
 
-    console.log(`Processing email job ${job.id}: sending to ${to}`);
+        yield* Effect.log(`Processing email job ${job.id}: sending to ${to}`);
 
-    // TODO: Implement your email sending logic here
-    // Example with a hypothetical email service:
-    // await emailService.send({ to, subject, body, templateId });
+        // TODO: Implement your email sending logic here
+        // Simulate email sending
+        yield* Effect.sleep("1 second");
 
-    // Simulate email sending
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+        yield* Effect.log(`Email job ${job.id} completed: sent to ${to}`);
 
-    console.log(`Email job ${job.id} completed: sent to ${to}`);
-
-    return { sent: true, timestamp: new Date().toISOString(), to };
-  },
+        return {
+          sent: true,
+          timestamp: DateTime.formatIso(DateTime.unsafeNow()),
+          to,
+        };
+      })
+    ),
   {
     concurrency: 5, // Process up to 5 jobs in parallel
     connection,
@@ -43,34 +48,29 @@ export const emailWorker = new Worker<EmailJobData>(
  */
 export const notificationWorker = new Worker<NotificationJobData>(
   "notification",
-  async (job: Job<NotificationJobData>) => {
-    const { userId, type } = job.data;
+  (job: Job<NotificationJobData>) =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const { userId, type } = job.data;
 
-    console.log(
-      `Processing notification job ${job.id}: ${type} to user ${userId}`
-    );
+        yield* Effect.log(
+          `Processing notification job ${job.id}: ${type} to user ${userId}`
+        );
 
-    // TODO: Implement your notification logic here
-    // Example:
-    // switch (type) {
-    //   case "push":
-    //     await pushService.send(userId, { title, message, data });
-    //     break;
-    //   case "in-app":
-    //     await inAppNotificationService.create(userId, { title, message, data });
-    //     break;
-    //   case "sms":
-    //     await smsService.send(userId, message);
-    //     break;
-    // }
+        // TODO: Implement your notification logic here
+        // Simulate notification processing
+        yield* Effect.sleep("500 millis");
 
-    // Simulate notification processing
-    await new Promise((resolve) => setTimeout(resolve, 500));
+        yield* Effect.log(`Notification job ${job.id} completed`);
 
-    console.log(`Notification job ${job.id} completed`);
-
-    return { sent: true, timestamp: new Date().toISOString(), type, userId };
-  },
+        return {
+          sent: true,
+          timestamp: DateTime.formatIso(DateTime.unsafeNow()),
+          type,
+          userId,
+        };
+      })
+    ),
   {
     concurrency: 10,
     connection,
@@ -79,20 +79,26 @@ export const notificationWorker = new Worker<NotificationJobData>(
 
 // Event handlers for monitoring
 emailWorker.on("completed", (job) => {
-  console.log(`Email job ${job.id} has completed`);
+  Effect.runSync(Effect.log(`Email job ${job.id} has completed`));
 });
 
 emailWorker.on("failed", (job, err) => {
-  console.error(`Email job ${job?.id} has failed with error: ${err.message}`);
+  Effect.runSync(
+    Effect.logError(
+      `Email job ${job?.id} has failed with error: ${err.message}`
+    )
+  );
 });
 
 notificationWorker.on("completed", (job) => {
-  console.log(`Notification job ${job.id} has completed`);
+  Effect.runSync(Effect.log(`Notification job ${job.id} has completed`));
 });
 
 notificationWorker.on("failed", (job, err) => {
-  console.error(
-    `Notification job ${job?.id} has failed with error: ${err.message}`
+  Effect.runSync(
+    Effect.logError(
+      `Notification job ${job?.id} has failed with error: ${err.message}`
+    )
   );
 });
 
@@ -100,10 +106,13 @@ notificationWorker.on("failed", (job, err) => {
  * Gracefully close all workers
  * Call this during application shutdown
  */
-export async function closeWorkers() {
-  await emailWorker.close();
-  await notificationWorker.close();
-}
+export const closeWorkers = () =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      yield* Effect.promise(() => emailWorker.close());
+      yield* Effect.promise(() => notificationWorker.close());
+    })
+  );
 
 /**
  * Start all workers
@@ -111,9 +120,9 @@ export async function closeWorkers() {
  * to ensure they're running or to restart after being paused
  */
 export function startWorkers() {
-  // Workers are already running by default
-  // This function is here for explicit control if needed
-  console.log("BullMQ workers started");
-  console.log("- Email worker: processing 'email' queue");
-  console.log("- Notification worker: processing 'notification' queue");
+  Effect.runSync(Effect.log("BullMQ workers started"));
+  Effect.runSync(Effect.log("- Email worker: processing 'email' queue"));
+  Effect.runSync(
+    Effect.log("- Notification worker: processing 'notification' queue")
+  );
 }

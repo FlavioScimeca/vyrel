@@ -7,6 +7,7 @@
   "scripts": {
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "wxt prepare && tsc --noEmit",
     "compile": "bun run check-types",
     "dev": "wxt --port 5555",

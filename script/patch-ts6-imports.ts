@@ -1,14 +1,7 @@
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const repoRoot = resolve(join(fileURLToPath(import.meta.url), "..", ".."));
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect } from "effect";
+import { scriptRuntime } from "./runtime";
 
 const PATCH_TARGETS = [
   "node_modules/@typescript-eslint",
@@ -41,84 +34,113 @@ export interface PatchReport {
   skipReason?: string;
 }
 
-function collectFiles(directory: string, files: string[]): void {
-  if (!existsSync(directory)) {
-    return;
-  }
-
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
-    const stats = statSync(path);
-
-    if (stats.isDirectory()) {
-      collectFiles(path, files);
-      continue;
+const collectFiles = (
+  fs: FileSystem.FileSystem,
+  pathApi: Path.Path,
+  directory: string,
+  files: string[]
+): Effect.Effect<void, PlatformError> =>
+  Effect.gen(function* () {
+    if (!(yield* fs.exists(directory))) {
+      return;
     }
 
-    const extension = entry.slice(entry.lastIndexOf("."));
-    if (PATCHED_EXTENSIONS.has(extension)) {
-      files.push(path);
+    const entries = yield* fs.readDirectory(directory);
+
+    for (const entry of entries) {
+      const entryPath = pathApi.join(directory, entry);
+      const stat = yield* fs.stat(entryPath);
+
+      if (stat.type === "Directory") {
+        yield* collectFiles(fs, pathApi, entryPath, files);
+        continue;
+      }
+
+      const extension = entry.slice(entry.lastIndexOf("."));
+      if (PATCHED_EXTENSIONS.has(extension)) {
+        files.push(entryPath);
+      }
     }
-  }
-}
+  });
 
-export function patchTypeScriptImports(root = repoRoot): PatchReport {
-  const typescript6Path = join(root, "node_modules/typescript6/package.json");
-  if (!existsSync(typescript6Path)) {
-    return {
-      filesPatched: 0,
-      replacements: 0,
-      skipped: true,
-      skipReason: "typescript6 is not installed",
-    };
-  }
+export const patchTypeScriptImports = (
+  root?: string
+): Effect.Effect<
+  PatchReport,
+  PlatformError,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const pathApi = yield* Path.Path;
+    const resolvedRoot =
+      root ?? pathApi.resolve(pathApi.join(import.meta.dirname, ".."));
 
-  const files: string[] = [];
-  for (const target of PATCH_TARGETS) {
-    collectFiles(join(root, target), files);
-  }
+    const typescript6Path = pathApi.join(
+      resolvedRoot,
+      "node_modules/typescript6/package.json"
+    );
 
-  let filesPatched = 0;
-  let replacements = 0;
+    if (!(yield* fs.exists(typescript6Path))) {
+      return {
+        filesPatched: 0,
+        replacements: 0,
+        skipped: true,
+        skipReason: "typescript6 is not installed",
+      };
+    }
 
-  for (const file of files) {
-    const original = readFileSync(file, "utf8");
-    let next = original;
+    const files: string[] = [];
+    for (const target of PATCH_TARGETS) {
+      yield* collectFiles(
+        fs,
+        pathApi,
+        pathApi.join(resolvedRoot, target),
+        files
+      );
+    }
 
-    for (const [pattern, replacement] of REPLACEMENTS) {
-      const matches = next.match(pattern);
-      if (matches) {
-        replacements += matches.length;
-        next = next.replace(pattern, replacement);
+    let filesPatched = 0;
+    let replacements = 0;
+
+    for (const file of files) {
+      const original = yield* fs.readFileString(file);
+      let next = original;
+
+      for (const [pattern, replacement] of REPLACEMENTS) {
+        const matches = next.match(pattern);
+        if (matches !== null) {
+          replacements += matches.length;
+          next = next.replace(pattern, replacement);
+        }
+      }
+
+      if (next !== original) {
+        yield* fs.writeFileString(file, next);
+        filesPatched += 1;
       }
     }
 
-    if (next !== original) {
-      writeFileSync(file, next);
-      filesPatched += 1;
-    }
-  }
+    return {
+      filesPatched,
+      replacements,
+      skipped: false,
+    };
+  });
 
-  return {
-    filesPatched,
-    replacements,
-    skipped: false,
-  };
-}
-
-function main(): void {
-  const report = patchTypeScriptImports();
+const program = Effect.gen(function* () {
+  const report = yield* patchTypeScriptImports();
 
   if (report.skipped) {
-    console.log(`patch-ts6-imports: skipped (${report.skipReason})`);
+    yield* Effect.log(`patch-ts6-imports: skipped (${report.skipReason})`);
     return;
   }
 
-  console.log(
+  yield* Effect.log(
     `patch-ts6-imports: rewired ${report.replacements} import(s) across ${report.filesPatched} file(s) to typescript6`
   );
-}
+});
 
 if (import.meta.main) {
-  main();
+  await scriptRuntime.runPromise(program);
 }

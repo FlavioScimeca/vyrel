@@ -1,13 +1,15 @@
-import { cp, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
+import { FileSystem, Path } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
 import {
   compilePortingWorker,
   createVercelEntryTracingSnippet,
 } from "@vyrel/bun-porting/bootstrap";
+import { Config, Effect, ManagedRuntime, Schema } from "effect";
 
 import { initBunPorting } from "../src/lib/bun-porting";
+
+const runtime = ManagedRuntime.make(BunContext.layer);
+const encodeMetaJson = Schema.encodeSync(Schema.parseJson(Schema.Unknown));
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
@@ -21,69 +23,80 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const outdir = join(packageRoot, "dist");
-const outfile = join(outdir, "index.js");
+const program = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const packageRoot = path.join(import.meta.dirname, "..");
+  const outdir = path.join(packageRoot, "dist");
+  const outfile = path.join(outdir, "index.js");
 
-initBunPorting();
+  initBunPorting();
 
-const pkg = (await Bun.file(join(packageRoot, "package.json")).json()) as {
-  version: string;
-};
+  const pkg = (yield* Effect.promise(() =>
+    Bun.file(path.join(packageRoot, "package.json")).json()
+  )) as { version: string };
 
-await rm(outdir, { force: true, recursive: true });
+  yield* fs.remove(outdir, { force: true, recursive: true });
 
-const analyze = process.env.ANALYZE === "1";
+  const analyze =
+    (yield* Config.string("ANALYZE").pipe(Config.withDefault("0"))) === "1";
 
-const result = await Bun.build({
-  banner: `/*! server v${pkg.version} */`,
-  entrypoints: [join(packageRoot, "src/index.ts")],
-  format: "esm",
-  metafile: analyze,
-  minify: {
-    identifiers: true,
-    keepNames: true,
-    syntax: true,
-    whitespace: true,
-  },
-  naming: {
-    entry: "bundle.[ext]",
-  },
-  outdir,
-  sourcemap: "linked",
-  target: "bun",
-});
+  const result = yield* Effect.promise(() =>
+    Bun.build({
+      banner: `/*! server v${pkg.version} */`,
+      entrypoints: [path.join(packageRoot, "src/index.ts")],
+      format: "esm",
+      metafile: analyze,
+      minify: {
+        identifiers: true,
+        keepNames: true,
+        syntax: true,
+        whitespace: true,
+      },
+      naming: {
+        entry: "bundle.[ext]",
+      },
+      outdir,
+      sourcemap: "linked",
+      target: "bun",
+    })
+  );
 
-if (!result.success) {
-  for (const log of result.logs) {
-    console.error(log);
+  if (!result.success) {
+    for (const log of result.logs) {
+      yield* Effect.logError(log);
+    }
+    return yield* Effect.die(new Error("Bun build failed"));
   }
-  throw new Error("Bun build failed");
-}
 
-if (analyze && result.metafile) {
-  await Bun.write(
-    join(outdir, "meta.json"),
-    JSON.stringify(result.metafile, null, 2)
+  if (analyze && result.metafile !== undefined) {
+    yield* fs.writeFileString(
+      path.join(outdir, "meta.json"),
+      encodeMetaJson(result.metafile)
+    );
+    yield* Effect.log("Wrote bundle metafile to dist/meta.json");
+  }
+
+  const bundlePath = path.join(outdir, "bundle.js");
+  const bundle = yield* Effect.promise(() => Bun.file(bundlePath).text());
+  const unresolvedWorkspaceImports = bundle.match(
+    /from\s+["']@vyrel\/[^"']+["']/g
   );
-  console.log("Wrote bundle metafile to dist/meta.json");
-}
 
-const bundlePath = join(outdir, "bundle.js");
-const bundle = await Bun.file(bundlePath).text();
-const unresolvedWorkspaceImports = bundle.match(
-  /from\s+["']@vyrel\/[^"']+["']/g
-);
+  if (
+    unresolvedWorkspaceImports !== null &&
+    unresolvedWorkspaceImports.length > 0
+  ) {
+    return yield* Effect.die(
+      new Error(
+        `Bundle still has unresolved workspace imports: ${unresolvedWorkspaceImports.join(", ")}`
+      )
+    );
+  }
 
-if (unresolvedWorkspaceImports?.length) {
-  throw new Error(
-    `Bundle still has unresolved workspace imports: ${unresolvedWorkspaceImports.join(", ")}`
-  );
-}
+  const tracingSnippet = createVercelEntryTracingSnippet("bin/porting-worker");
 
-const tracingSnippet = createVercelEntryTracingSnippet("bin/porting-worker");
-
-const vercelEntry = `import { existsSync } from "node:fs";
+  const vercelEntry = `import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Elysia } from "elysia";
@@ -103,17 +116,22 @@ if (!process.env.VERCEL) {
 }
 `;
 
-await Bun.write(outfile, vercelEntry);
+  yield* Effect.promise(() => Bun.write(outfile, vercelEntry));
 
-const publicDir = join(packageRoot, "public");
-const faviconSource = join(publicDir, "favicon.ico");
+  const publicDir = path.join(packageRoot, "public");
+  const faviconSource = path.join(publicDir, "favicon.ico");
 
-if (await Bun.file(faviconSource).exists()) {
-  await cp(publicDir, join(outdir, "public"), { recursive: true });
-  console.log("Copied public/ to dist/public/");
-}
+  if (yield* Effect.promise(() => Bun.file(faviconSource).exists())) {
+    yield* fs.copy(publicDir, path.join(outdir, "public"), {
+      overwrite: true,
+    });
+    yield* Effect.log("Copied public/ to dist/public/");
+  }
 
-console.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
-console.log(`Wrote ${outfile} (Vercel entry shim)`);
+  yield* Effect.log(`Built ${bundlePath} (${formatBytes(bundle.length)})`);
+  yield* Effect.log(`Wrote ${outfile} (Vercel entry shim)`);
 
-await compilePortingWorker({ outdir });
+  yield* Effect.promise(() => compilePortingWorker({ outdir }));
+});
+
+await runtime.runPromise(program);

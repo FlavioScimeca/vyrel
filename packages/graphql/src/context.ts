@@ -20,22 +20,20 @@ export function resolveActorUserId(
   return context.session?.user.id ?? context.user?.id;
 }
 
-// Yoga context factory must return a Promise; Effect would not fit this boundary.
-// @effect-diagnostics-next-line effect/asyncFunction:off
-export async function createGraphqlContext(
+/** Yoga context factory must return a Promise; keep the boundary Promise-based. */
+export const createGraphqlContext = (
   request: Request
-): Promise<GraphQLContext> {
-  const [session, user] = await Promise.all([
+): Promise<GraphQLContext> =>
+  Promise.all([
     auth.api.getSession({ headers: request.headers }),
     verifyBearer(request.headers),
-  ]);
+  ]).then(([session, user]) => {
+    const isAuthenticated = session !== null || user !== undefined;
 
-  const isAuthenticated = session !== null || user !== undefined;
-
-  return {
-    headers: request.headers,
-    isAuthenticated,
-    session,
-    user,
-  };
-}
+    return {
+      headers: request.headers,
+      isAuthenticated,
+      session,
+      user,
+    };
+  });

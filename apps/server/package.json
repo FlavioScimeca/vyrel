@@ -13,6 +13,7 @@
     "build:analyze": "ANALYZE=1 bun run script/compiler.ts",
     "build:porting-worker": "bun run script/compile-porting-worker.ts",
     "build:verified": "bun run script/build.ts",
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc -b",
     "clean": "rm -rf dist",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",

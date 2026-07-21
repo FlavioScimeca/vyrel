@@ -1,6 +1,8 @@
 import confirm from "@inquirer/confirm";
 import select from "@inquirer/select";
 import chalk from "chalk";
+import { Effect } from "effect";
+import type { ParseError } from "effect/ParseResult";
 import {
   type Bump,
   changedPublicPackages,
@@ -11,6 +13,7 @@ import {
   repoRoot,
   writeIntent,
 } from "./changeset-utils";
+import { scriptRuntime } from "./runtime";
 
 const bumpChoices: Array<{ name: string; value: Bump }> = [
   { name: "patch — bug fixes, internal tweaks", value: "patch" },
@@ -18,54 +21,59 @@ const bumpChoices: Array<{ name: string; value: Bump }> = [
   { name: "major — breaking changes", value: "major" },
 ];
 
-const promptChangesetIntent = async (
+const promptChangesetIntent = (
   changedPackages: string[]
-): Promise<void> => {
-  console.log("");
-  console.log(chalk.bold("Changeset"));
-  console.log(chalk.dim("  Public package changes detected:"));
-  for (const packageName of changedPackages) {
-    console.log(chalk.cyan(`    - ${packageName}`));
-  }
-  console.log("");
+): Effect.Effect<void, ParseError> =>
+  Effect.gen(function* () {
+    yield* Effect.log("");
+    yield* Effect.log(chalk.bold("Changeset"));
+    yield* Effect.log(chalk.dim("  Public package changes detected:"));
+    for (const packageName of changedPackages) {
+      yield* Effect.log(chalk.cyan(`    - ${packageName}`));
+    }
+    yield* Effect.log("");
 
-  const shouldCreate = await confirm({
-    default: true,
-    message: "Create a changeset for the next release?",
-  });
+    const shouldCreate = yield* Effect.promise(() =>
+      confirm({
+        default: true,
+        message: "Create a changeset for the next release?",
+      })
+    );
 
-  if (!shouldCreate) {
-    await writeIntent({ action: "skip" });
-    console.log(chalk.dim("  Skipping changeset for this commit"));
-    console.log(
+    if (!shouldCreate) {
+      yield* writeIntent({ action: "skip" });
+      yield* Effect.log(chalk.dim("  Skipping changeset for this commit"));
+      yield* Effect.log(
+        chalk.dim(
+          "  Tip: add the skip-changeset label on the PR if CI asks for one"
+        )
+      );
+      yield* Effect.log("");
+      return;
+    }
+
+    const bump = yield* Effect.promise(() =>
+      select<Bump>({
+        choices: bumpChoices,
+        default: "patch",
+        message: "Select the semver bump:",
+        pageSize: 5,
+      })
+    );
+
+    yield* writeIntent({
+      action: "create",
+      bump,
+      packages: changedPackages,
+    });
+
+    yield* Effect.log(
       chalk.dim(
-        "  Tip: add the skip-changeset label on the PR if CI asks for one"
+        `  Will create a ${bump} changeset after you finish the commit message`
       )
     );
-    console.log("");
-    return;
-  }
-
-  const bump = await select<Bump>({
-    choices: bumpChoices,
-    default: "patch",
-    message: "Select the semver bump:",
-    pageSize: 5,
+    yield* Effect.log("");
   });
-
-  await writeIntent({
-    action: "create",
-    bump,
-    packages: changedPackages,
-  });
-
-  console.log(
-    chalk.dim(
-      `  Will create a ${bump} changeset after you finish the commit message`
-    )
-  );
-  console.log("");
-};
 
 const runCzg = (): number => {
   const result = Bun.spawnSync(["bunx", "czg"], {
@@ -82,26 +90,28 @@ const runCzg = (): number => {
   return result.exitCode;
 };
 
-export async function runCommit(): Promise<number> {
-  const stagedFiles = listStagedFiles();
-  const publicPackages = loadPublicPackageNames();
-  const changedPackages = changedPublicPackages(stagedFiles, publicPackages);
+export const runCommit = (): Effect.Effect<number, ParseError> =>
+  Effect.gen(function* () {
+    const stagedFiles = listStagedFiles();
+    const publicPackages = loadPublicPackageNames();
+    const changedPackages = changedPublicPackages(stagedFiles, publicPackages);
 
-  if (needsChangesetDecision(stagedFiles, changedPackages)) {
-    await promptChangesetIntent(changedPackages);
-  } else {
-    const skipReason = getChangesetSkipReason(stagedFiles, changedPackages);
+    if (needsChangesetDecision(stagedFiles, changedPackages)) {
+      yield* promptChangesetIntent(changedPackages);
+    } else {
+      const skipReason = getChangesetSkipReason(stagedFiles, changedPackages);
 
-    if (skipReason !== null) {
-      console.log("");
-      console.log(chalk.dim(`Changeset: ${skipReason}`));
-      console.log("");
+      if (skipReason !== null) {
+        yield* Effect.log("");
+        yield* Effect.log(chalk.dim(`Changeset: ${skipReason}`));
+        yield* Effect.log("");
+      }
     }
-  }
 
-  return runCzg();
-}
+    return runCzg();
+  });
 
 if (import.meta.main) {
-  process.exit(await runCommit());
+  const exitCode = await scriptRuntime.runPromise(runCommit());
+  process.exit(exitCode);
 }

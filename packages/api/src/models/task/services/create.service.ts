@@ -26,8 +26,7 @@ export const createTask = (
 
     yield* assertOrgMembership(organizationId, userId);
 
-    // @effect-diagnostics-next-line effect/cryptoRandomUUIDInEffect:off
-    const taskId = crypto.randomUUID();
+    const taskId = yield* Effect.sync(() => Bun.randomUUIDv7());
 
     const imageFields =
       image === undefined

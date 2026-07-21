@@ -1,23 +1,33 @@
-import { existsSync, rmSync, symlinkSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { FileSystem, Path } from "@effect/platform";
+import { Effect } from "effect";
+import { scriptRuntime } from "./runtime";
 
-const root = resolve(join(fileURLToPath(import.meta.url), "..", ".."));
-const typescriptPath = join(root, "node_modules/typescript");
-const typescript6Path = join(root, "node_modules/typescript6");
+const program = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
 
-if (!existsSync(typescript6Path)) {
-  console.log(
-    "swap-typescript-for-vercel: typescript6 is not installed, skipping"
+  const root = path.resolve(path.join(import.meta.dirname, ".."));
+  const typescriptPath = path.join(root, "node_modules/typescript");
+  const typescript6Path = path.join(root, "node_modules/typescript6");
+
+  if (!(yield* fs.exists(typescript6Path))) {
+    yield* Effect.log(
+      "swap-typescript-for-vercel: typescript6 is not installed, skipping"
+    );
+    return 0;
+  }
+
+  if (yield* fs.exists(typescriptPath)) {
+    yield* fs.remove(typescriptPath, { force: true, recursive: true });
+  }
+
+  yield* fs.symlink(typescript6Path, typescriptPath);
+  yield* Effect.log(
+    "swap-typescript-for-vercel: symlinked typescript6 -> typescript for Vercel builders"
   );
-  process.exit(0);
-}
+  return 0;
+});
 
-if (existsSync(typescriptPath)) {
-  rmSync(typescriptPath, { recursive: true, force: true });
+if (import.meta.main) {
+  process.exit(await scriptRuntime.runPromise(program));
 }
-
-symlinkSync(typescript6Path, typescriptPath, "dir");
-console.log(
-  "swap-typescript-for-vercel: symlinked typescript6 -> typescript for Vercel builders"
-);

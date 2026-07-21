@@ -17,6 +17,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "@vyrel/env": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "effect": "catalog:",
     "jose": "^6.2.3",
     "react": "catalog:",
     "resend": "^6.16.0",

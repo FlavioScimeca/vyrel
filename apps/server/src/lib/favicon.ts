@@ -1,22 +1,29 @@
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { FileSystem, Path } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
+import { Effect, ManagedRuntime } from "effect";
 
-const resolveFaviconPath = (): string => {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(dir, "public/favicon.ico"),
-    join(dir, "../public/favicon.ico"),
-    join(dir, "../../public/favicon.ico"),
-  ];
+const runtime = ManagedRuntime.make(BunContext.layer);
 
-  for (const path of candidates) {
-    if (existsSync(path)) {
-      return path;
-    }
-  }
+const resolveFaviconPath = (): string =>
+  runtime.runSync(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dir = import.meta.dirname;
+      const candidates = [
+        path.join(dir, "public/favicon.ico"),
+        path.join(dir, "../public/favicon.ico"),
+        path.join(dir, "../../public/favicon.ico"),
+      ];
 
-  throw new Error("favicon.ico not found");
-};
+      for (const candidate of candidates) {
+        if (yield* fs.exists(candidate)) {
+          return candidate;
+        }
+      }
+
+      return yield* Effect.die(new Error("favicon.ico not found"));
+    })
+  );
 
 export const faviconPath = resolveFaviconPath();

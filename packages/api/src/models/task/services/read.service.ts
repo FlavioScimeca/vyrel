@@ -1,7 +1,7 @@
 import { db } from "@vyrel/db";
 import { task } from "@vyrel/db/schema";
 import { and, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 
 import type {
   TasksTypeByOrganization,
@@ -20,17 +20,20 @@ export const getTask = (
   jwtUserId?: string
 ) => fetchTaskForUser(input.id, headers, jwtUserId);
 
-const startOfDay = (date: Date): Date => {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  return result;
-};
+/** Local calendar-day bounds as absolute instants (matches former setHours behavior). */
+const startOfDay = (date: Date): Date =>
+  DateTime.unsafeMake(date).pipe(
+    DateTime.setZone(DateTime.zoneMakeLocal()),
+    DateTime.startOf("day"),
+    DateTime.toDateUtc
+  );
 
-const endOfDay = (date: Date): Date => {
-  const result = new Date(date);
-  result.setHours(23, 59, 59, 999);
-  return result;
-};
+const endOfDay = (date: Date): Date =>
+  DateTime.unsafeMake(date).pipe(
+    DateTime.setZone(DateTime.zoneMakeLocal()),
+    DateTime.endOf("day"),
+    DateTime.toDateUtc
+  );
 
 const escapeLikePattern = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");

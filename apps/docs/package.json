@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build --webpack",
+    "build": "bunx next build",
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
     "dev": "next dev --port 4000",
     "source": "fumadocs-mdx",

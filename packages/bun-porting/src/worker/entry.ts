@@ -3,8 +3,8 @@ import {
   HttpClient,
   HttpClientResponse,
 } from "@effect/platform";
-import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Chunk, Effect, Layer, Schema, Stream } from "effect";
+import { BunContext } from "@effect/platform-bun";
+import { Chunk, Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
 
 import { BunPortingError } from "../internal/errors";
 import type {
@@ -23,6 +23,7 @@ const DEFAULT_MAX_PIXELS = 16_777_216;
 const DEFAULT_MAX_INPUT_BYTES = 25_000_000;
 
 const WorkerLayer = Layer.merge(BunContext.layer, FetchHttpClient.layer);
+const workerRuntime = ManagedRuntime.make(WorkerLayer);
 const decodeJson = Schema.decodeUnknown(Schema.parseJson(Schema.Unknown));
 
 function runtimeInfo(): PortingWorkerSuccess["runtime"] {
@@ -727,14 +728,11 @@ const exitWithFailure = (cause: unknown) =>
     return Promise.resolve(undefined as never);
   });
 
-BunRuntime.runMain(
+await workerRuntime.runPromise(
   main.pipe(
     Effect.matchEffect({
       onFailure: exitWithFailure,
       onSuccess: exitWithResponse,
-    }),
-    // Entry point: provide platform services once for the worker process.
-    // @effect-diagnostics-next-line effect/strictEffectProvide:off
-    Effect.provide(WorkerLayer)
+    })
   )
 );

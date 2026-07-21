@@ -1,10 +1,19 @@
 import { type ConnectionOptions, Queue } from "bullmq";
+import { Config, Effect, Option } from "effect";
+
+const redisConfig = Effect.runSync(
+  Effect.all({
+    host: Config.string("REDIS_HOST").pipe(Config.withDefault("localhost")),
+    password: Config.option(Config.string("REDIS_PASSWORD")),
+    port: Config.integer("REDIS_PORT").pipe(Config.withDefault(6379)),
+  })
+);
 
 export const connection: ConnectionOptions = {
-  host: process.env.REDIS_HOST || "localhost",
+  host: redisConfig.host,
   maxRetriesPerRequest: null,
-  password: process.env.REDIS_PASSWORD || undefined,
-  port: Number(process.env.REDIS_PORT) || 6379,
+  password: Option.getOrUndefined(redisConfig.password),
+  port: redisConfig.port,
 };
 
 /**
@@ -85,23 +94,32 @@ export function scheduleRecurringJob<T>(
 /**
  * Get queue statistics
  */
-export async function getQueueStats(queue: Queue) {
-  const [waiting, active, completed, failed, delayed] = await Promise.all([
-    queue.getWaitingCount(),
-    queue.getActiveCount(),
-    queue.getCompletedCount(),
-    queue.getFailedCount(),
-    queue.getDelayedCount(),
-  ]);
+export const getQueueStats = (queue: Queue) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const [waiting, active, completed, failed, delayed] =
+        yield* Effect.promise(() =>
+          Promise.all([
+            queue.getWaitingCount(),
+            queue.getActiveCount(),
+            queue.getCompletedCount(),
+            queue.getFailedCount(),
+            queue.getDelayedCount(),
+          ])
+        );
 
-  return { active, completed, delayed, failed, waiting };
-}
+      return { active, completed, delayed, failed, waiting };
+    })
+  );
 
 /**
  * Gracefully close all queues and connections
  * Call this during application shutdown
  */
-export async function closeQueues() {
-  await emailQueue.close();
-  await notificationQueue.close();
-}
+export const closeQueues = () =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      yield* Effect.promise(() => emailQueue.close());
+      yield* Effect.promise(() => notificationQueue.close());
+    })
+  );

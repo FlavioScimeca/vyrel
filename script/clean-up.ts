@@ -1,6 +1,7 @@
-import { readdirSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { FileSystem, Path } from "@effect/platform";
+import { Effect, Option } from "effect";
 import { findNodeModulesDirs } from "./check-nm";
+import { scriptRuntime } from "./runtime";
 
 const RECURSE_SKIP = new Set([
   ".git",
@@ -42,126 +43,158 @@ function colorize(text: string, color: keyof typeof colors): string {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
-function findNestedDirs(repoRoot: string, dirName: string): CleanupTarget[] {
-  const root = resolve(repoRoot);
-  const results: CleanupTarget[] = [];
+const shouldSkipDirectory = (entryName: string): boolean =>
+  RECURSE_SKIP.has(entryName) || entryName.startsWith(".");
 
-  function walk(dir: string): void {
-    let entries: { isDirectory: () => boolean; name: string }[];
+const findNestedDirs = (
+  repoRoot: string,
+  dirName: string
+): Effect.Effect<CleanupTarget[], never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = path.resolve(repoRoot);
+    const results: CleanupTarget[] = [];
 
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+    const visitDirectory = (
+      entryName: string,
+      fullPath: string
+    ): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
+      Effect.gen(function* () {
+        const relativePath = path.relative(root, fullPath);
+
+        if (entryName === dirName) {
+          if (relativePath !== dirName) {
+            results.push({
+              kind: dirName as CleanupKind,
+              path: fullPath,
+              relativePath,
+            });
+          }
+          return;
+        }
+
+        if (shouldSkipDirectory(entryName)) {
+          return;
+        }
+
+        yield* walk(fullPath);
+      });
+
+    const walk = (
+      dir: string
+    ): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
+      Effect.gen(function* () {
+        const entries = yield* fs
+          .readDirectory(dir)
+          .pipe(Effect.orElseSucceed(() => [] as string[]));
+
+        for (const entryName of entries) {
+          const fullPath = path.join(dir, entryName);
+          const info = yield* fs.stat(fullPath).pipe(Effect.option);
+
+          if (Option.isNone(info) || info.value.type !== "Directory") {
+            continue;
+          }
+
+          yield* visitDirectory(entryName, fullPath);
+        }
+      });
+
+    yield* walk(root);
+
+    return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  });
+
+const findNestedNodeModules = (
+  repoRoot: string
+): Effect.Effect<
+  { deletable: CleanupTarget[]; skippedCacheOnly: CleanupTarget[] },
+  never,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.gen(function* () {
+    const deletable: CleanupTarget[] = [];
+    const skippedCacheOnly: CleanupTarget[] = [];
+
+    const entries = yield* findNodeModulesDirs(repoRoot);
 
     for (const entry of entries) {
-      const entryName = entry.name;
-
-      if (!entry.isDirectory()) {
+      if (entry.isRoot) {
         continue;
       }
 
-      const fullPath = join(dir, entryName);
-      const relativePath = relative(root, fullPath);
+      const target: CleanupTarget = {
+        kind: "node_modules",
+        path: entry.path,
+        relativePath: entry.relativePath,
+      };
 
-      if (entryName === dirName) {
-        if (relativePath !== dirName) {
-          results.push({
-            kind: dirName as CleanupKind,
-            path: fullPath,
-            relativePath,
-          });
-        }
+      if (entry.isCacheOnly) {
+        skippedCacheOnly.push(target);
         continue;
       }
 
-      if (RECURSE_SKIP.has(entryName)) {
-        continue;
+      deletable.push(target);
+    }
+
+    return { deletable, skippedCacheOnly };
+  });
+
+export const collectCleanupTargets = (
+  repoRoot: string
+): Effect.Effect<
+  { skippedCacheOnly: CleanupTarget[]; targets: CleanupTarget[] },
+  never,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.gen(function* () {
+    const { deletable, skippedCacheOnly } =
+      yield* findNestedNodeModules(repoRoot);
+    const distTargets = yield* findNestedDirs(repoRoot, "dist");
+    const turboTargets = yield* findNestedDirs(repoRoot, ".turbo");
+    const targets = [...distTargets, ...turboTargets, ...deletable].sort(
+      (a, b) => a.relativePath.localeCompare(b.relativePath)
+    );
+
+    return { skippedCacheOnly, targets };
+  });
+
+export const cleanupRepo = (
+  repoRoot: string
+): Effect.Effect<CleanupReport, never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = path.resolve(repoRoot);
+    const { skippedCacheOnly, targets } = yield* collectCleanupTargets(root);
+    const deleted: CleanupTarget[] = [];
+    const errors: CleanupReport["errors"] = [];
+
+    for (const target of targets) {
+      const result = yield* fs
+        .remove(target.path, { force: true, recursive: true })
+        .pipe(Effect.either);
+
+      if (result._tag === "Left") {
+        errors.push({
+          message: result.left.message,
+          path: target.relativePath,
+        });
+      } else {
+        deleted.push(target);
       }
-
-      if (entryName.startsWith(".")) {
-        continue;
-      }
-
-      walk(fullPath);
-    }
-  }
-
-  walk(root);
-
-  return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-}
-
-function findNestedNodeModules(repoRoot: string): {
-  deletable: CleanupTarget[];
-  skippedCacheOnly: CleanupTarget[];
-} {
-  const deletable: CleanupTarget[] = [];
-  const skippedCacheOnly: CleanupTarget[] = [];
-
-  for (const entry of findNodeModulesDirs(repoRoot)) {
-    if (entry.isRoot) {
-      continue;
     }
 
-    const target: CleanupTarget = {
-      kind: "node_modules",
-      path: entry.path,
-      relativePath: entry.relativePath,
-    };
+    return { deleted, errors, root, skippedCacheOnly };
+  });
 
-    if (entry.isCacheOnly) {
-      skippedCacheOnly.push(target);
-      continue;
-    }
-
-    deletable.push(target);
-  }
-
-  return { deletable, skippedCacheOnly };
-}
-
-export function collectCleanupTargets(repoRoot: string): {
-  skippedCacheOnly: CleanupTarget[];
-  targets: CleanupTarget[];
-} {
-  const { deletable, skippedCacheOnly } = findNestedNodeModules(repoRoot);
-  const targets = [
-    ...findNestedDirs(repoRoot, "dist"),
-    ...findNestedDirs(repoRoot, ".turbo"),
-    ...deletable,
-  ].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-
-  return { skippedCacheOnly, targets };
-}
-
-export function cleanupRepo(repoRoot: string): CleanupReport {
-  const root = resolve(repoRoot);
-  const { skippedCacheOnly, targets } = collectCleanupTargets(root);
-  const deleted: CleanupTarget[] = [];
-  const errors: CleanupReport["errors"] = [];
-
-  for (const target of targets) {
-    try {
-      rmSync(target.path, { force: true, recursive: true });
-      deleted.push(target);
-    } catch (error) {
-      errors.push({
-        message: error instanceof Error ? error.message : String(error),
-        path: target.relativePath,
-      });
-    }
-  }
-
-  return { deleted, errors, root, skippedCacheOnly };
-}
-
-function printSection(title: string): void {
-  console.log("");
-  console.log(colorize(title, "bold"));
-  console.log(colorize("─".repeat(60), "dim"));
-}
+const printSection = (title: string): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    yield* Effect.log("");
+    yield* Effect.log(colorize(title, "bold"));
+    yield* Effect.log(colorize("─".repeat(60), "dim"));
+  });
 
 function countByKind(targets: CleanupTarget[]): Record<CleanupKind, number> {
   return {
@@ -172,64 +205,76 @@ function countByKind(targets: CleanupTarget[]): Record<CleanupKind, number> {
   };
 }
 
-export function printCleanupReport(report: CleanupReport): void {
-  const deletedCounts = countByKind(report.deleted);
+export const printCleanupReport = (
+  report: CleanupReport
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const deletedCounts = countByKind(report.deleted);
 
-  console.log("");
-  console.log(colorize("repo cleanup", "bold"));
-  console.log(colorize("═".repeat(60), "dim"));
-  console.log(`  ${colorize("repo", "cyan")}     ${report.root}`);
-  console.log(
-    `  ${colorize("deleted", "cyan")}  ${colorize(String(report.deleted.length), report.deleted.length > 0 ? "green" : "dim")} paths`
-  );
-  console.log(
-    `  ${colorize("skipped", "cyan")}  ${report.skippedCacheOnly.length} cache-only node_modules`
-  );
-
-  if (report.deleted.length > 0) {
-    printSection("Deleted");
-    console.log(
-      colorize(
-        `  dist: ${deletedCounts.dist}  ·  .turbo: ${deletedCounts[".turbo"]}  ·  node_modules: ${deletedCounts.node_modules}`,
-        "dim"
-      )
+    yield* Effect.log("");
+    yield* Effect.log(colorize("repo cleanup", "bold"));
+    yield* Effect.log(colorize("═".repeat(60), "dim"));
+    yield* Effect.log(`  ${colorize("repo", "cyan")}     ${report.root}`);
+    yield* Effect.log(
+      `  ${colorize("deleted", "cyan")}  ${colorize(String(report.deleted.length), report.deleted.length > 0 ? "green" : "dim")} paths`
+    );
+    yield* Effect.log(
+      `  ${colorize("skipped", "cyan")}  ${report.skippedCacheOnly.length} cache-only node_modules`
     );
 
-    for (const target of report.deleted) {
-      console.log(`  ${colorize("✓", "green")} ${target.relativePath}`);
+    if (report.deleted.length > 0) {
+      yield* printSection("Deleted");
+      yield* Effect.log(
+        colorize(
+          `  dist: ${deletedCounts.dist}  ·  .turbo: ${deletedCounts[".turbo"]}  ·  node_modules: ${deletedCounts.node_modules}`,
+          "dim"
+        )
+      );
+
+      for (const target of report.deleted) {
+        yield* Effect.log(`  ${colorize("✓", "green")} ${target.relativePath}`);
+      }
+    } else {
+      yield* printSection("Deleted");
+      yield* Effect.log(colorize("  nothing to clean", "dim"));
     }
-  } else {
-    printSection("Deleted");
-    console.log(colorize("  nothing to clean", "dim"));
-  }
 
-  if (report.skippedCacheOnly.length > 0) {
-    printSection(
-      `Skipped cache-only node_modules (${report.skippedCacheOnly.length})`
-    );
+    if (report.skippedCacheOnly.length > 0) {
+      yield* printSection(
+        `Skipped cache-only node_modules (${report.skippedCacheOnly.length})`
+      );
 
-    for (const target of report.skippedCacheOnly) {
-      console.log(colorize(`  ${target.relativePath}`, "dim"));
+      for (const target of report.skippedCacheOnly) {
+        yield* Effect.log(colorize(`  ${target.relativePath}`, "dim"));
+      }
     }
-  }
 
-  if (report.errors.length > 0) {
-    printSection("Errors");
+    if (report.errors.length > 0) {
+      yield* printSection("Errors");
 
-    for (const error of report.errors) {
-      console.log(`  ${colorize("✗", "red")} ${error.path} — ${error.message}`);
+      for (const error of report.errors) {
+        yield* Effect.log(
+          `  ${colorize("✗", "red")} ${error.path} — ${error.message}`
+        );
+      }
     }
-  }
 
-  console.log("");
-}
+    yield* Effect.log("");
+  });
 
-function resolveRepoRoot(): string {
-  return resolve(import.meta.dirname, "..");
-}
+const resolveRepoRoot = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  return path.resolve(import.meta.dirname, "..");
+});
 
 if (import.meta.main) {
-  const report = cleanupRepo(resolveRepoRoot());
-  printCleanupReport(report);
-  process.exit(report.errors.length > 0 ? 1 : 0);
+  const exitCode = await scriptRuntime.runPromise(
+    Effect.gen(function* () {
+      const repoRoot = yield* resolveRepoRoot;
+      const report = yield* cleanupRepo(repoRoot);
+      yield* printCleanupReport(report);
+      return report.errors.length > 0 ? 1 : 0;
+    })
+  );
+  process.exit(exitCode);
 }

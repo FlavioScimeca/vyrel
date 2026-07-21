@@ -1,11 +1,20 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
+import { Path } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
 import { compilePortingWorker } from "@vyrel/bun-porting/bootstrap";
+import { Effect, ManagedRuntime } from "effect";
 
 import { initBunPorting } from "../src/lib/bun-porting";
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const runtime = ManagedRuntime.make(BunContext.layer);
 
-initBunPorting();
-await compilePortingWorker({ outdir: join(packageRoot, "dist") });
+const program = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const packageRoot = path.join(import.meta.dirname, "..");
+
+  initBunPorting();
+  yield* Effect.promise(() =>
+    compilePortingWorker({ outdir: path.join(packageRoot, "dist") })
+  );
+});
+
+await runtime.runPromise(program);
