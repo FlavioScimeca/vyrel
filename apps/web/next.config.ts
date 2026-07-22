@@ -9,9 +9,14 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   typescript: {
     ignoreBuildErrors: true,
+    // tsconfigPath: "./tsconfig.json",
   },
+
   devIndicators: {
     position: "bottom-right",
+  },
+  experimental: {
+    useTypeScriptCli: true,
   },
   async rewrites() {
     return [

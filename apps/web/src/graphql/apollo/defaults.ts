@@ -5,7 +5,8 @@ export const defaultApolloOptions: ApolloClient.DefaultOptions = {
     fetchPolicy: "cache-first",
   },
   watchQuery: {
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-first",
   },
 };
 

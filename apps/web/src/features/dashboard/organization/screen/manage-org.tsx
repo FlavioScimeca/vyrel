@@ -1,21 +1,16 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
+import { useSuspenseQuery } from "@apollo/client/react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
 import { CreateOrganizationDialog } from "@/features/dashboard/organization/components/create-organization-dialog";
 import { OrganizationList } from "@/features/dashboard/organization/components/organization-list";
 import { ListOrganizationsDocument } from "@/features/dashboard/organization/graphql/queries";
 
 export default function ManageOrg() {
-  const { data, error, loading, refetch } = useQuery(ListOrganizationsDocument);
+  const { data, error } = useSuspenseQuery(ListOrganizationsDocument);
 
-  const handleOrganizationCreated = () => {
-    refetch();
-  };
-
-  const organizations = data?.organizations ?? [];
+  const { organizations } = data;
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -28,26 +23,18 @@ export default function ManageOrg() {
             View and manage your workspaces.
           </p>
         </div>
-        <CreateOrganizationDialog onCreated={handleOrganizationCreated} />
+        <CreateOrganizationDialog />
       </header>
 
-      {loading ? (
-        <div className="flex flex-1 items-center justify-center py-16">
-          <Spinner className="size-6" />
-        </div>
-      ) : null}
-
-      {!loading && error !== undefined ? (
+      {error === undefined ? (
+        <OrganizationList organizations={organizations} />
+      ) : (
         <Alert variant="destructive">
           <AlertDescription>
             Unable to load organizations. Please try again.
           </AlertDescription>
         </Alert>
-      ) : null}
-
-      {!loading && error === undefined ? (
-        <OrganizationList organizations={organizations} />
-      ) : null}
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import {
   ApolloClient,
   ApolloNextAppProvider,
 } from "@apollo/client-integration-nextjs";
-import { TOKEN_GQL_LS_KEY } from "@vyrel/consts/web";
 import type { ReactNode } from "react";
 
 import { createApolloCache } from "./cache";
@@ -18,20 +17,6 @@ function makeClient(): ApolloClient {
     defaultOptions: defaultApolloOptions,
     devtools: devtoolsOptions,
     link: createApolloLink({
-      getExtraHeaders: (): Record<string, string> => {
-        if (typeof window === "undefined") {
-          return {};
-        }
-
-        const token = localStorage.getItem(TOKEN_GQL_LS_KEY);
-        if (token === null || token.length === 0) {
-          return {};
-        }
-
-        return {
-          authorization: `Bearer ${token}`,
-        };
-      },
       onUnauthenticated: handleClientUnauthenticated,
     }),
   });

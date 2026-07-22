@@ -1,7 +1,8 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import { useState } from "react";
 import type { DateRange } from "react-day-picker";
+import { useDebounce } from "use-debounce";
 
 type TaskFilterQueryVariables = {
   createdFrom?: string;
@@ -19,12 +20,14 @@ type UseTaskFiltersResult = {
   setSearch: (value: string) => void;
 };
 
+const SEARCH_DEBOUNCE_MS = 500;
+
 export function useTaskFilters(): UseTaskFiltersResult {
   const [search, setSearch] = useState("");
   const [createdRange, setCreatedRange] = useState<DateRange | undefined>();
-  const deferredSearch = useDeferredValue(search);
+  const [debouncedSearch] = useDebounce(search, SEARCH_DEBOUNCE_MS);
 
-  const trimmedSearch = deferredSearch.trim();
+  const trimmedSearch = debouncedSearch.trim();
   const queryVariables: TaskFilterQueryVariables = {};
 
   if (trimmedSearch.length > 0) {

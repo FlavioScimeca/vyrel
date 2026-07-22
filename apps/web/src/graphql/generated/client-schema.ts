@@ -369,11 +369,23 @@ export const graphqlClientRegistry = defineGraphqlClientRegistry({
     "CreateTask": {
       "createTask": {"collectionVariablePaths":{"organizationId":["input","organizationId"]},"entityType":"Task","keyField":"id","kind":"create"},
     },
+    "DeleteOrganization": {
+      "deleteOrganization": {"entityType":"Organization","keyField":"slug","kind":"delete"},
+    },
     "DeleteTask": {
       "deleteTask": {"entityType":"Task","keyField":"id","kind":"delete"},
     },
+    "DeleteUser": {
+      "deleteUser": {"entityType":"User","keyField":"email","kind":"delete"},
+    },
+    "UpdateOrganization": {
+      "updateOrganization": {"entityType":"Organization","keyField":"slug","kind":"update"},
+    },
     "UpdateTask": {
       "updateTask": {"entityType":"Task","keyField":"id","kind":"update"},
+    },
+    "UpdateUser": {
+      "updateUser": {"entityType":"User","keyField":"email","kind":"update"},
     },
   },
 });

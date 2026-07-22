@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
+import { useSuspenseQuery } from "@apollo/client/react";
 import { IconBuilding, IconCheck } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
 import { useRouter } from "next/navigation";
@@ -106,11 +106,11 @@ export function OrganizationSwitcher() {
   const { isMobile } = useSidebar();
   const router = useRouter();
   const { data: sessionData } = authClient.useSession();
-  const { data, loading } = useQuery(ListOrganizationsDocument);
+  const { data } = useSuspenseQuery(ListOrganizationsDocument);
 
   const activeOrganizationId =
     sessionData?.session.activeOrganizationId ?? null;
-  const organizations = data?.organizations ?? [];
+  const { organizations } = data;
 
   const activeOrganizationRef =
     organizations.find((organization) => {
@@ -131,7 +131,7 @@ export function OrganizationSwitcher() {
     router.refresh();
   };
 
-  if (loading || !activeOrganization) {
+  if (!activeOrganization) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>

@@ -7,8 +7,8 @@
     "android": "expo run:android",
     "expo:doctor": "bun x expo-doctor@latest",
     "expo:install-check": "bun x expo install --check",
-    "expo:prebuild": "bun x expo prebuild",
     "ios": "expo run:ios",
+    "prebuild": "bun x expo prebuild",
     "start": "expo start",
     "web": "expo start --web"
   },

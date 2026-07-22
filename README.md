@@ -15,6 +15,8 @@ TypeScript monorepo — Next.js, Elysia, GraphQL, SQLite.
 bun install
 bun run db:push
 bun run dev
+
+npx heroui-cli@latest agents-md --native
 ```
 
 - Web → [localhost:3001](http://localhost:3001)
@@ -41,3 +43,4 @@ packages/public/graphql-client   @vyrel/graphql-client (published to npm)
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions, changesets, and the release workflow.
+
