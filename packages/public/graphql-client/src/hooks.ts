@@ -6,8 +6,12 @@ import type {
   TypedDocumentNode,
 } from "@apollo/client";
 import { useApolloClient, useMutation } from "@apollo/client/react";
-
-import { prependToList, removeFromAllListVariants } from "./collection";
+import {
+  type CollectionOverride,
+  prependToCollectionVariant,
+  prependToList,
+  removeFromAllListVariants,
+} from "./collection";
 import {
   getMutationEntitySelection,
   getOperationName,
@@ -47,11 +51,46 @@ interface SharedOptions {
   readonly field?: string;
 }
 
+/** Additional list variant to prepend into after the canonical collection write. */
+export type OptimisticCreateCollectionOverride<
+  TData = unknown,
+  TVariables extends OperationVariables = OperationVariables,
+> = CollectionOverride<TData, TVariables>;
+
+export type OptimisticCreateCollectionOption<
+  TMutationVariables extends OperationVariables,
+  TCollectionData = unknown,
+  TCollectionVariables extends OperationVariables = OperationVariables,
+> =
+  | OptimisticCreateCollectionOverride<TCollectionData, TCollectionVariables>
+  | ((
+      variables: TMutationVariables
+    ) =>
+      | OptimisticCreateCollectionOverride<
+          TCollectionData,
+          TCollectionVariables
+        >
+      | undefined);
+
 export type OptimisticCreateOptions<
   TMutationData,
   TVariables extends OperationVariables,
+  TCollectionData = unknown,
+  TCollectionVariables extends OperationVariables = OperationVariables,
 > = MutationOptions<TMutationData, TVariables> &
   SharedOptions & {
+    /**
+     * Optional extra list variant to update in addition to the canonical
+     * collection resolved from the mutation registry. Never replaces the base
+     * write. Pass only when the visible query uses variables the mutation
+     * cannot supply (e.g. search filters). May be a function of mutation
+     * variables so the app can gate on domain membership.
+     */
+    readonly collection?: OptimisticCreateCollectionOption<
+      TVariables,
+      TCollectionData,
+      TCollectionVariables
+    >;
     /** Apollo cache key field. Defaults to `id`. */
     readonly keyField?: string;
     readonly optimistic: (
@@ -106,6 +145,7 @@ const addConventionalFields = (
   entity: Record<string, unknown>,
   fields: ReadonlySet<string>
 ): Record<string, unknown> => {
+  // @effect-diagnostics globalDate:off
   const now = new Date().toISOString();
   const conventionalFields: Record<string, unknown> = {};
 
@@ -165,12 +205,20 @@ const getCanonicalCollection = (
 export const useOptimisticCreate = <
   TMutationData,
   TVariables extends OperationVariables,
+  TCollectionData = unknown,
+  TCollectionVariables extends OperationVariables = OperationVariables,
 >(
   mutation: MutationDocument<TMutationData, TVariables>,
-  options: OptimisticCreateOptions<TMutationData, TVariables>
+  options: OptimisticCreateOptions<
+    TMutationData,
+    TVariables,
+    TCollectionData,
+    TCollectionVariables
+  >
 ) => {
   const apolloClient = useApolloClient(options.client);
   const {
+    collection: collectionOverride,
     field,
     keyField,
     optimistic,
@@ -228,6 +276,21 @@ export const useOptimisticCreate = <
           },
           entity
         );
+
+        if (collectionOverride !== undefined) {
+          const resolvedOverride =
+            typeof collectionOverride === "function"
+              ? collectionOverride(context.variables ?? ({} as TVariables))
+              : collectionOverride;
+
+          if (resolvedOverride !== undefined) {
+            prependToCollectionVariant(cache, {
+              entity,
+              query: resolvedOverride.query,
+              variables: resolvedOverride.variables,
+            });
+          }
+        }
       }
 
       update?.(cache, result, context);

@@ -3,7 +3,13 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "noEmit": true,
-    "types": ["bun", "node", "react"]
+    "types": ["bun", "node", "react"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnostics": false
+      }
+    ]
   },
   "include": ["src/**/*", "script/**/*"],
   "exclude": ["dist", "node_modules"]

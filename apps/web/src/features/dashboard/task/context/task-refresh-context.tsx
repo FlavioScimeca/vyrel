@@ -2,29 +2,50 @@
 
 import { createContext, type PropsWithChildren, useContext } from "react";
 
+import type { ListTasksVariables } from "@/features/dashboard/task/lib/matches-visible-task-list";
+
 type RefreshTasks = () => Promise<void>;
 
-const TaskRefreshContext = createContext<RefreshTasks | undefined>(undefined);
+type TaskListScope = {
+  readonly listVariables: ListTasksVariables;
+  readonly refreshTasks: RefreshTasks;
+};
+
+const TaskListScopeContext = createContext<TaskListScope | undefined>(
+  undefined
+);
 
 type TaskRefreshProviderProps = PropsWithChildren<{
+  listVariables: ListTasksVariables;
   refreshTasks: RefreshTasks;
 }>;
 
 export function TaskRefreshProvider({
   children,
+  listVariables,
   refreshTasks,
 }: TaskRefreshProviderProps) {
   return (
-    <TaskRefreshContext.Provider value={refreshTasks}>
+    <TaskListScopeContext.Provider value={{ listVariables, refreshTasks }}>
       {children}
-    </TaskRefreshContext.Provider>
+    </TaskListScopeContext.Provider>
   );
 }
 
-export function useRefreshTasks(): RefreshTasks {
-  const refreshTasks = useContext(TaskRefreshContext);
-  if (refreshTasks === undefined) {
-    throw new Error("useRefreshTasks must be used within TaskRefreshProvider.");
+function useTaskListScope(): TaskListScope {
+  const scope = useContext(TaskListScopeContext);
+  if (scope === undefined) {
+    throw new Error(
+      "Task list scope hooks must be used within TaskRefreshProvider."
+    );
   }
-  return refreshTasks;
+  return scope;
+}
+
+export function useRefreshTasks(): RefreshTasks {
+  return useTaskListScope().refreshTasks;
+}
+
+export function useTaskListVariables(): ListTasksVariables {
+  return useTaskListScope().listVariables;
 }

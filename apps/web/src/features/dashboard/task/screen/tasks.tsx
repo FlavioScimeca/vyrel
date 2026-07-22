@@ -88,9 +88,11 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setSearch,
   } = useTaskFilters();
 
+  const listVariables = { organizationId, ...queryVariables };
+
   const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
     fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",
-    variables: { organizationId, ...queryVariables },
+    variables: listVariables,
   });
   const { tasks } = data;
 
@@ -104,7 +106,10 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   };
 
   return (
-    <TaskRefreshProvider refreshTasks={refreshTasks}>
+    <TaskRefreshProvider
+      listVariables={listVariables}
+      refreshTasks={refreshTasks}
+    >
       <div className="flex flex-1 flex-col gap-6 p-6">
         <TasksHeader
           action={<CreateTaskDialog organizationId={organizationId} />}

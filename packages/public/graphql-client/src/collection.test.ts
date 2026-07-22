@@ -1,7 +1,13 @@
 import { gql, InMemoryCache, type TypedDocumentNode } from "@apollo/client";
 import { describe, expect, it } from "vitest";
 
-import { prependToList, removeFromAllListVariants } from "./collection";
+import {
+  collectionOverrideWhen,
+  prependToCollectionVariant,
+  prependToList,
+  removeFromAllListVariants,
+  removeFromCollectionVariant,
+} from "./collection";
 
 interface Task {
   readonly __typename: "Task";
@@ -72,6 +78,67 @@ describe("canonical list collection", () => {
         .readQuery({ query: tasksDocument, variables: firstVariables })
         ?.tasks.map((item) => item.id)
     ).toEqual(["task-2", "task-1"]);
+  });
+
+  it("prepends to an exact collection variant via the public helper", () => {
+    const cache = createCache();
+    const task = { __typename: "Task", id: "task-2", title: "Second" } as const;
+
+    prependToCollectionVariant(cache, {
+      entity: task,
+      query: tasksDocument,
+      variables: firstVariables,
+    });
+
+    expect(
+      cache
+        .readQuery({ query: tasksDocument, variables: firstVariables })
+        ?.tasks.map((item) => item.id)
+    ).toEqual(["task-2", "task-1"]);
+  });
+
+  it("builds a typed collection override only when when is true", () => {
+    expect(
+      collectionOverrideWhen({
+        query: tasksDocument,
+        variables: firstVariables,
+        when: false,
+      })
+    ).toBeUndefined();
+
+    expect(
+      collectionOverrideWhen({
+        query: tasksDocument,
+        variables: firstVariables,
+        when: true,
+      })
+    ).toEqual({ query: tasksDocument, variables: firstVariables });
+  });
+
+  it("removes an entity from an exact collection variant", () => {
+    const cache = createCache();
+    cache.writeQuery({
+      data: {
+        tasks: [
+          { __typename: "Task", id: "task-1", title: "First" },
+          { __typename: "Task", id: "task-2", title: "Second" },
+        ],
+      },
+      query: tasksDocument,
+      variables: firstVariables,
+    });
+
+    removeFromCollectionVariant(cache, {
+      keyValue: "task-1",
+      query: tasksDocument,
+      variables: firstVariables,
+    });
+
+    expect(
+      cache
+        .readQuery({ query: tasksDocument, variables: firstVariables })
+        ?.tasks.map((item) => item.id)
+    ).toEqual(["task-2"]);
   });
 
   it("removes a deleted entity from every cached argument variant", () => {
