@@ -14,6 +14,15 @@ import { getProfile } from "./utils/profiler";
 
 const isProd = env.NODE_ENV === "production";
 
+const apqPlugin = isProd
+  ? // biome-ignore lint/correctness/useHookAtTopLevel: GraphQL Yoga plugin factory, not a React hook
+    useAPQ({
+      responseConfig: {
+        forceStatusCodeOk: true,
+      },
+    })
+  : null;
+
 export const graphqlYogaServer = createYoga({
   context: ({ request }) => {
     const store = getProfile();
@@ -41,12 +50,7 @@ export const graphqlYogaServer = createYoga({
   },
   plugins: [
     ...(env.PROFILING ? [profilingPlugin] : [timingPlugin]),
-    // biome-ignore lint/correctness/useHookAtTopLevel: GraphQL Yoga plugin factory, not a React hook
-    useAPQ({
-      responseConfig: {
-        forceStatusCodeOk: true,
-      },
-    }),
+    ...(apqPlugin === null ? [] : [apqPlugin]),
     requireAuthPlugin,
   ],
   schema,

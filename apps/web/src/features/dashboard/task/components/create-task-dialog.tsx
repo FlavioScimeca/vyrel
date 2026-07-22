@@ -27,8 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
-import { useRefreshTasks } from "@/features/dashboard/task/context/task-refresh-context";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
+import { useRefreshTasks } from "../context/task-refresh-context";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
 

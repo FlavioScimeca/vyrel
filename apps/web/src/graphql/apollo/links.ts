@@ -15,9 +15,43 @@ export type CreateApolloLinkOptions = {
   onUnauthenticated?: () => void;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
+/** True when GraphQL variables include a browser file upload payload. */
+function hasUploadVariables(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof File !== "undefined" && value instanceof File) {
+    return true;
+  }
+
+  if (typeof Blob !== "undefined" && value instanceof Blob) {
+    return true;
+  }
+
+  if (typeof FileList !== "undefined" && value instanceof FileList) {
+    return value.length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some(hasUploadVariables);
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value).some(hasUploadVariables);
+  }
+
+  return false;
+}
+
 /**
- * Apollo link chain: error handling → auth headers → APQ → multipart upload HTTP.
- * Cookies are always sent (`credentials: "include"`). Callers may add Bearer JWT headers.
+ * Apollo link chain: error handling → auth headers → optional APQ → multipart upload HTTP.
+ * Cookies are always sent (`credentials: "include"`). Callers may add extra headers.
+ *
+ * APQ is enabled only in production, and skipped for operations that include file uploads
+ * (multipart + APQ miss would upload the file twice).
  */
 export function createApolloLink(
   options: CreateApolloLinkOptions = {}
@@ -48,10 +82,6 @@ export function createApolloLink(
     };
   });
 
-  const persistedQueryLink = new PersistedQueryLink({
-    sha256,
-  });
-
   const uploadLink = new UploadHttpLink({
     fetchOptions: {
       credentials: "include",
@@ -59,5 +89,19 @@ export function createApolloLink(
     uri: getGraphqlUri(),
   });
 
-  return ApolloLink.from([errorLink, authLink, persistedQueryLink, uploadLink]);
+  if (!isProduction) {
+    return ApolloLink.from([errorLink, authLink, uploadLink]);
+  }
+
+  const persistedQueryLink = new PersistedQueryLink({
+    sha256,
+  });
+
+  const httpWithOptionalApq = ApolloLink.split(
+    (operation) => hasUploadVariables(operation.variables),
+    uploadLink,
+    ApolloLink.from([persistedQueryLink, uploadLink])
+  );
+
+  return ApolloLink.from([errorLink, authLink, httpWithOptionalApq]);
 }

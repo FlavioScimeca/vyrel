@@ -6,7 +6,6 @@ import "./index.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ApolloProvider } from "@/graphql/apollo/provider";
 import { cn } from "@/lib/utils";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -45,10 +44,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider>
-          <ApolloProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-            <Toaster />
-          </ApolloProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useApolloClient } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { organizationCreateSchema } from "@vyrel/api/models/organization/types/base.types";
@@ -32,6 +33,7 @@ import {
   onboardingDefaultValues,
   slugifyOrganizationName,
 } from "@/features/auth/onboarding-form.schema";
+import { ListOrganizationsDocument } from "@/features/dashboard/organization/graphql/queries";
 
 const createOrganizationFormSchema = organizationCreateSchema;
 
@@ -43,13 +45,8 @@ const createOrganizationDefaultValues = onboardingDefaultValues;
 
 const CREATE_ORGANIZATION_FORM_ID = "create-organization-form";
 
-type CreateOrganizationDialogProps = {
-  onCreated?: () => void;
-};
-
-export function CreateOrganizationDialog({
-  onCreated,
-}: CreateOrganizationDialogProps) {
+export function CreateOrganizationDialog() {
+  const client = useApolloClient();
   const [open, setOpen] = useState(false);
   const form = useForm<CreateOrganizationFormValues>({
     defaultValues: createOrganizationDefaultValues,
@@ -87,8 +84,8 @@ export function CreateOrganizationDialog({
       return;
     }
 
+    await client.refetchQueries({ include: [ListOrganizationsDocument] });
     handleOpenChange(false);
-    onCreated?.();
   });
 
   const logoError = form.formState.errors.logo;

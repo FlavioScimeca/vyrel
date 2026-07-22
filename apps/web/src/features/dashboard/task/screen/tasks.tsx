@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
+import { useSuspenseQuery } from "@apollo/client/react";
 import type { ReactNode } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
-import { TasksListSkeleton } from "@/features/dashboard/task/components/tasks-list-skeleton";
 import { TaskRefreshProvider } from "@/features/dashboard/task/context/task-refresh-context";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
@@ -41,22 +40,16 @@ function TasksListErrorFallback({
 function TasksListPanel({
   errorMessage,
   hasActiveFilters,
-  loading,
   onClearFilters,
   onRetry,
   tasks,
 }: {
   errorMessage?: string;
   hasActiveFilters: boolean;
-  loading: boolean;
   onClearFilters: () => void;
   onRetry: () => void;
   tasks: readonly TaskListItemRef[];
 }) {
-  if (loading && tasks.length === 0) {
-    return <TasksListSkeleton />;
-  }
-
   if (errorMessage !== undefined) {
     return <TasksListErrorFallback message={errorMessage} onRetry={onRetry} />;
   }
@@ -94,9 +87,13 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setCreatedRange,
     setSearch,
   } = useTaskFilters();
-  const { data, error, loading, refetch } = useQuery(ListTasksDocument, {
+
+  const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
+    fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",
     variables: { organizationId, ...queryVariables },
   });
+  const { tasks } = data;
+
   const refreshTasks = async (): Promise<void> => {
     await refetch();
   };
@@ -127,10 +124,9 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
               : error.message || "Unable to load tasks. Please try again."
           }
           hasActiveFilters={hasActiveFilters}
-          loading={loading}
           onClearFilters={clearFilters}
           onRetry={handleRetry}
-          tasks={data?.tasks ?? []}
+          tasks={tasks}
         />
       </div>
     </TaskRefreshProvider>
@@ -142,6 +138,7 @@ export default function TasksScreen({
 }: TasksScreenProps) {
   const { data: sessionData } = authClient.useSession();
   const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
+  // Prefer live session org (e.g. after sidebar switch); fall back to server prop.
   const organizationId = sessionOrgId ?? initialOrganizationId;
   const hasOrganization = organizationId !== null && organizationId.length > 0;
 
