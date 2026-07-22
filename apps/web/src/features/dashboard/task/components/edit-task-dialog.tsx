@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
-import { useRefreshTasks } from "@/features/dashboard/task/context/task-refresh-context";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useUpdateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
@@ -49,7 +48,6 @@ type EditTaskDialogProps = {
 export function EditTaskDialog({ task }: EditTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const refreshTasks = useRefreshTasks();
   const [updateTask] = useUpdateTaskMutation({
     createdAt: item.createdAt,
     description: item.description,
@@ -105,10 +103,11 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
     handleOpenChange(false);
 
     try {
+      // Mutation response already includes signed image URLs via Task field
+      // resolvers — no list refetch (avoids a second cache rewrite / UI flick).
       await mutation;
-      await refreshTasks();
     } catch {
-      // Mutation errors use its toast; refetch errors surface via query state.
+      // Mutation errors use its toast.
     }
   });
 
