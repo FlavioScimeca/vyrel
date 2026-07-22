@@ -52,6 +52,31 @@ prepended automatically.
 The optimistic callback intentionally remains explicit. A generic library
 cannot safely invent a title, price, status or other domain value.
 
+### Filtered collections
+
+Mutation variables cannot contain view-only filters such as search terms, date
+ranges or pagination cursors. For those screens, let the query own an exact,
+typed collection handle and pass that handle to the create hook:
+
+```ts
+const tasks = useCollectionQuery(ListTasksDocument, {
+  variables: { organizationId, search },
+  matches: (task, variables) =>
+    task.title.toLowerCase().includes(variables.search?.toLowerCase() ?? ""),
+});
+
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  insertInto: tasks.collection,
+  optimistic: ({ input }) => ({ title: input.title }),
+});
+```
+
+`tasks.collection` keeps the query document and the exact variables together;
+they are never reconstructed from the create input. `matches` is application
+logic and may return `"unknown"` when the server's filtering semantics cannot
+be reproduced safely. In that case the package skips the list insertion and
+lets a later refetch provide the authoritative result.
+
 ## Update on demand
 
 Each call site chooses only the fields it wants to change.
@@ -102,11 +127,17 @@ The package deliberately does not refetch queries. The component that owns an
 Apollo query also owns its exact filters, pagination and `refetch` function:
 
 ```ts
-const { refetch } = useQuery(ListTasksDocument, { variables: filters });
-const [createTask] = useOptimisticCreate(CreateTaskDocument, options);
+const tasks = useCollectionQuery(ListTasksDocument, {
+  variables: filters,
+  matches: matchesTaskFilters,
+});
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  ...options,
+  insertInto: tasks.collection,
+});
 
 await createTask({ variables: { input } });
-await refetch();
+await tasks.refetch();
 ```
 
 This keeps network policy in application code and optimistic cache mechanics in
@@ -132,8 +163,10 @@ Pass `field` when a mutation has multiple top-level fields. Cache key fields are
 generated from the plugin configuration (and default to `id`); `keyField` remains
 an override, while `optimisticId` supplies a custom temporary-ID strategy.
 
-Reads continue to use Apollo's `useQuery`. It is already concise and fully typed;
-wrapping it would add an abstraction without removing meaningful boilerplate.
+Ordinary reads continue to use Apollo hooks directly. `useCollectionQuery` is
+only for list owners that need a typed, exact cache target for optimistic
+membership changes; it delegates the query to Apollo and returns Apollo's result
+plus `collection`.
 
 ## Required codegen
 

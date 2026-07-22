@@ -2,7 +2,7 @@
 
 import { IconTrash } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 
 import {
   AlertDialog,
@@ -16,7 +16,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useRefreshTasks } from "@/features/dashboard/task/context/task-refresh-context";
+import { Spinner } from "@/components/ui/spinner";
+import { useTaskListContext } from "@/features/dashboard/task/context/task-list-context";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
@@ -28,28 +29,31 @@ type DeleteTaskDialogProps = {
 export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
   const [deleteTask] = useDeleteTaskMutation();
-  const refreshTasks = useRefreshTasks();
+  const { refreshTasks } = useTaskListContext();
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
   };
 
-  const handleDelete = async () => {
-    const mutation = deleteTask({
-      variables: {
-        input: {
-          taskId: item.id,
-        },
-      },
-    });
-    handleOpenChange(false);
-
+  const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setPending(true);
     try {
-      await mutation;
-      await refreshTasks();
+      await deleteTask({
+        variables: {
+          input: {
+            taskId: item.id,
+          },
+        },
+      });
+      handleOpenChange(false);
+      refreshTasks();
     } catch {
-      // Mutation errors use its toast; refetch errors surface via query state.
+      // The mutation hook reports the error and the dialog stays available.
+    } finally {
+      setPending(false);
     }
   };
 
@@ -72,9 +76,13 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} variant="destructive">
-            Delete
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={pending}
+            onClick={handleDelete}
+            variant="destructive"
+          >
+            {pending ? <Spinner className="size-4" /> : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

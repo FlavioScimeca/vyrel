@@ -7,8 +7,10 @@ import {
 export const getOrganization = (
   input: OrganizationTypeById,
   headers: Headers,
-  jwtUserId?: string
-) => fetchOrganization(input.id, headers, jwtUserId);
+  actorUserId?: string | null
+) => fetchOrganization(input.id, headers, actorUserId);
 
-export const listOrganizations = (headers: Headers, jwtUserId?: string) =>
-  fetchOrganizationsForUser(headers, jwtUserId);
+export const listOrganizations = (
+  headers: Headers,
+  actorUserId?: string | null
+) => fetchOrganizationsForUser(headers, actorUserId);

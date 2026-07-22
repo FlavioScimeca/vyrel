@@ -1,7 +1,11 @@
 import type { ErrorLike } from "@apollo/client";
-import { CombinedGraphQLErrors } from "@apollo/client/errors";
+import { CombinedGraphQLErrors, ServerError } from "@apollo/client/errors";
 
 export function isUnauthenticatedError(error: ErrorLike): boolean {
+  if (ServerError.is(error)) {
+    return error.statusCode === 401;
+  }
+
   if (!CombinedGraphQLErrors.is(error)) {
     return false;
   }

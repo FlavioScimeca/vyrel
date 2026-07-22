@@ -18,7 +18,7 @@ import { uploadOrganizationLogo } from "./logo.service";
 export const updateOrganization = (
   input: OrganizationTypeUpdate,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = organizationUpdateSchema.safeParse(input);
@@ -55,7 +55,11 @@ export const updateOrganization = (
       );
     }
 
-    const record = yield* fetchOrganization(organizationId, headers, jwtUserId);
+    const record = yield* fetchOrganization(
+      organizationId,
+      headers,
+      actorUserId
+    );
 
     if (record === null) {
       return yield* new OrganizationRepositoryError({

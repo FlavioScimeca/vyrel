@@ -14,7 +14,7 @@ import { deleteAuthOrganization } from "./auth.service";
 export const deleteOrganization = (
   input: OrganizationTypeDelete,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = organizationDeleteSchema.safeParse(input);
@@ -29,7 +29,7 @@ export const deleteOrganization = (
     const currentOrganization = yield* fetchOrganization(
       organizationId,
       headers,
-      jwtUserId
+      actorUserId
     );
 
     if (currentOrganization === null) {

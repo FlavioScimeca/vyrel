@@ -85,11 +85,22 @@ export const fetchSessionUserId = (
     Effect.catchTag("UserRepositoryError", () => Effect.succeed(null))
   );
 
-/** Resolves the authenticated user from session cookie or Bearer JWT fallback. */
-export const fetchCurrentUser = (headers: Headers, jwtUserId?: string) =>
+/** Uses a request-scoped actor when already resolved, otherwise reads the session. */
+export const resolveAuthenticatedUserId = (
+  headers: Headers,
+  actorUserId?: string | null
+): Effect.Effect<string | null> =>
+  actorUserId === undefined
+    ? fetchSessionUserId(headers)
+    : Effect.succeed(actorUserId);
+
+/** Loads the user for an already-resolved actor, or resolves a session fallback. */
+export const fetchCurrentUser = (
+  headers: Headers,
+  actorUserId?: string | null
+) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
+    const userId = yield* resolveAuthenticatedUserId(headers, actorUserId);
     if (userId === null) {
       return null;
     }
@@ -107,8 +118,12 @@ export const fetchCurrentUser = (headers: Headers, jwtUserId?: string) =>
     return record ?? null;
   });
 
-export const fetchUser = (id: string, headers: Headers, jwtUserId?: string) =>
-  fetchCurrentUser(headers, jwtUserId).pipe(
+export const fetchUser = (
+  id: string,
+  headers: Headers,
+  actorUserId?: string | null
+) =>
+  fetchCurrentUser(headers, actorUserId).pipe(
     Effect.flatMap((currentUser) => {
       if (currentUser === null) {
         return Effect.succeed(null);

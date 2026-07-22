@@ -586,16 +586,46 @@ click "create"
     └── sostituzione con il risultato reale
 ```
 
+### Collection filtrate
+
+Le variabili della mutation coprono soltanto il binding canonico. Filtri della
+vista come `search`, intervalli di date e cursori non possono essere dedotti dal
+create input. In questo caso il proprietario della query crea un handle esatto:
+
+```ts
+const tasks = useCollectionQuery(ListTasksDocument, {
+  variables: { organizationId, search, createdFrom, createdTo },
+  matches: matchesTaskFilters,
+});
+
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  insertInto: tasks.collection,
+  optimistic: createOptimisticTask,
+});
+```
+
+L'handle mantiene insieme documento e variabili realmente usati da Apollo. Se
+`insertInto` è presente sostituisce il target canonico: non vengono aggiornati
+entrambi. `matches` riceve item e variabili tipizzati; può restituire
+`"unknown"` quando la semantica server non è riproducibile con certezza. In quel
+caso l'inserimento viene saltato in attesa del refetch.
+
 Il package non esegue refetch. La risposta della mutation sostituisce già il
 dato optimistic; quando servono ordinamento, filtri o campi derivati aggiornati
 dal server, il componente che possiede la query usa il `refetch` di Apollo:
 
 ```ts
-const { refetch } = useQuery(ListTasksDocument, { variables: filters });
-const [createTask] = useOptimisticCreate(CreateTaskDocument, options);
+const tasks = useCollectionQuery(ListTasksDocument, {
+  variables: filters,
+  matches: matchesTaskFilters,
+});
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  ...options,
+  insertInto: tasks.collection,
+});
 
 await createTask({ variables: { input } });
-await refetch();
+await tasks.refetch();
 ```
 
 Apollo conserva già l'istanza esatta della query e le sue variabili. In questo
@@ -829,7 +859,7 @@ Non sono necessari:
 - un wrapper obbligatorio `useCreateProject`;
 - `typename: "Project"`;
 - `fragment: ProjectListItemFragment`;
-- `collection: ...`;
+- una collection manuale costruita separando documento e variabili;
 - `ListProjectsDocument` al call site;
 - variabili della collection ripetute;
 - response wrapper manuali;
@@ -863,6 +893,8 @@ Le escape hatch disponibili sono:
 - `keyField` per cache key diversa da `id`;
 - `optimisticId` per una strategia custom di ID temporaneo;
 - `update` per comportamento cache aggiuntivo.
+- `insertInto` per puntare alla precisa collection filtrata restituita da
+  `useCollectionQuery`.
 
 Quando un'inferenza non è sicura, codegen o runtime producono un errore
 descrittivo invece di scegliere implicitamente.
@@ -875,7 +907,7 @@ descrittivo invece di scegliere implicitamente.
 - sostituisce gql.tada;
 - sostituisce GraphQL Code Generator;
 - genera automaticamente query e mutation;
-- avvolge le query di lettura;
+- impone un wrapper alle normali query di lettura;
 - inventa valori di dominio;
 - mostra toast;
 - gestisce form;
@@ -884,7 +916,7 @@ descrittivo invece di scegliere implicitamente.
 - risolve conflitti concorrenti;
 - gestisce ancora Relay connection o liste nested.
 
-Per le letture continuiamo a usare Apollo direttamente:
+Per le letture normali continuiamo a usare Apollo direttamente:
 
 ```ts
 useQuery(ListTasksDocument, {
@@ -892,14 +924,15 @@ useQuery(ListTasksDocument, {
 });
 ```
 
-Apollo offre già un'API concisa e tipizzata per le query; aggiungere un wrapper
-non eliminerebbe boilerplate significativo.
+`useCollectionQuery` è intenzionale e opzionale: delega a
+`useSuspenseQuery` e aggiunge soltanto l'handle necessario quando una lista deve
+partecipare a una create optimistic filtrata.
 
 ## 17. Entry point del package
 
 | Entry point | Contenuto | Utilizzo |
 | --- | --- | --- |
-| `@vyrel/graphql-client` | Hook React optimistic | Componenti client |
+| `@vyrel/graphql-client` | Hook React query/optimistic | Componenti client |
 | `@vyrel/graphql-client/cache` | Registry e configurazione cache | Setup Apollo e RSC |
 | `@vyrel/graphql-client/codegen` | Metadata e utility di tipo | Build e tooling |
 | `@vyrel/graphql-client/codegen-plugin` | Plugin GraphQL Code Generator | Codegen Node |
@@ -935,6 +968,16 @@ in una chiamata compatta:
 
 ```ts
 useOptimisticCreate(Document, {
+  optimistic: (variables) => domainValues,
+});
+```
+
+Per una variante filtrata, la forma rimane esplicita e tipizzata:
+
+```ts
+const list = useCollectionQuery(ListDocument, { variables, matches });
+useOptimisticCreate(Document, {
+  insertInto: list.collection,
   optimistic: (variables) => domainValues,
 });
 ```

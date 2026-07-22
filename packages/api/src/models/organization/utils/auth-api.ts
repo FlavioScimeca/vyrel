@@ -4,7 +4,7 @@ import { APIError } from "better-auth/api";
 import { and, eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
-import { fetchSessionUserId } from "../../user/utils/auth-api";
+import { resolveAuthenticatedUserId } from "../../user/utils/auth-api";
 import {
   OrganizationForbiddenError,
   OrganizationRepositoryError,
@@ -75,11 +75,10 @@ export const assertOrganizationMember = (
 
 export const fetchOrganizationsForUser = (
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
+    const userId = yield* resolveAuthenticatedUserId(headers, actorUserId);
     if (userId === null) {
       return [];
     }
@@ -105,11 +104,10 @@ export const fetchOrganizationsForUser = (
 export const fetchOrganization = (
   id: string,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
+    const userId = yield* resolveAuthenticatedUserId(headers, actorUserId);
     if (userId === null) {
       return null;
     }

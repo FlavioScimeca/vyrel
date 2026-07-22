@@ -4,7 +4,16 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { AuthMode } from "@/features/auth/form.schema";
 import { AuthForm } from "./auth-form";
 import { AuthScreen } from "./index";
@@ -62,6 +71,14 @@ function AuthFormHarness({
     </>
   );
 }
+
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+});
+
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 afterEach(() => {
   cleanup();

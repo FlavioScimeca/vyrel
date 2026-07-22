@@ -1,20 +1,25 @@
 "use client";
 
-import { useSuspenseQuery } from "@apollo/client/react";
-import type { ReactNode } from "react";
+import { useCollectionQuery } from "@vyrel/graphql-client";
+import { type ReactNode, useCallback, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
-import { TaskRefreshProvider } from "@/features/dashboard/task/context/task-refresh-context";
+import { TaskListProvider } from "@/features/dashboard/task/context/task-list-context";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
-import { useTaskFilters } from "@/features/dashboard/task/hooks/use-task-filters";
+import {
+  matchesTaskFilters,
+  useTaskFilters,
+} from "@/features/dashboard/task/hooks/use-task-filters";
+import type { TaskCommittedFilters } from "@/features/dashboard/task/lib/task-filter-params";
 import { authClient } from "@/lib/auth-client";
 
 type TasksScreenProps = {
+  initialFilters: TaskCommittedFilters;
   initialOrganizationId: string | null;
 };
 
@@ -77,34 +82,47 @@ function TasksHeader({ action }: { action?: ReactNode }) {
   );
 }
 
-function TasksWithOrganization({ organizationId }: { organizationId: string }) {
+function TasksWithOrganization({
+  initialFilters,
+  organizationId,
+}: {
+  initialFilters: TaskCommittedFilters;
+  organizationId: string;
+}) {
   const {
     clearFilters,
     createdRange,
     hasActiveFilters,
+    hasCommittedFilters,
     queryVariables,
     search,
     setCreatedRange,
     setSearch,
-  } = useTaskFilters();
+  } = useTaskFilters(initialFilters);
 
-  const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
-    fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",
-    variables: { organizationId, ...queryVariables },
-  });
-  const { tasks } = data;
-
-  const refreshTasks = async (): Promise<void> => {
-    await refetch();
-  };
-  const handleRetry = () => {
-    refreshTasks().catch(() => {
-      // Error surfaces via the query `error` state.
+  const { collection, data, error, refetch } = useCollectionQuery(
+    ListTasksDocument,
+    {
+      fetchPolicy: hasCommittedFilters ? "cache-and-network" : "cache-first",
+      errorPolicy: "all",
+      matches: matchesTaskFilters,
+      variables: { organizationId, ...queryVariables },
+    }
+  );
+  const [, startRefreshTransition] = useTransition();
+  const refreshTasks = useCallback((): void => {
+    startRefreshTransition(async () => {
+      try {
+        await refetch();
+      } catch {
+        // Apollo exposes the failure through the query `error` state.
+      }
     });
-  };
+  }, [refetch]);
+  const tasks = data?.tasks ?? [];
 
   return (
-    <TaskRefreshProvider refreshTasks={refreshTasks}>
+    <TaskListProvider collection={collection} refreshTasks={refreshTasks}>
       <div className="flex flex-1 flex-col gap-6 p-6">
         <TasksHeader
           action={<CreateTaskDialog organizationId={organizationId} />}
@@ -125,25 +143,34 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
           }
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
-          onRetry={handleRetry}
+          onRetry={refreshTasks}
           tasks={tasks}
         />
       </div>
-    </TaskRefreshProvider>
+    </TaskListProvider>
   );
 }
 
 export default function TasksScreen({
+  initialFilters,
   initialOrganizationId,
 }: TasksScreenProps) {
-  const { data: sessionData } = authClient.useSession();
-  const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
-  // Prefer live session org (e.g. after sidebar switch); fall back to server prop.
-  const organizationId = sessionOrgId ?? initialOrganizationId;
+  const { data: sessionData, isPending: isSessionPending } =
+    authClient.useSession();
+  // The server value bridges hydration only. Once the client session resolves,
+  // null must remain null instead of reviving a stale organization id.
+  const organizationId = isSessionPending
+    ? initialOrganizationId
+    : (sessionData?.session.activeOrganizationId ?? null);
   const hasOrganization = organizationId !== null && organizationId.length > 0;
 
   if (hasOrganization) {
-    return <TasksWithOrganization organizationId={organizationId} />;
+    return (
+      <TasksWithOrganization
+        initialFilters={initialFilters}
+        organizationId={organizationId}
+      />
+    );
   }
 
   return (

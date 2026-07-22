@@ -1,7 +1,7 @@
 import { db } from "@vyrel/db";
 import { task } from "@vyrel/db/schema";
 import { and, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
-import { DateTime, Effect } from "effect";
+import { Effect } from "effect";
 
 import type {
   TasksTypeByOrganization,
@@ -17,23 +17,8 @@ import { TaskRepositoryError } from "../utils/errors";
 export const getTask = (
   input: TaskTypeById,
   headers: Headers,
-  jwtUserId?: string
-) => fetchTaskForUser(input.id, headers, jwtUserId);
-
-/** Local calendar-day bounds as absolute instants (matches former setHours behavior). */
-const startOfDay = (date: Date): Date =>
-  DateTime.unsafeMake(date).pipe(
-    DateTime.setZone(DateTime.zoneMakeLocal()),
-    DateTime.startOf("day"),
-    DateTime.toDateUtc
-  );
-
-const endOfDay = (date: Date): Date =>
-  DateTime.unsafeMake(date).pipe(
-    DateTime.setZone(DateTime.zoneMakeLocal()),
-    DateTime.endOf("day"),
-    DateTime.toDateUtc
-  );
+  actorUserId?: string | null
+) => fetchTaskForUser(input.id, headers, actorUserId);
 
 const escapeLikePattern = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
@@ -53,11 +38,11 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
   }
 
   if (input.createdFrom !== undefined) {
-    conditions.push(gte(task.createdAt, startOfDay(input.createdFrom)));
+    conditions.push(gte(task.createdAt, input.createdFrom));
   }
 
   if (input.createdTo !== undefined) {
-    conditions.push(lte(task.createdAt, endOfDay(input.createdTo)));
+    conditions.push(lte(task.createdAt, input.createdTo));
   }
 
   return conditions;
@@ -66,10 +51,10 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
 export const listTasksByOrganization = (
   input: TasksTypeByOrganization,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
+    const userId = yield* resolveActorUserId(headers, actorUserId);
 
     yield* assertOrgMembership(input.organizationId, userId);
 

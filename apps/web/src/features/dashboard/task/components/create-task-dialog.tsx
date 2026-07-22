@@ -27,8 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
+import { useTaskListContext } from "@/features/dashboard/task/context/task-list-context";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
-import { useRefreshTasks } from "../context/task-refresh-context";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
 
@@ -48,7 +48,7 @@ type CreateTaskDialogProps = {
 export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const [createTask] = useCreateTaskMutation();
-  const refreshTasks = useRefreshTasks();
+  const { refreshTasks } = useTaskListContext();
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
@@ -71,26 +71,24 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
 
-    const mutation = createTask({
-      variables: {
-        input: {
-          description:
-            values.description !== undefined && values.description.length > 0
-              ? values.description
-              : undefined,
-          image: values.image,
-          organizationId,
-          title: values.title,
-        },
-      },
-    });
-    handleOpenChange(false);
-
     try {
-      await mutation;
-      await refreshTasks();
+      await createTask({
+        variables: {
+          input: {
+            description:
+              values.description !== undefined && values.description.length > 0
+                ? values.description
+                : undefined,
+            image: values.image,
+            organizationId,
+            title: values.title,
+          },
+        },
+      });
+      handleOpenChange(false);
+      refreshTasks();
     } catch {
-      // Mutation errors use its toast; refetch errors surface via query state.
+      // The mutation hook reports the error and the form stays available.
     }
   });
 

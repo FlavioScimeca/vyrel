@@ -21,10 +21,8 @@ export interface GraphQLContext {
 }
 
 /** Authenticated user id from session cookie or Bearer JWT. */
-export function resolveActorUserId(
-  context: GraphQLContext
-): string | undefined {
-  return context.session?.user.id ?? context.user?.id;
+export function resolveActorUserId(context: GraphQLContext): string | null {
+  return context.session?.user.id ?? context.user?.id ?? null;
 }
 
 function resolveRequestLogger(): AuditableLogger {

@@ -10,7 +10,7 @@ import { uploadTaskImage } from "./image.service";
 export const createTask = (
   input: TaskTypeCreate,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = taskCreateSchema.safeParse(input);
@@ -22,7 +22,7 @@ export const createTask = (
     }
 
     const { description, image, organizationId, title } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
+    const userId = yield* resolveActorUserId(headers, actorUserId);
 
     yield* assertOrgMembership(organizationId, userId);
 

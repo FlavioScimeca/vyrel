@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
 import { assertOrganizationMember } from "../../organization/utils/auth-api";
-import { fetchSessionUserId } from "../../user/utils/auth-api";
+import { resolveAuthenticatedUserId } from "../../user/utils/auth-api";
 import {
   TaskForbiddenError,
   TaskNotFoundError,
@@ -15,10 +15,12 @@ class TaskInaccessibleError extends Data.TaggedError("TaskInaccessibleError")<{
   readonly id: string;
 }> {}
 
-export const resolveActorUserId = (headers: Headers, jwtUserId?: string) =>
+export const resolveActorUserId = (
+  headers: Headers,
+  actorUserId?: string | null
+) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
+    const userId = yield* resolveAuthenticatedUserId(headers, actorUserId);
 
     if (userId === null) {
       return yield* new TaskForbiddenError({
@@ -76,10 +78,10 @@ export const assertTaskAccess = (taskId: string, userId: string) =>
 export const fetchTaskForUser = (
   id: string,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
+    const userId = yield* resolveActorUserId(headers, actorUserId);
     const record = yield* fetchTaskById(id);
 
     if (record === undefined) {

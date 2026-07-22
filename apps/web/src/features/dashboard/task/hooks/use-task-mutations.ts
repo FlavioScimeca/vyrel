@@ -6,16 +6,19 @@ import {
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
 import { toast } from "sonner";
+import { useTaskListContext } from "@/features/dashboard/task/context/task-list-context";
 import {
   CreateTaskDocument,
   DeleteTaskDocument,
   UpdateTaskDocument,
 } from "@/features/dashboard/task/graphql/mutations";
 import type { OptimisticTaskExisting } from "@/features/dashboard/task/graphql/types";
-import { ListTasksDocument } from "../graphql/queries";
 
 export function useCreateTaskMutation() {
+  const { collection } = useTaskListContext();
+
   return useOptimisticCreate(CreateTaskDocument, {
+    insertInto: collection,
     onCompleted: () => {
       toast.success("Task created");
     },
@@ -28,8 +31,6 @@ export function useCreateTaskMutation() {
       imageThumb: null,
       title: variables.input.title,
     }),
-    // refetchQueries: [ListTasksDocument],
-    // awaitRefetchQueries: true,
   });
 }
 
@@ -49,8 +50,6 @@ export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
           : (variables.input.description ?? null),
       title: variables.input.title ?? existingTask.title,
     }),
-    refetchQueries: [ListTasksDocument],
-    awaitRefetchQueries: true,
   });
 }
 
@@ -63,7 +62,5 @@ export function useDeleteTaskMutation() {
     onError: (error) => {
       toast.error(error.message || "Unable to delete task.");
     },
-    refetchQueries: [ListTasksDocument],
-    awaitRefetchQueries: true,
   });
 }

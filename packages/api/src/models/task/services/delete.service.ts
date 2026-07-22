@@ -11,7 +11,7 @@ import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 export const deleteTask = (
   input: TaskTypeDelete,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = taskDeleteSchema.safeParse(input);
@@ -23,7 +23,7 @@ export const deleteTask = (
     }
 
     const { taskId } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
+    const userId = yield* resolveActorUserId(headers, actorUserId);
     const record = yield* assertTaskAccess(taskId, userId);
 
     const objectKeys = [record.imageFull, record.imageThumb].filter(

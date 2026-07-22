@@ -33,15 +33,19 @@ type SymbolValues<TValue> = TValue extends object
 
 type MutationEntity<TData> = NonNullish<TData[keyof TData]>;
 
-type FragmentNames<TData> = keyof Extract<
-  SymbolValues<MutationEntity<TData>>,
+type FragmentNames<TValue> = keyof Extract<
+  SymbolValues<NonNullish<TValue>>,
   object
 >;
 
-type RegisteredFragmentData<TData> = FragmentTypeRegistry[Extract<
-  FragmentNames<TData>,
+type RegisteredFragmentData<TValue> = FragmentTypeRegistry[Extract<
+  FragmentNames<TValue>,
   keyof FragmentTypeRegistry
 >];
+
+type WithoutTypename<TValue> = TValue extends object
+  ? Omit<TValue, "__typename">
+  : TValue;
 
 type UnionToIntersection<TValue> = (
   TValue extends unknown
@@ -51,8 +55,14 @@ type UnionToIntersection<TValue> = (
   ? TIntersection
   : never;
 
-export type MutationFragmentData<TData> = UnionToIntersection<
-  RegisteredFragmentData<TData>
+export type ResolvedFragmentData<TValue> = [
+  RegisteredFragmentData<TValue>,
+] extends [never]
+  ? WithoutTypename<NonNullish<TValue>>
+  : UnionToIntersection<RegisteredFragmentData<TValue>>;
+
+export type MutationFragmentData<TData> = ResolvedFragmentData<
+  MutationEntity<TData>
 >;
 
 export type ArrayFieldKey<TData> = {

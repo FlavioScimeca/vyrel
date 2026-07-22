@@ -4,20 +4,19 @@ import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import type { UserTypeById } from "../types/extra.types";
-import { fetchSessionUserId, fetchUser } from "../utils/auth-api";
+import { fetchUser, resolveAuthenticatedUserId } from "../utils/auth-api";
 import { UserRepositoryError } from "../utils/errors";
 
 export const getUser = (
   input: UserTypeById,
   headers: Headers,
-  jwtUserId?: string
-) => fetchUser(input.id, headers, jwtUserId);
+  actorUserId?: string | null
+) => fetchUser(input.id, headers, actorUserId);
 
-/** Loads the user for the session cookie (or verified JWT fallback) from the database. */
-export const getCurrentUser = (headers: Headers, jwtUserId?: string) =>
+/** Loads the user for an already-resolved actor, or resolves a session fallback. */
+export const getCurrentUser = (headers: Headers, actorUserId?: string | null) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
+    const userId = yield* resolveAuthenticatedUserId(headers, actorUserId);
     if (userId === null) {
       return null;
     }

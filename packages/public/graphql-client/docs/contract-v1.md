@@ -9,14 +9,17 @@ and optimistic-cache boilerplate. Its API is operation-driven and configured at
 the call site. It does not create a mandatory global resource definition for
 each GraphQL model.
 
-The public runtime consists of three explicit hooks:
+The public runtime consists of four explicit hooks:
 
+- `useCollectionQuery`
 - `useOptimisticCreate`
 - `useOptimisticUpdate`
 - `useOptimisticDelete`
 
 The generated registry describes the canonical query-backed array for
-create/delete membership changes. Reads keep using Apollo `useQuery`.
+create/delete membership changes. Filtered create screens can use
+`useCollectionQuery` to bind a document, its exact variables and an optional
+membership predicate into a typed collection handle.
 
 ## Type sources
 
@@ -69,6 +72,10 @@ explicit operation/cache controls.
 6. Prepend it to the selected list and deduplicate by normalized cache ID.
 7. Repeat the same list behavior for the server result when Apollo removes the
    optimistic layer.
+
+When `insertInto` is provided, steps 5 and 6 target that exact collection handle
+instead. Its `matches` predicate decides membership; `false` and `"unknown"`
+both skip insertion. The canonical collection is not also modified.
 
 ### Update
 

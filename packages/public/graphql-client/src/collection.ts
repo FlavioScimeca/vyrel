@@ -15,6 +15,30 @@ export interface CollectionDescriptor {
   readonly variables: OperationVariables;
 }
 
+export type CollectionMatch = boolean | "unknown";
+
+declare const collectionHandleMarker: unique symbol;
+
+/**
+ * An exact, query-owned Apollo collection target.
+ *
+ * Consumers obtain handles from `useCollectionQuery`; the marker prevents a
+ * document and an unrelated variables object from being paired manually.
+ */
+export interface CollectionHandle<TItem> extends CollectionDescriptor {
+  readonly matches?: (item: TItem) => CollectionMatch;
+  readonly [collectionHandleMarker]: true;
+}
+
+export const createCollectionHandle = <TItem>(
+  descriptor: CollectionDescriptor,
+  matches?: (item: TItem) => CollectionMatch
+): CollectionHandle<TItem> =>
+  ({
+    ...descriptor,
+    matches,
+  }) as CollectionHandle<TItem>;
+
 type UnknownRecord = Record<string, unknown>;
 
 const isRecord = (value: unknown): value is UnknownRecord =>

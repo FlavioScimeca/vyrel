@@ -18,6 +18,7 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "./hooks";
+import { useCollectionQuery } from "./query";
 import {
   configureGraphqlClientCache,
   defineGraphqlClientRegistry,
@@ -35,6 +36,7 @@ interface TasksData {
 
 interface TaskVariables {
   readonly organizationId: string;
+  readonly search?: string;
 }
 
 interface CreateTaskData {
@@ -70,8 +72,8 @@ interface DeleteTaskVariables {
 }
 
 const tasksDocument = parse(`
-  query ListTasks($organizationId: ID!) {
-    tasks(organizationId: $organizationId) {
+  query ListTasks($organizationId: ID!, $search: String) {
+    tasks(organizationId: $organizationId, search: $search) {
       id
       title
     }
@@ -161,7 +163,7 @@ const createPendingNetwork = (): PendingNetwork => {
       typePolicies: {
         Query: {
           fields: {
-            tasks: { keyArgs: ["organizationId"] },
+            tasks: { keyArgs: ["organizationId", "search"] },
           },
         },
         Task: { keyFields: ["id"] },
@@ -204,13 +206,14 @@ const ApolloTestProvider = ({ children }: PropsWithChildren) =>
 const readTaskIds = (
   client: ApolloClient,
   organizationId: string,
-  optimistic = true
+  optimistic = true,
+  search?: string
 ): string[] =>
   client.cache
     .readQuery({
       optimistic,
       query: tasksDocument,
-      variables: { organizationId },
+      variables: { organizationId, search },
     })
     ?.tasks.map(({ id }) => id) ?? [];
 
@@ -296,6 +299,120 @@ describe("optimistic mutation hooks", () => {
     });
 
     expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
+  });
+
+  it("inserts a create into the exact filtered collection handle", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1" },
+    });
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1", search: "match" },
+    });
+
+    const { result } = renderHook(
+      () => {
+        const { collection } = useCollectionQuery(tasksDocument, {
+          matches: (task, variables) =>
+            task.title.toLowerCase().includes(variables.search ?? ""),
+          variables: { organizationId: "org-1", search: "match" },
+        });
+
+        return useOptimisticCreate(createTaskDocument, {
+          insertInto: collection,
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+        });
+      },
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "A match" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, "org-1", true, "match")).toEqual([
+      "temporary-task",
+    ]);
+    expect(readTaskIds(network.client, "org-1")).toEqual([]);
+
+    await act(async () => {
+      network.resolve({
+        createTask: {
+          __typename: "Task",
+          id: "task-1",
+          title: "A match",
+        },
+      });
+      await mutationPromise;
+    });
+
+    expect(readTaskIds(network.client, "org-1", false, "match")).toEqual([
+      "task-1",
+    ]);
+    expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
+  });
+
+  it.each([
+    false,
+    "unknown",
+  ] as const)("skips a targeted create when collection matching returns %s", async (match) => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1", search: "filtered" },
+    });
+
+    const { result } = renderHook(
+      () => {
+        const { collection } = useCollectionQuery(tasksDocument, {
+          matches: () => match,
+          variables: { organizationId: "org-1", search: "filtered" },
+        });
+
+        return useOptimisticCreate(createTaskDocument, {
+          insertInto: collection,
+          optimistic: ({ input }) => ({ title: input.title }),
+        });
+      },
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Created" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, "org-1", true, "filtered")).toEqual([]);
+
+    await act(async () => {
+      network.resolve({
+        createTask: {
+          __typename: "Task",
+          id: "task-1",
+          title: "Created",
+        },
+      });
+      await mutationPromise;
+    });
+
+    expect(readTaskIds(network.client, "org-1", false, "filtered")).toEqual([]);
   });
 
   it("updates the normalized entity optimistically", async () => {

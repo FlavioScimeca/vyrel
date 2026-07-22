@@ -11,7 +11,7 @@ import { uploadTaskImage } from "./image.service";
 export const updateTask = (
   input: TaskTypeUpdate,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = taskUpdateSchema.safeParse(input);
@@ -23,7 +23,7 @@ export const updateTask = (
     }
 
     const { description, image, taskId, title } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
+    const userId = yield* resolveActorUserId(headers, actorUserId);
 
     yield* assertTaskAccess(taskId, userId);
 

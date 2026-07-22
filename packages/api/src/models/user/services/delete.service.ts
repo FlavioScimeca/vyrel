@@ -8,7 +8,7 @@ import { deleteAuthUser } from "./auth.service";
 export const deleteUser = (
   input: UserTypeDelete,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId?: string | null
 ) =>
   Effect.gen(function* () {
     const safeValues = userDeleteSchema.safeParse(input);
@@ -19,7 +19,7 @@ export const deleteUser = (
       });
     }
 
-    const currentUser = yield* fetchCurrentUser(headers, jwtUserId);
+    const currentUser = yield* fetchCurrentUser(headers, actorUserId);
     if (currentUser === null) {
       return yield* new UserRepositoryError({
         cause: null,

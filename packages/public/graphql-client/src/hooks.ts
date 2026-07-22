@@ -7,7 +7,11 @@ import type {
 } from "@apollo/client";
 import { useApolloClient, useMutation } from "@apollo/client/react";
 
-import { prependToList, removeFromAllListVariants } from "./collection";
+import {
+  type CollectionHandle,
+  prependToList,
+  removeFromAllListVariants,
+} from "./collection";
 import {
   getMutationEntitySelection,
   getOperationName,
@@ -52,6 +56,8 @@ export type OptimisticCreateOptions<
   TVariables extends OperationVariables,
 > = MutationOptions<TMutationData, TVariables> &
   SharedOptions & {
+    /** Exact active collection to update instead of the generated canonical collection. */
+    readonly insertInto?: CollectionHandle<MutationFragmentData<TMutationData>>;
     /** Apollo cache key field. Defaults to `id`. */
     readonly keyField?: string;
     readonly optimistic: (
@@ -172,6 +178,7 @@ export const useOptimisticCreate = <
   const apolloClient = useApolloClient(options.client);
   const {
     field,
+    insertInto,
     keyField,
     optimistic,
     optimisticId = createOptimisticId,
@@ -215,19 +222,28 @@ export const useOptimisticCreate = <
     update: (cache, result, context) => {
       const entity = readRootValue(result.data, responseKey);
       if (entity !== null && entity !== undefined) {
-        const variables = resolveCollectionVariables(
-          canonical.mutation.collectionVariablePaths ?? {},
-          context.variables ?? {}
-        );
-        prependToList(
-          cache,
-          {
-            query: canonical.collection.query,
-            responseKey: canonical.collection.responseKey,
-            variables,
-          },
-          entity
-        );
+        if (insertInto === undefined) {
+          const variables = resolveCollectionVariables(
+            canonical.mutation.collectionVariablePaths ?? {},
+            context.variables ?? {}
+          );
+          prependToList(
+            cache,
+            {
+              query: canonical.collection.query,
+              responseKey: canonical.collection.responseKey,
+              variables,
+            },
+            entity
+          );
+        } else {
+          const match = insertInto.matches?.(
+            entity as MutationFragmentData<TMutationData>
+          );
+          if (match === undefined || match === true) {
+            prependToList(cache, insertInto, entity);
+          }
+        }
       }
 
       update?.(cache, result, context);
