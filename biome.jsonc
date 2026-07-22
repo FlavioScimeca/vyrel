@@ -28,7 +28,8 @@
       "!!packages/graphql/gen/generated-imports.ts",
       "!!apps/web/src/components/ui",
       "!!apps/web/src/hooks/use-mobile.ts",
-      "!!apps/mobile/assets"
+      "!!apps/mobile/assets",
+      "!!apps/mobile/src/uniwind-types.d.ts"
     ]
   },
   "javascript": {

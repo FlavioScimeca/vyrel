@@ -6,6 +6,7 @@ import { AnimatedIcon } from "@/components/animated-icon";
 import { HintRow } from "@/components/hint-row";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import MyComponent from "@/components/ui/my-component";
 import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 
@@ -49,11 +50,9 @@ export default function HomeScreen() {
             title="Try editing"
           />
           <HintRow hint={getDevMenuHint()} title="Dev tools" />
-          <HintRow
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-            title="Fresh start"
-          />
         </ThemedView>
+
+        <MyComponent />
 
         {Platform.OS === "web" && <WebBadge />}
       </SafeAreaView>
