@@ -17,6 +17,7 @@ const scopes = [
   },
   { value: "web", name: "🌐 web         Frontend app" },
   { value: "server", name: "🖥️ server      Backend API server" },
+  { value: "mobile", name: "📱 mobile      Mobile app" },
   { value: "docs", name: "📚 docs         Documentation" },
   { value: "extension", name: "🧩 extension    Editor extension" },
   { value: "root", name: "🏠 root         Monorepo root" },

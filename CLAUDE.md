@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # vyrel
 
 This file provides context about the project for AI assistants.

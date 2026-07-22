@@ -23,6 +23,12 @@
       "skillPath": "elysia/SKILL.md",
       "computedHash": "55268e69a2c766ed67e56a0db57544f60cc52dba0c7f024a974baf965e525e1b"
     },
+    "heroui-native": {
+      "source": "heroui-inc/heroui",
+      "sourceType": "github",
+      "skillPath": "skills/heroui-native/SKILL.md",
+      "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
+    },
     "review-logging-patterns": {
       "source": "evlog.dev",
       "sourceType": "well-known",

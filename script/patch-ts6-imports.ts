@@ -10,6 +10,7 @@ const PATCH_TARGETS = [
   "node_modules/@effect/language-service",
   "node_modules/@gql.tada",
   "node_modules/ts-api-utils",
+  "node_modules/@expo/require-utils",
 ] as const;
 
 const PATCHED_EXTENSIONS = new Set([".js", ".cjs", ".mjs"]);
