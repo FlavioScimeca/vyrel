@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,7 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setCreatedRange,
     setSearch,
   } = useTaskFilters();
+  const [, startTransition] = useTransition();
 
   const listVariables = { organizationId, ...queryVariables };
 
@@ -96,9 +97,16 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   });
   const { tasks } = data;
 
-  const refreshTasks = async (): Promise<void> => {
-    await refetch();
-  };
+  // Soft refetch: keep current UI (no Suspense skeleton) while network reconciles
+  // signed image URLs and server-derived fields after optimistic mutations.
+  const refreshTasks = (): Promise<void> =>
+    new Promise((resolve, reject) => {
+      startTransition(() => {
+        refetch()
+          .then(() => resolve())
+          .catch(reject);
+      });
+    });
   const handleRetry = () => {
     refreshTasks().catch(() => {
       // Error surfaces via the query `error` state.

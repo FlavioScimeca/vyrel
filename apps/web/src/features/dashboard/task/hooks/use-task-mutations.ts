@@ -93,8 +93,6 @@ export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
         variables: listVariables,
       });
     },
-    refetchQueries: [ListTasksDocument],
-    awaitRefetchQueries: true,
   });
 }
 
@@ -107,7 +105,5 @@ export function useDeleteTaskMutation() {
     onError: (error) => {
       toast.error(error.message || "Unable to delete task.");
     },
-    refetchQueries: [ListTasksDocument],
-    awaitRefetchQueries: true,
   });
 }
