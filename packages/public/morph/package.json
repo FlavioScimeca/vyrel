@@ -54,6 +54,7 @@
     "validate": "bun run script/verify.ts"
   },
   "devDependencies": {
+    "@effect/language-service": "catalog:",
     "@pothos/core": "catalog:",
     "@pothos/plugin-validation": "catalog:",
     "@pothos/plugin-with-input": "catalog:",
