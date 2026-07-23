@@ -28,7 +28,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
-import { useRefreshTasks } from "../context/task-refresh-context";
 
 const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
 
@@ -48,7 +47,6 @@ type CreateTaskDialogProps = {
 export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const [createTask] = useCreateTaskMutation();
-  const refreshTasks = useRefreshTasks();
   const form = useForm<CreateTaskFormValues>({
     defaultValues: createTaskDefaultValues,
     resolver: zodResolver(createTaskFormSchema),
@@ -87,10 +85,11 @@ export function CreateTaskDialog({ organizationId }: CreateTaskDialogProps) {
     handleOpenChange(false);
 
     try {
+      // Mutation response already includes signed image URLs via Task field
+      // resolvers — no list refetch (avoids a second cache rewrite / UI flick).
       await mutation;
-      await refreshTasks();
     } catch {
-      // Mutation errors use its toast; refetch errors surface via query state.
+      // Mutation errors use its toast.
     }
   });
 

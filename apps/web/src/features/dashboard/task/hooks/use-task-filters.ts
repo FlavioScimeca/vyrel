@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { DateRange } from "react-day-picker";
-import { useDebounce } from "use-debounce";
 
 type TaskFilterQueryVariables = {
   createdFrom?: string;
@@ -24,8 +23,25 @@ const SEARCH_DEBOUNCE_MS = 500;
 
 export function useTaskFilters(): UseTaskFiltersResult {
   const [search, setSearch] = useState("");
-  const [createdRange, setCreatedRange] = useState<DateRange | undefined>();
-  const [debouncedSearch] = useDebounce(search, SEARCH_DEBOUNCE_MS);
+  const [createdRange, setCreatedRangeState] = useState<
+    DateRange | undefined
+  >();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [, startTransition] = useTransition();
+
+  // Debounced search drives query variables inside a transition so
+  // useSuspenseQuery keeps the current list instead of showing the skeleton.
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      startTransition(() => {
+        setDebouncedSearch(search);
+      });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [search]);
 
   const trimmedSearch = debouncedSearch.trim();
   const queryVariables: TaskFilterQueryVariables = {};
@@ -47,9 +63,18 @@ export function useTaskFilters(): UseTaskFiltersResult {
     createdRange?.from !== undefined ||
     createdRange?.to !== undefined;
 
+  const setCreatedRange = (range: DateRange | undefined) => {
+    startTransition(() => {
+      setCreatedRangeState(range);
+    });
+  };
+
   const clearFilters = () => {
     setSearch("");
-    setCreatedRange(undefined);
+    startTransition(() => {
+      setDebouncedSearch("");
+      setCreatedRangeState(undefined);
+    });
   };
 
   return {

@@ -66,9 +66,24 @@ explicit operation/cache controls.
 3. Wrap the entity under the mutation response key.
 4. Let Apollo normalize it.
 5. Resolve the canonical query variables from mutation variables.
-6. Prepend it to the selected list and deduplicate by normalized cache ID.
-7. Repeat the same list behavior for the server result when Apollo removes the
+6. Prepend it to the canonical list and deduplicate by normalized cache ID.
+7. If the call site passes optional `collection` (object or function of mutation
+   variables returning `{ query, variables } | undefined`), also prepend to that
+   exact list variant (dual-write; never replaces the canonical write). When both
+   target the same slot, dedupe keeps a single entry.
+8. Repeat the same list behavior for the server result when Apollo removes the
    optimistic layer.
+
+The package does not interpret list filters (`search`, date ranges, etc.). Only
+variables resolvable from the mutation feed the canonical write. Filtered
+variants are the application's responsibility via the optional `collection`
+override (pass it only when membership is known) or via Apollo
+`refetchQueries` / query `refetch`.
+
+`prependToCollectionVariant`, `removeFromCollectionVariant`, and
+`collectionOverrideWhen` are the public mechanical helpers behind list variant
+updates and the supported escape hatch for custom `update` callbacks. Domain
+membership stays in the application.
 
 ### Update
 
@@ -76,6 +91,8 @@ explicit operation/cache controls.
 2. Add the inferred typename and mutation response wrapper.
 3. Let Apollo normalize the entity. All cached consumers of the same identity
    update without a list rewrite.
+4. Filtered-list membership changes (e.g. title no longer matches `search`) are
+   the application's responsibility via `update` + `removeFromCollectionVariant`.
 
 ### Delete
 
@@ -93,10 +110,17 @@ can extend any exceptional cache workflow without forking the package.
 @vyrel/graphql-client
 ├── React hooks
 ├── document inference
-└── canonical collection adapter
+├── canonical collection adapter
+├── collectionOverrideWhen helper
+├── prependToCollectionVariant helper
+├── removeFromCollectionVariant helper
+└── createOptimisticListIdentity helper
 
 @vyrel/graphql-client/cache
 ├── per-cache registry configuration
+├── collectionOverrideWhen helper
+├── prependToCollectionVariant helper
+├── removeFromCollectionVariant helper
 └── no React client boundary
 
 @vyrel/graphql-client/codegen-plugin
@@ -106,7 +130,6 @@ can extend any exceptional cache workflow without forking the package.
 ├── canonical CRUD collection inference
 └── ModelOf type utilities
 ```
-
 The hook bundle starts with `"use client"`. Cache configuration is isomorphic;
 the codegen bundles are separate Node entry points.
 
@@ -115,7 +138,11 @@ the codegen bundles are separate Node entry points.
 - replacing Apollo cache policies;
 - generating GraphQL operations;
 - inventing domain-specific optimistic values;
+- interpreting filtered-list membership (search, dates, permissions);
+- updating every cached list variant on create;
 - UI toasts, pending states or error presentation;
+- auto-wiring React list keys into create (opt-in via
+  `createOptimisticListIdentity`);
 - offline persistence, mutation queues, undo or conflict resolution;
 - nested/Relay connection pagination adapters.
 

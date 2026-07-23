@@ -83,6 +83,100 @@ export const prependToList = (
   });
 };
 
+/** Exact list query + variables used for a dual-write / escape-hatch update. */
+export type CollectionOverride<
+  TData = unknown,
+  TVariables extends OperationVariables = OperationVariables,
+> = {
+  readonly query: TypedDocumentNode<TData, TVariables>;
+  readonly variables: TVariables;
+};
+
+/**
+ * Mechanical helper: return a typed collection override when `when` is true.
+ * Domain membership stays in the application (`when` is already decided).
+ */
+export const collectionOverrideWhen = <
+  TData,
+  TVariables extends OperationVariables,
+>({
+  query,
+  variables,
+  when,
+}: {
+  readonly query: TypedDocumentNode<TData, TVariables>;
+  readonly variables: TVariables;
+  readonly when: boolean;
+}): CollectionOverride<TData, TVariables> | undefined => {
+  if (!when) {
+    return;
+  }
+
+  return { query, variables };
+};
+
+/** Public escape hatch: prepend an entity to an exact list query variant. */
+export const prependToCollectionVariant = <
+  TData,
+  TVariables extends OperationVariables,
+>(
+  cache: ApolloCache,
+  options: {
+    readonly entity: unknown;
+    readonly query: TypedDocumentNode<TData, TVariables>;
+    readonly responseKey?: string;
+    readonly variables: TVariables;
+  }
+): void => {
+  const responseKey =
+    options.responseKey ?? getRootResponseKey(options.query, "query");
+
+  prependToList(
+    cache,
+    {
+      query: options.query,
+      responseKey,
+      variables: options.variables,
+    },
+    options.entity
+  );
+};
+
+/** Public escape hatch: remove an entity from an exact list query variant. */
+export const removeFromCollectionVariant = <
+  TData,
+  TVariables extends OperationVariables,
+>(
+  cache: ApolloCache,
+  options: {
+    readonly keyField?: string;
+    readonly keyValue: string;
+    readonly query: TypedDocumentNode<TData, TVariables>;
+    readonly responseKey?: string;
+    readonly variables: TVariables;
+  }
+): void => {
+  const keyField = options.keyField ?? "id";
+  const responseKey =
+    options.responseKey ?? getRootResponseKey(options.query, "query");
+
+  updateList(
+    cache,
+    {
+      query: options.query,
+      responseKey,
+      variables: options.variables,
+    },
+    (items) =>
+      items.filter((item) => {
+        if (!isRecord(item)) {
+          return true;
+        }
+        return item[keyField] !== options.keyValue;
+      })
+  );
+};
+
 export const removeFromAllListVariants = (
   cache: ApolloCache,
   field: string,

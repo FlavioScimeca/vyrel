@@ -1,14 +1,14 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
-import { TaskRefreshProvider } from "@/features/dashboard/task/context/task-refresh-context";
+import { TaskListScopeProvider } from "@/features/dashboard/task/context/task-list-scope";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useTaskFilters } from "@/features/dashboard/task/hooks/use-task-filters";
@@ -87,24 +87,26 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setCreatedRange,
     setSearch,
   } = useTaskFilters();
+  const [, startTransition] = useTransition();
+
+  const listVariables = { organizationId, ...queryVariables };
 
   const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
     fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",
-    variables: { organizationId, ...queryVariables },
+    variables: listVariables,
   });
   const { tasks } = data;
 
-  const refreshTasks = async (): Promise<void> => {
-    await refetch();
-  };
   const handleRetry = () => {
-    refreshTasks().catch(() => {
-      // Error surfaces via the query `error` state.
+    startTransition(() => {
+      refetch().catch(() => {
+        // Error surfaces via the query `error` state.
+      });
     });
   };
 
   return (
-    <TaskRefreshProvider refreshTasks={refreshTasks}>
+    <TaskListScopeProvider listVariables={listVariables}>
       <div className="flex flex-1 flex-col gap-6 p-6">
         <TasksHeader
           action={<CreateTaskDialog organizationId={organizationId} />}
@@ -129,7 +131,7 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
           tasks={tasks}
         />
       </div>
-    </TaskRefreshProvider>
+    </TaskListScopeProvider>
   );
 }
 

@@ -35,6 +35,7 @@ interface TasksData {
 
 interface TaskVariables {
   readonly organizationId: string;
+  readonly search?: string;
 }
 
 interface CreateTaskData {
@@ -70,8 +71,8 @@ interface DeleteTaskVariables {
 }
 
 const tasksDocument = parse(`
-  query ListTasks($organizationId: ID!) {
-    tasks(organizationId: $organizationId) {
+  query ListTasks($organizationId: ID!, $search: String) {
+    tasks(organizationId: $organizationId, search: $search) {
       id
       title
     }
@@ -161,7 +162,7 @@ const createPendingNetwork = (): PendingNetwork => {
       typePolicies: {
         Query: {
           fields: {
-            tasks: { keyArgs: ["organizationId"] },
+            tasks: { keyArgs: ["organizationId", "search"] },
           },
         },
         Task: { keyFields: ["id"] },
@@ -203,14 +204,14 @@ const ApolloTestProvider = ({ children }: PropsWithChildren) =>
 
 const readTaskIds = (
   client: ApolloClient,
-  organizationId: string,
+  variables: TaskVariables,
   optimistic = true
 ): string[] =>
   client.cache
     .readQuery({
       optimistic,
       query: tasksDocument,
-      variables: { organizationId },
+      variables,
     })
     ?.tasks.map(({ id }) => id) ?? [];
 
@@ -245,7 +246,9 @@ describe("optimistic mutation hooks", () => {
       });
     });
 
-    expect(readTaskIds(network.client, "org-1")).toEqual(["temporary-task"]);
+    expect(readTaskIds(network.client, { organizationId: "org-1" })).toEqual([
+      "temporary-task",
+    ]);
 
     await act(async () => {
       network.resolve({
@@ -258,8 +261,172 @@ describe("optimistic mutation hooks", () => {
       await mutationPromise;
     });
 
-    expect(readTaskIds(network.client, "org-1", false)).toEqual(["task-1"]);
+    expect(
+      readTaskIds(network.client, { organizationId: "org-1" }, false)
+    ).toEqual(["task-1"]);
     expect(customUpdateCalls).toBe(2);
+  });
+
+  it("writes only the canonical collection when collection override is omitted", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const baseVariables = { organizationId: "org-1" };
+    const filteredVariables = { organizationId: "org-1", search: "test" };
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: baseVariables,
+    });
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: filteredVariables,
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    act(() => {
+      result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "test" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, baseVariables)).toEqual([
+      "temporary-task",
+    ]);
+    expect(readTaskIds(network.client, filteredVariables)).toEqual([]);
+  });
+
+  it("dual-writes canonical and filtered collection variants", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const baseVariables = { organizationId: "org-1" };
+    const filteredVariables = { organizationId: "org-1", search: "test" };
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: baseVariables,
+    });
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: filteredVariables,
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          collection: {
+            query: tasksDocument,
+            variables: filteredVariables,
+          },
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    act(() => {
+      result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "test" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, baseVariables)).toEqual([
+      "temporary-task",
+    ]);
+    expect(readTaskIds(network.client, filteredVariables)).toEqual([
+      "temporary-task",
+    ]);
+  });
+
+  it("resolves collection override from mutation variables", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const baseVariables = { organizationId: "org-1" };
+    const filteredVariables = { organizationId: "org-1", search: "test" };
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: baseVariables,
+    });
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: filteredVariables,
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          collection: ({ input }) =>
+            input.title.toLowerCase().includes("test")
+              ? {
+                  query: tasksDocument,
+                  variables: filteredVariables,
+                }
+              : undefined,
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    act(() => {
+      result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "other" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, baseVariables)).toEqual([
+      "temporary-task",
+    ]);
+    expect(readTaskIds(network.client, filteredVariables)).toEqual([]);
+  });
+
+  it("deduplicates when collection override matches the canonical slot", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const baseVariables = { organizationId: "org-1" };
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: baseVariables,
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          collection: {
+            query: tasksDocument,
+            variables: baseVariables,
+          },
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    act(() => {
+      result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Optimistic" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, baseVariables)).toEqual([
+      "temporary-task",
+    ]);
   });
 
   it("rolls an optimistic create back after a network error", async () => {
@@ -288,14 +455,18 @@ describe("optimistic mutation hooks", () => {
       });
     });
 
-    expect(readTaskIds(network.client, "org-1")).toEqual(["temporary-task"]);
+    expect(readTaskIds(network.client, { organizationId: "org-1" })).toEqual([
+      "temporary-task",
+    ]);
 
     await act(async () => {
       network.reject(new Error("Request failed"));
       await expect(mutationPromise).rejects.toThrow("Request failed");
     });
 
-    expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
+    expect(
+      readTaskIds(network.client, { organizationId: "org-1" }, false)
+    ).toEqual([]);
   });
 
   it("updates the normalized entity optimistically", async () => {
@@ -380,15 +551,23 @@ describe("optimistic mutation hooks", () => {
       });
     });
 
-    expect(readTaskIds(network.client, "org-1")).toEqual([]);
-    expect(readTaskIds(network.client, "org-2")).toEqual([]);
+    expect(readTaskIds(network.client, { organizationId: "org-1" })).toEqual(
+      []
+    );
+    expect(readTaskIds(network.client, { organizationId: "org-2" })).toEqual(
+      []
+    );
 
     await act(async () => {
       network.resolve({ deleteTask: "task-1" });
       await mutationPromise;
     });
 
-    expect(readTaskIds(network.client, "org-1", false)).toEqual([]);
-    expect(readTaskIds(network.client, "org-2", false)).toEqual([]);
+    expect(
+      readTaskIds(network.client, { organizationId: "org-1" }, false)
+    ).toEqual([]);
+    expect(
+      readTaskIds(network.client, { organizationId: "org-2" }, false)
+    ).toEqual([]);
   });
 });

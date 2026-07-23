@@ -570,9 +570,11 @@ Apollo scrive l'entity nel proprio layer optimistic. Il package poi:
 2. determina che il modello è `Task`;
 3. trova la collection canonica di `Task`;
 4. risolve `organizationId` da `input.organizationId`;
-5. aggiorna `ListTasksDocument`;
+5. aggiorna `ListTasksDocument` sulla variante canonica;
 6. inserisce la task all'inizio della lista;
-7. evita duplicati usando l'ID normalizzato Apollo.
+7. evita duplicati usando l'ID normalizzato Apollo;
+8. se l'app passa `collection`, esegue un secondo prepend sulla variante
+   esplicita (dual-write), senza sostituire la write canonica.
 
 Quando arriva la risposta reale, Apollo rimuove il layer optimistic. Il package
 inserisce il risultato reale e deduplica nuovamente la lista.
@@ -581,9 +583,74 @@ inserisce il risultato reale e deduplica nuovamente la lista.
 click "create"
     │
     ├── entity optimistic immediata
-    ├── inserimento immediato nella lista
+    ├── inserimento immediato nella lista canonica
+    ├── eventuale inserimento nella variante filtrata (collection override)
     ├── richiesta al server
     └── sostituzione con il risultato reale
+```
+
+### Override `collection` (dual-write)
+
+La variante canonica usa soltanto le variabili risolvibili dalla mutation
+(es. `{ organizationId }`). Con `keyArgs` che includono filtri (`search`,
+date, …) la query montata può vivere in uno slot diverso:
+
+```text
+UI attiva:   ListTasks({ organizationId, search: "test" })
+Canonica:    ListTasks({ organizationId })
+```
+
+Il package non interpreta i filtri. L'app decide se passare un override:
+
+```ts
+import { collectionOverrideWhen, useOptimisticCreate } from "@vyrel/graphql-client";
+
+useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({
+    description: input.description ?? null,
+    imageFull: null,
+    imageThumb: null,
+    title: input.title,
+  }),
+  // Solo quando serve (filtri attivi + membership nota): in aggiunta alla base
+  collection: ({ input }) =>
+    collectionOverrideWhen({
+      query: ListTasksDocument,
+      variables: activeListVariables,
+      when: taskBelongsToVisibleList(
+        {
+          description: input.description ?? null,
+          title: input.title,
+        },
+        activeListVariables
+      ),
+    }),
+});
+```
+
+`collectionOverrideWhen` è meccanico: restituisce `{ query, variables }` solo se
+`when` è true. La membership (`taskBelongsToVisibleList`) resta nell'applicazione.
+
+Regole:
+
+- senza `collection` → solo write canonica (comportamento V1 precedente);
+- con `collection` → write canonica **e** write sulla variante esplicita;
+- `collection` può essere un oggetto oppure una funzione delle variabili della
+  mutation (per decidere membership al momento del create);
+- se le due varianti coincidono, la dedupe per cache id evita doppioni;
+- nessuna callback `membership` nel package: l'appartenenza resta nella feature.
+
+Escape hatch tipizzato, riusabile anche fuori dall'hook:
+
+```ts
+import { prependToCollectionVariant } from "@vyrel/graphql-client";
+// oppure da "@vyrel/graphql-client/cache"
+
+prependToCollectionVariant(cache, {
+  query: ListTasksDocument,
+  variables: activeVariables,
+  entity: createdTask,
+});
 ```
 
 Il package non esegue refetch. La risposta della mutation sostituisce già il
@@ -641,7 +708,31 @@ Apollo riconosce l'entity attraverso la sua cache key, per esempio
 quella task vedono lo stesso cambiamento.
 
 Un normale update non modifica la membership della collection: non serve quindi
-riscrivere `ListTasksDocument`.
+riscrivere `ListTasksDocument` quando i campi aggiornati non influenzano i
+filtri. Se invece un campo (es. `title`) fa uscire l'entity da una lista
+filtrata visibile, l'applicazione può rimuoverla dalla variante esatta:
+
+```ts
+import { removeFromCollectionVariant } from "@vyrel/graphql-client";
+
+useOptimisticUpdate(UpdateTaskDocument, {
+  current: existingTask,
+  optimistic: ...,
+  update: (cache, _result, { variables }) => {
+    if (!shouldRemoveFromVisibleFilteredList(nextTask, activeVariables)) {
+      return;
+    }
+    removeFromCollectionVariant(cache, {
+      query: ListTasksDocument,
+      variables: activeVariables,
+      keyValue: existingTask.id,
+    });
+  },
+});
+```
+
+Il package non decide la membership: fornisce solo la scrittura meccanica sulla
+variante.
 
 Il patch rimane on demand. Una schermata può aggiornare soltanto il titolo:
 
@@ -882,7 +973,9 @@ descrittivo invece di scegliere implicitamente.
 - implementa offline queue;
 - implementa undo;
 - risolve conflitti concorrenti;
-- gestisce ancora Relay connection o liste nested.
+- gestisce ancora Relay connection o liste nested;
+- collega automaticamente le React list key al create (usa
+  `createOptimisticListIdentity` opt-in per feature).
 
 Per le letture continuiamo a usare Apollo direttamente:
 
@@ -899,7 +992,7 @@ non eliminerebbe boilerplate significativo.
 
 | Entry point | Contenuto | Utilizzo |
 | --- | --- | --- |
-| `@vyrel/graphql-client` | Hook React optimistic | Componenti client |
+| `@vyrel/graphql-client` | Hook React optimistic + helper meccanici (`collectionOverrideWhen`, `createOptimisticListIdentity`, …) | Componenti client |
 | `@vyrel/graphql-client/cache` | Registry e configurazione cache | Setup Apollo e RSC |
 | `@vyrel/graphql-client/codegen` | Metadata e utility di tipo | Build e tooling |
 | `@vyrel/graphql-client/codegen-plugin` | Plugin GraphQL Code Generator | Codegen Node |
