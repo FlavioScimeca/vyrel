@@ -6,6 +6,8 @@ type R2Config = {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
+  /** Cloudflare jurisdiction (`eu` | `fedramp`). Empty = global endpoint. */
+  jurisdiction: string;
 };
 
 let r2Client: S3Client | undefined;
@@ -16,6 +18,7 @@ function getR2Config(): R2Config {
     R2_ACCESS_KEY_ID: accessKeyId,
     R2_SECRET_ACCESS_KEY: secretAccessKey,
     R2_BUCKET_NAME: bucket,
+    R2_JURISDICTION: jurisdiction = "",
   } = env;
 
   if (
@@ -33,14 +36,24 @@ function getR2Config(): R2Config {
     accessKeyId,
     accountId,
     bucket,
+    jurisdiction,
     secretAccessKey,
   };
+}
+
+function r2Endpoint(accountId: string, jurisdiction: string): string {
+  if (jurisdiction.length > 0) {
+    return `https://${accountId}.${jurisdiction}.r2.cloudflarestorage.com`;
+  }
+
+  return `https://${accountId}.r2.cloudflarestorage.com`;
 }
 
 /**
  * Cloudflare R2 client for file storage (S3-compatible)
  * @see https://bun.com/docs/runtime/s3
  * @see https://developers.cloudflare.com/r2/api/s3/api/
+ * @see https://developers.cloudflare.com/r2/reference/data-location/
  */
 export function getR2Client(): S3Client {
   const config = getR2Config();
@@ -48,7 +61,9 @@ export function getR2Client(): S3Client {
   r2Client ??= new S3Client({
     accessKeyId: config.accessKeyId,
     bucket: config.bucket,
-    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    endpoint: r2Endpoint(config.accountId, config.jurisdiction),
+    // Required by S3 SigV4; R2 ignores the value but clients must send `auto`.
+    region: "auto",
     secretAccessKey: config.secretAccessKey,
   });
 

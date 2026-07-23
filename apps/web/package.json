@@ -14,6 +14,7 @@
     "gql:generate": "gql-tada generate-output --tsconfig tsconfig.json",
     "graphql:schema": "bun run --cwd ../.. graphql:schema",
     "react:doctor": "react-doctor --json --json-out react-doctor-report.json --yes",
+    "react:doctor-base": "react-doctor",
     "start": "bun run next start --port 3001",
     "storybook": "storybook dev -p 6006",
     "test": "vitest run --passWithNoTests",
