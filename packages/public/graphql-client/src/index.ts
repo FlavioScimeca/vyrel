@@ -8,8 +8,11 @@ import {
   useOptimisticDelete as useOptimisticDeleteImplementation,
   useOptimisticUpdate as useOptimisticUpdateImplementation,
 } from "./hooks";
+import { createOptimisticListIdentity as createOptimisticListIdentityImplementation } from "./optimistic-list-identity";
 
 export const collectionOverrideWhen = collectionOverrideWhenImplementation;
+export const createOptimisticListIdentity =
+  createOptimisticListIdentityImplementation;
 export const prependToCollectionVariant =
   prependToCollectionVariantImplementation;
 export const removeFromCollectionVariant =
@@ -28,6 +31,10 @@ export type {
   OptimisticDeleteOptions,
   OptimisticUpdateOptions,
 } from "./hooks";
+export type {
+  CreateOptimisticListIdentityOptions,
+  OptimisticListIdentity,
+} from "./optimistic-list-identity";
 export type {
   ArrayFieldKey,
   ArrayItemAt,

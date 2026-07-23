@@ -112,6 +112,37 @@ await refetch();
 This keeps network policy in application code and optimistic cache mechanics in
 the package, without reconstructing query variables in another abstraction.
 
+## Stable list keys after create
+
+Apollo replaces the temporary create id with the server id. If the list uses
+`key={entity.id}`, React remounts the row. Opt into a per-feature identity
+tracker (not wired into the create hook):
+
+```ts
+import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphql-client";
+
+const taskListIdentity = createOptimisticListIdentity();
+
+const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({ title: input.title }),
+  optimisticId: () => taskListIdentity.begin(),
+  onError: () => {
+    taskListIdentity.abandon();
+  },
+  update: (_cache, result) => {
+    const id = result.data?.createTask?.id;
+    if (id !== undefined && !taskListIdentity.isOptimisticId(id)) {
+      taskListIdentity.commit(id);
+    }
+  },
+});
+
+// In the list:
+// <Row key={taskListIdentity.getKey(task.id)} task={task} />
+```
+
+Call `commit` from `update` (before React re-renders), not from `onCompleted`.
+
 ## Apollo options and escape hatches
 
 Normal `useMutation` options stay at the top level and keep their Apollo types:

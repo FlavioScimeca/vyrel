@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
-import { TaskRefreshProvider } from "@/features/dashboard/task/context/task-refresh-context";
+import { TaskListScopeProvider } from "@/features/dashboard/task/context/task-list-scope";
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useTaskFilters } from "@/features/dashboard/task/hooks/use-task-filters";
@@ -97,27 +97,16 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   });
   const { tasks } = data;
 
-  // Soft refetch: keep current UI (no Suspense skeleton) while network reconciles
-  // signed image URLs and server-derived fields after optimistic mutations.
-  const refreshTasks = (): Promise<void> =>
-    new Promise((resolve, reject) => {
-      startTransition(() => {
-        refetch()
-          .then(() => resolve())
-          .catch(reject);
-      });
-    });
   const handleRetry = () => {
-    refreshTasks().catch(() => {
-      // Error surfaces via the query `error` state.
+    startTransition(() => {
+      refetch().catch(() => {
+        // Error surfaces via the query `error` state.
+      });
     });
   };
 
   return (
-    <TaskRefreshProvider
-      listVariables={listVariables}
-      refreshTasks={refreshTasks}
-    >
+    <TaskListScopeProvider listVariables={listVariables}>
       <div className="flex flex-1 flex-col gap-6 p-6">
         <TasksHeader
           action={<CreateTaskDialog organizationId={organizationId} />}
@@ -142,7 +131,7 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
           tasks={tasks}
         />
       </div>
-    </TaskRefreshProvider>
+    </TaskListScopeProvider>
   );
 }
 

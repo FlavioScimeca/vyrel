@@ -973,7 +973,9 @@ descrittivo invece di scegliere implicitamente.
 - implementa offline queue;
 - implementa undo;
 - risolve conflitti concorrenti;
-- gestisce ancora Relay connection o liste nested.
+- gestisce ancora Relay connection o liste nested;
+- collega automaticamente le React list key al create (usa
+  `createOptimisticListIdentity` opt-in per feature).
 
 Per le letture continuiamo a usare Apollo direttamente:
 
@@ -990,7 +992,7 @@ non eliminerebbe boilerplate significativo.
 
 | Entry point | Contenuto | Utilizzo |
 | --- | --- | --- |
-| `@vyrel/graphql-client` | Hook React optimistic | Componenti client |
+| `@vyrel/graphql-client` | Hook React optimistic + helper meccanici (`collectionOverrideWhen`, `createOptimisticListIdentity`, …) | Componenti client |
 | `@vyrel/graphql-client/cache` | Registry e configurazione cache | Setup Apollo e RSC |
 | `@vyrel/graphql-client/codegen` | Metadata e utility di tipo | Build e tooling |
 | `@vyrel/graphql-client/codegen-plugin` | Plugin GraphQL Code Generator | Codegen Node |

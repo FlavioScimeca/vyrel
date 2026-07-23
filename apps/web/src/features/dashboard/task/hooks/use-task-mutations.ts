@@ -7,8 +7,10 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
+import { readFragment } from "gql.tada";
 import { toast } from "sonner";
-import { useTaskListVariables } from "@/features/dashboard/task/context/task-refresh-context";
+import { useTaskListVariables } from "@/features/dashboard/task/context/task-list-scope";
+import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import {
   CreateTaskDocument,
   DeleteTaskDocument,
@@ -19,6 +21,7 @@ import {
   shouldRemoveFromVisibleFilteredList,
   taskBelongsToVisibleList,
 } from "@/features/dashboard/task/lib/matches-visible-task-list";
+import { taskListIdentity } from "@/features/dashboard/task/lib/task-list-identity";
 import { ListTasksDocument } from "../graphql/queries";
 
 export function useCreateTaskMutation() {
@@ -41,6 +44,7 @@ export function useCreateTaskMutation() {
       toast.success("Task created");
     },
     onError: (error) => {
+      taskListIdentity.abandon();
       toast.error(error.message || "Unable to create task.");
     },
     optimistic: (variables) => ({
@@ -49,6 +53,19 @@ export function useCreateTaskMutation() {
       imageThumb: null,
       title: variables.input.title,
     }),
+    optimisticId: () => taskListIdentity.begin(),
+    // Bind before React re-renders from the cache write (onCompleted is too late).
+    update: (_cache, result) => {
+      const created = result.data?.createTask;
+      if (created === undefined || created === null) {
+        return;
+      }
+
+      const { id } = readFragment(TaskListItemFragment, created);
+      if (!taskListIdentity.isOptimisticId(id)) {
+        taskListIdentity.commit(id);
+      }
+    },
   });
 }
 

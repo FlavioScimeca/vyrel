@@ -22,6 +22,7 @@ import { DeleteTaskDialog } from "@/features/dashboard/task/components/delete-ta
 import { EditTaskDialog } from "@/features/dashboard/task/components/edit-task-dialog";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
+import { taskListIdentity } from "@/features/dashboard/task/lib/task-list-identity";
 import { formatMediumDate } from "@/lib/format-date";
 
 const WHITESPACE_PATTERN = /\s+/;
@@ -142,7 +143,7 @@ export function TaskList({
       {tasks.map((task) => {
         const item = readFragment(TaskListItemFragment, task);
 
-        return <TaskCard key={item.id} task={task} />;
+        return <TaskCard key={taskListIdentity.getKey(item.id)} task={task} />;
       })}
     </div>
   );
