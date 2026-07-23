@@ -2,7 +2,7 @@
 
 Bridge Zod row schemas to Pothos GraphQL fields, args, and inputs.
 
-Use it to derive GraphQL object fields, list filters, and input shapes from Zod models without hand-mapping every column.
+Use it to derive GraphQL object fields, list filters, and input shapes from Zod models without hand-mapping every column
 
 ## Install
 
