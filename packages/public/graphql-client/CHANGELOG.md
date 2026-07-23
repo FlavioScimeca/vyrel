@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.1.6
+
+### Patch Changes
+
+- fd949b6: fix both public packages dependencies
+
 ## 0.1.5
 
 ### Patch Changes
