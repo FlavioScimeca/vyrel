@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.9
+
+### Patch Changes
+
+- fd949b6: fix both public packages dependencies
+
 ## 0.0.8
 
 ### Patch Changes
