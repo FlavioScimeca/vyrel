@@ -1,5 +1,8 @@
 import { taskImageObjectKeys } from "@vyrel/storage/keys";
-import { uploadObject } from "@vyrel/storage/object-storage";
+import {
+  messageForObjectStorageFailure,
+  uploadObject,
+} from "@vyrel/storage/object-storage";
 import { Effect } from "effect";
 
 import {
@@ -63,7 +66,7 @@ export const uploadTaskImage = (
         (error) =>
           new TaskMediaError({
             cause: error,
-            message: "Unable to store image in object storage.",
+            message: messageForObjectStorageFailure(error),
           })
       )
     );

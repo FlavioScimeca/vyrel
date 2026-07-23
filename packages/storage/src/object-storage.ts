@@ -35,6 +35,60 @@ function storageError(operation: string, cause: unknown): ObjectStorageError {
   });
 }
 
+function rootStorageCause(error: unknown): unknown {
+  let current = error;
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (
+      current !== null &&
+      typeof current === "object" &&
+      "cause" in current &&
+      current.cause !== undefined
+    ) {
+      current = current.cause;
+      continue;
+    }
+    return current;
+  }
+  return current;
+}
+
+/** User-facing message for R2/S3 upload failures. */
+export function messageForObjectStorageFailure(error: unknown): string {
+  const root = rootStorageCause(error);
+  const code =
+    root !== null &&
+    typeof root === "object" &&
+    "code" in root &&
+    typeof root.code === "string"
+      ? root.code
+      : undefined;
+  let detail: string | undefined;
+  if (root instanceof Error) {
+    detail = root.message;
+  } else if (
+    root !== null &&
+    typeof root === "object" &&
+    "message" in root &&
+    typeof root.message === "string"
+  ) {
+    detail = root.message;
+  }
+
+  if (code === "AccessDenied" || detail === "Access Denied") {
+    return "Object storage access denied. Check R2 API token permissions and that R2_JURISDICTION matches the bucket (omit it unless the bucket is EU/FedRAMP jurisdiction).";
+  }
+
+  if (detail !== undefined && detail.length > 0) {
+    return `Unable to store image in object storage (${detail}).`;
+  }
+
+  if (code !== undefined) {
+    return `Unable to store image in object storage (${code}).`;
+  }
+
+  return "Unable to store image in object storage.";
+}
+
 function tryStorage<A>(
   operation: string,
   execute: () => Promise<A>
