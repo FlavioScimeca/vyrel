@@ -26,6 +26,8 @@ export const env = createEnv({
     R2_ACCESS_KEY_ID: z.string().min(1),
     R2_ACCOUNT_ID: z.string().min(1),
     R2_BUCKET_NAME: z.string().min(1),
+    /** Set to `eu` (or `fedramp`) when the bucket uses a Cloudflare jurisdiction. */
+    R2_JURISDICTION: z.enum(["eu", "fedramp"]),
     R2_SECRET_ACCESS_KEY: z.string().min(1),
     R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
     RESEND_API_KEY: z.string().min(1),
