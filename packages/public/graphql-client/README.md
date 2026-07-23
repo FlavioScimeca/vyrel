@@ -6,7 +6,7 @@ GraphQL Codegen plugin generates the gql.tada fragment types and canonical CRUD
 collection registry without generating one hook per resource.
 
 ```bash
-bun | yarn | pnpm add @vyrel/graphql-client @apollo/client graphql react
+bun add @vyrel/graphql-client @apollo/client graphql react
 ```
 
 ## Why
