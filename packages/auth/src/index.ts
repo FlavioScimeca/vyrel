@@ -135,8 +135,8 @@ export const auth = betterAuth({
   ],
   trustedOrigins: [
     env.CORS_ORIGIN,
-    "mobile://",
-    "mobile://*",
+    "vyrel-mobile://",
+    "vyrel-mobile://*",
     ...(isDevelopment
       ? [
           // Expo Go / Metro (see Better Auth Expo docs)
