@@ -29,7 +29,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 
-const createTaskFormSchema = taskCreateSchema.omit({ organizationId: true });
+const createTaskFormSchema = taskCreateSchema.omit({
+  assigneeId: true,
+  dueDate: true,
+  labelIds: true,
+  organizationId: true,
+  priority: true,
+  status: true,
+});
 
 type CreateTaskFormValues = z.infer<typeof createTaskFormSchema>;
 

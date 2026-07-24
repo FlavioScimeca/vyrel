@@ -16,7 +16,8 @@ builder.mutationFields((t) => ({
         deleteTaskLabel(
           taskLabelDeleteSchema.parse(args.input),
           requireActorUserId(context)
-        )
+        ),
+        { mutation: "deleteTaskLabel" }
       ),
     type: "String",
     typeOptions: {

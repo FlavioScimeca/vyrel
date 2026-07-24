@@ -8,20 +8,25 @@ import {
   SearchField,
   Typography,
 } from "heroui-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { AppHeader } from "@/components/app-header";
 import { TaskListSkeleton } from "@/components/screen-state";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskList } from "@/features/dashboard/task/components/task-list";
-import { TaskConnectionDocument } from "@/features/dashboard/task/graphql/queries";
 import {
+  TaskConnectionDocument,
+  TaskLabelsDocument,
+} from "@/features/dashboard/task/graphql/queries";
+import {
+  type TaskDueFilter,
   type TaskPriorityFilter,
   type TaskSort,
   type TaskStatusFilter,
   useTaskFilters,
 } from "@/features/dashboard/task/hooks/use-task-filters";
+import { authClient } from "@/lib/auth-client";
 
 const PAGE_SIZE = 20;
 
@@ -42,12 +47,21 @@ const SORT_OPTIONS: { label: string; value: TaskSort }[] = [
   { label: "Priority", value: "PRIORITY" },
   { label: "Newest", value: "NEWEST" },
 ];
+const DUE_OPTIONS: { label: string; value: TaskDueFilter }[] = [
+  { label: "Any date", value: "ALL" },
+  { label: "Due today", value: "TODAY" },
+  { label: "Overdue", value: "OVERDUE" },
+];
 
 export function TasksScreen({ organizationId }: { organizationId: string }) {
   const params = useLocalSearchParams<{ status?: TaskStatusFilter }>();
   const filters = useTaskFilters(params.status);
   const [filterOpen, setFilterOpen] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string>();
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const labels = useQuery(TaskLabelsDocument, {
+    variables: { organizationId },
+  });
   const variables = {
     first: PAGE_SIZE,
     organizationId,
@@ -67,6 +81,26 @@ export function TasksScreen({ organizationId }: { organizationId: string }) {
     data === undefined && networkStatus === NetworkStatus.loading;
   const isRefreshing = networkStatus === NetworkStatus.refetch;
   const isLoadingMore = networkStatus === NetworkStatus.fetchMore;
+
+  useEffect(() => {
+    let active = true;
+    authClient.organization
+      .listMembers({ query: { limit: 100, organizationId } })
+      .then(({ data: memberData }) => {
+        if (active) {
+          setMembers(
+            (memberData?.members ?? []).map((member) => ({
+              id: member.userId,
+              name: member.user.name,
+            }))
+          );
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
 
   const loadMore = async () => {
     if (
@@ -191,6 +225,69 @@ export function TasksScreen({ organizationId }: { organizationId: string }) {
               selected={filters.priorities}
               toggle={filters.togglePriority}
             />
+            <View className="gap-2">
+              <Typography className="font-medium">Due</Typography>
+              <View className="flex-row flex-wrap gap-2">
+                {DUE_OPTIONS.map((option) => (
+                  <Chip
+                    accessibilityState={{
+                      selected: filters.due === option.value,
+                    }}
+                    color={filters.due === option.value ? "accent" : "default"}
+                    key={option.value}
+                    onPress={() => filters.setDue(option.value)}
+                    variant="soft"
+                  >
+                    <Chip.Label>{option.label}</Chip.Label>
+                  </Chip>
+                ))}
+              </View>
+            </View>
+            <View className="gap-2">
+              <Typography className="font-medium">Assignee</Typography>
+              <View className="flex-row flex-wrap gap-2">
+                <Chip
+                  color={filters.assigneeId === "" ? "accent" : "default"}
+                  onPress={() => filters.setAssigneeId("")}
+                  variant="soft"
+                >
+                  <Chip.Label>Anyone</Chip.Label>
+                </Chip>
+                {members.map((member) => (
+                  <Chip
+                    color={
+                      filters.assigneeId === member.id ? "accent" : "default"
+                    }
+                    key={member.id}
+                    onPress={() => filters.setAssigneeId(member.id)}
+                    variant="soft"
+                  >
+                    <Chip.Label>{member.name}</Chip.Label>
+                  </Chip>
+                ))}
+              </View>
+            </View>
+            {(labels.data?.taskLabels ?? []).length > 0 ? (
+              <View className="gap-2">
+                <Typography className="font-medium">Labels</Typography>
+                <View className="flex-row flex-wrap gap-2">
+                  {(labels.data?.taskLabels ?? []).map((label) => (
+                    <Chip
+                      color={
+                        filters.labelIds.includes(label.id)
+                          ? "accent"
+                          : "default"
+                      }
+                      key={label.id}
+                      onPress={() => filters.toggleLabel(label.id)}
+                      variant="soft"
+                    >
+                      <Chip.Label>{label.name}</Chip.Label>
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            ) : null}
             <View className="gap-2">
               <Typography className="font-medium">Sort by</Typography>
               <View className="flex-row flex-wrap gap-2">

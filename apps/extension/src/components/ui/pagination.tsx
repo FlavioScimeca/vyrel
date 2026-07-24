@@ -59,14 +59,6 @@ function PaginationLink({
           {...props}
         />
       }
-      render={
-        <a
-          aria-current={isActive ? "page" : undefined}
-          data-active={isActive}
-          data-slot="pagination-link"
-          {...props}
-        />
-      }
       size={size}
     />
   );

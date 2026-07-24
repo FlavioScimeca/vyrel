@@ -5,8 +5,10 @@ import {
   asc,
   desc,
   eq,
+  gt,
   gte,
   inArray,
+  lt,
   lte,
   or,
   type SQL,
@@ -103,7 +105,12 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
 const taskOrderBy = (sort: TasksTypeByOrganization["sort"]) => {
   switch (sort) {
     case "DUE_DATE":
-      return [asc(task.dueDate), desc(task.createdAt), desc(task.id)] as const;
+      return [
+        sql`case when ${task.dueDate} is null then 1 else 0 end`,
+        asc(task.dueDate),
+        desc(task.createdAt),
+        desc(task.id),
+      ] as const;
     case "PRIORITY":
       return [
         sql`case ${task.priority} when 'HIGH' then 0 when 'MEDIUM' then 1 when 'LOW' then 2 else 3 end`,
@@ -143,29 +150,92 @@ export const listTasksByOrganization = (
   });
 
 type TaskCursor = {
-  offset: number;
+  createdAt: string;
+  dueDate: string | null;
+  id: string;
+  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH";
+  updatedAt: string;
 };
 
 const encodeCursor = (cursor: TaskCursor): string =>
   Buffer.from(JSON.stringify(cursor)).toString("base64url");
 
-const decodeCursor = (cursor: string | undefined): number => {
+const decodeCursor = (cursor: string | undefined): TaskCursor | null => {
   if (cursor === undefined) {
-    return 0;
+    return null;
   }
 
   try {
     const parsed = JSON.parse(
       Buffer.from(cursor, "base64url").toString("utf8")
     ) as Partial<TaskCursor>;
-    return typeof parsed.offset === "number" &&
-      Number.isInteger(parsed.offset) &&
-      parsed.offset >= 0
-      ? parsed.offset
-      : 0;
+    if (
+      typeof parsed.id !== "string" ||
+      typeof parsed.createdAt !== "string" ||
+      typeof parsed.updatedAt !== "string" ||
+      (parsed.dueDate !== null && typeof parsed.dueDate !== "string") ||
+      !["NONE", "LOW", "MEDIUM", "HIGH"].includes(parsed.priority ?? "")
+    ) {
+      return null;
+    }
+    return parsed as TaskCursor;
   } catch {
-    return 0;
+    return null;
   }
+};
+
+const descendingDateCursorCondition = (
+  column: typeof task.createdAt | typeof task.updatedAt,
+  cursorDate: Date,
+  cursorId: string
+): SQL =>
+  or(
+    lt(column, cursorDate),
+    and(eq(column, cursorDate), lt(task.id, cursorId))
+  ) as SQL;
+
+const priorityRank = sql<number>`case ${task.priority} when 'HIGH' then 0 when 'MEDIUM' then 1 when 'LOW' then 2 else 3 end`;
+
+const cursorCondition = (
+  cursor: TaskCursor,
+  sort: TasksTypeByOrganization["sort"]
+): SQL => {
+  const createdAt = new Date(cursor.createdAt);
+  const updatedAt = new Date(cursor.updatedAt);
+
+  if (sort === "RECENTLY_UPDATED") {
+    return descendingDateCursorCondition(task.updatedAt, updatedAt, cursor.id);
+  }
+
+  if (sort === "DUE_DATE") {
+    const tieBreaker = descendingDateCursorCondition(
+      task.createdAt,
+      createdAt,
+      cursor.id
+    );
+    if (cursor.dueDate === null) {
+      return and(sql`${task.dueDate} is null`, tieBreaker) as SQL;
+    }
+    return or(
+      sql`${task.dueDate} is null`,
+      gt(task.dueDate, cursor.dueDate),
+      and(eq(task.dueDate, cursor.dueDate), tieBreaker)
+    ) as SQL;
+  }
+
+  if (sort === "PRIORITY") {
+    const ranks = { HIGH: 0, MEDIUM: 1, LOW: 2, NONE: 3 } as const;
+    const cursorRank = ranks[cursor.priority];
+    return or(
+      gt(priorityRank, cursorRank),
+      and(
+        eq(priorityRank, cursorRank),
+        descendingDateCursorCondition(task.createdAt, createdAt, cursor.id)
+      )
+    ) as SQL;
+  }
+
+  return descendingDateCursorCondition(task.createdAt, createdAt, cursor.id);
 };
 
 export const listTaskConnection = (
@@ -175,7 +245,10 @@ export const listTaskConnection = (
   Effect.gen(function* () {
     yield* assertOrgMembership(input.organizationId, actorUserId);
     const conditions = buildTaskListConditions(input);
-    const offset = decodeCursor(input.after);
+    const cursor = decodeCursor(input.after);
+    if (cursor !== null) {
+      conditions.push(cursorCondition(cursor, input.sort));
+    }
     const records = yield* Effect.tryPromise({
       catch: (cause) =>
         new TaskRepositoryError({
@@ -189,7 +262,6 @@ export const listTaskConnection = (
           .where(and(...conditions))
           .orderBy(...taskOrderBy(input.sort))
           .limit(input.first + 1)
-          .offset(offset)
           .all(),
     });
 
@@ -202,7 +274,13 @@ export const listTaskConnection = (
         endCursor:
           nodes.length === 0
             ? null
-            : encodeCursor({ offset: offset + nodes.length }),
+            : encodeCursor({
+                createdAt: nodes.at(-1)?.createdAt.toISOString() ?? "",
+                dueDate: nodes.at(-1)?.dueDate ?? null,
+                id: nodes.at(-1)?.id ?? "",
+                priority: nodes.at(-1)?.priority ?? "NONE",
+                updatedAt: nodes.at(-1)?.updatedAt.toISOString() ?? "",
+              }),
         hasNextPage,
       },
     };

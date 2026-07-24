@@ -16,6 +16,8 @@ import {
 import { getActiveOrganizationId } from "@/lib/active-organization";
 import { authClient } from "@/lib/auth-client";
 
+const WHITESPACE_PATTERN = /\s+/;
+
 const formatLocalDate = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -49,7 +51,7 @@ export default function HomeRoute() {
       sort: "RECENTLY_UPDATED",
     },
   });
-  const firstName = session?.user.name?.split(/\s+/)[0];
+  const firstName = session?.user.name?.split(WHITESPACE_PATTERN)[0];
 
   if (organizationId === null) {
     return null;
@@ -195,24 +197,44 @@ function TaskSection({
           </Typography>
         </Pressable>
       </View>
-      {loading && tasks.length === 0 ? (
-        <View className="items-center py-5">
-          <Spinner size="sm" />
-        </View>
-      ) : tasks.length === 0 ? (
-        <Card className="rounded-3xl p-5">
-          <Typography className="text-muted">{empty}</Typography>
-        </Card>
-      ) : (
-        <View className="gap-3">
-          {tasks.map((task) => (
-            <TaskRow
-              key={readFragment(TaskListItemFragment, task).id}
-              task={task}
-            />
-          ))}
-        </View>
-      )}
+      <TaskSectionContent empty={empty} loading={loading} tasks={tasks} />
+    </View>
+  );
+}
+
+function TaskSectionContent({
+  empty,
+  loading,
+  tasks,
+}: {
+  empty: string;
+  loading: boolean;
+  tasks: Parameters<typeof TaskRow>[0]["task"][];
+}) {
+  if (loading && tasks.length === 0) {
+    return (
+      <View className="items-center py-5">
+        <Spinner size="sm" />
+      </View>
+    );
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <Card className="rounded-3xl p-5">
+        <Typography className="text-muted">{empty}</Typography>
+      </Card>
+    );
+  }
+
+  return (
+    <View className="gap-3">
+      {tasks.map((task) => (
+        <TaskRow
+          key={readFragment(TaskListItemFragment, task).id}
+          task={task}
+        />
+      ))}
     </View>
   );
 }

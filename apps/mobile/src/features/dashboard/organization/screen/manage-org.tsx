@@ -140,7 +140,9 @@ export function ManageOrgScreen() {
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1 gap-1">
-          <Typography.Heading className="text-2xl">Workspaces</Typography.Heading>
+          <Typography.Heading className="text-2xl">
+            Workspaces
+          </Typography.Heading>
           <Typography className="text-muted">
             Switch context and manage your team.
           </Typography>
@@ -178,8 +180,7 @@ export function ManageOrgScreen() {
                     if (result.error) {
                       toast.show({
                         label:
-                          result.error.message ??
-                          "Unable to switch workspace.",
+                          result.error.message ?? "Unable to switch workspace.",
                         variant: "danger",
                       });
                       return;
@@ -258,16 +259,22 @@ export function ManageOrgScreen() {
           <View className="items-center py-6">
             <Spinner />
           </View>
-        ) : adminError ? (
+        ) : null}
+        {!adminLoading && adminError !== undefined ? (
           <View className="gap-3 rounded-2xl bg-danger-soft p-4">
             <Typography className="text-danger-soft-foreground">
               {adminError}
             </Typography>
-            <Button onPress={refreshAdministration} size="sm" variant="secondary">
+            <Button
+              onPress={refreshAdministration}
+              size="sm"
+              variant="secondary"
+            >
               <Button.Label>Retry</Button.Label>
             </Button>
           </View>
-        ) : (
+        ) : null}
+        {!adminLoading && adminError === undefined ? (
           <ListGroup variant="secondary">
             {members.map((member, index) => (
               <View key={member.id}>
@@ -281,16 +288,16 @@ export function ManageOrgScreen() {
                     </Avatar>
                   </ListGroup.ItemPrefix>
                   <ListGroup.ItemContent>
-                    <ListGroup.ItemTitle>
-                      {member.name}
-                    </ListGroup.ItemTitle>
+                    <ListGroup.ItemTitle>{member.name}</ListGroup.ItemTitle>
                     <ListGroup.ItemDescription>
                       {member.email}
                     </ListGroup.ItemDescription>
                   </ListGroup.ItemContent>
                   <ListGroup.ItemSuffix>
                     <Chip
-                      color={member.role.includes("owner") ? "accent" : "default"}
+                      color={
+                        member.role.includes("owner") ? "accent" : "default"
+                      }
                       size="sm"
                       variant="soft"
                     >
@@ -334,16 +341,16 @@ export function ManageOrgScreen() {
                     </Button>
                     <Button
                       onPress={async () => {
-                        const result = await authClient.organization.removeMember(
-                          {
+                        const result =
+                          await authClient.organization.removeMember({
                             memberIdOrEmail: member.id,
                             organizationId,
-                          }
-                        );
+                          });
                         if (result.error) {
                           toast.show({
                             label:
-                              result.error.message ?? "Unable to remove member.",
+                              result.error.message ??
+                              "Unable to remove member.",
                             variant: "danger",
                           });
                           return;
@@ -360,7 +367,7 @@ export function ManageOrgScreen() {
               </View>
             ))}
           </ListGroup>
-        )}
+        ) : null}
       </View>
 
       {canManage && invitations.length > 0 ? (
@@ -428,10 +435,7 @@ export function ManageOrgScreen() {
           <Typography className="text-danger-soft-foreground text-sm">
             Deleting a workspace permanently removes its tasks and membership.
           </Typography>
-          <Button
-            onPress={() => setDeleteOpen(true)}
-            variant="danger"
-          >
+          <Button onPress={() => setDeleteOpen(true)} variant="danger">
             <Button.Label>Delete workspace</Button.Label>
           </Button>
         </View>
@@ -492,7 +496,10 @@ function CreateWorkspaceSheet({
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content className="gap-5 pb-safe-offset-5" keyboardBehavior="extend">
+        <BottomSheet.Content
+          className="gap-5 pb-safe-offset-5"
+          keyboardBehavior="extend"
+        >
           <BottomSheet.Close />
           <BottomSheet.Title>Create workspace</BottomSheet.Title>
           <TextField isRequired>
@@ -507,11 +514,7 @@ function CreateWorkspaceSheet({
           </TextField>
           <TextField isRequired>
             <Label>Slug</Label>
-            <Input
-              autoCapitalize="none"
-              onChangeText={setSlug}
-              value={slug}
-            />
+            <Input autoCapitalize="none" onChangeText={setSlug} value={slug} />
           </TextField>
           <Button
             isDisabled={pending || !name.trim() || !slug.trim()}
@@ -567,7 +570,10 @@ function EditWorkspaceSheet({
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content className="gap-5 pb-safe-offset-5" keyboardBehavior="extend">
+        <BottomSheet.Content
+          className="gap-5 pb-safe-offset-5"
+          keyboardBehavior="extend"
+        >
           <BottomSheet.Close />
           <BottomSheet.Title>Edit workspace</BottomSheet.Title>
           <View className="items-center gap-3">
@@ -616,11 +622,7 @@ function EditWorkspaceSheet({
           </TextField>
           <TextField isRequired>
             <Label>Slug</Label>
-            <Input
-              autoCapitalize="none"
-              onChangeText={setSlug}
-              value={slug}
-            />
+            <Input autoCapitalize="none" onChangeText={setSlug} value={slug} />
           </TextField>
           <Button
             isDisabled={loading || !name.trim() || !slug.trim()}
@@ -651,7 +653,9 @@ function EditWorkspaceSheet({
             }}
           >
             {loading ? <Spinner color="default" size="sm" /> : null}
-            <Button.Label>{loading ? "Saving…" : "Save workspace"}</Button.Label>
+            <Button.Label>
+              {loading ? "Saving…" : "Save workspace"}
+            </Button.Label>
           </Button>
         </BottomSheet.Content>
       </BottomSheet.Portal>
@@ -733,7 +737,10 @@ function InviteMemberSheet({
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content className="gap-5 pb-safe-offset-5" keyboardBehavior="extend">
+        <BottomSheet.Content
+          className="gap-5 pb-safe-offset-5"
+          keyboardBehavior="extend"
+        >
           <BottomSheet.Close />
           <BottomSheet.Title>Invite a member</BottomSheet.Title>
           <BottomSheet.Description>
@@ -775,8 +782,7 @@ function InviteMemberSheet({
               setPending(false);
               if (result.error) {
                 toast.show({
-                  label:
-                    result.error.message ?? "Unable to send invitation.",
+                  label: result.error.message ?? "Unable to send invitation.",
                   variant: "danger",
                 });
                 return;

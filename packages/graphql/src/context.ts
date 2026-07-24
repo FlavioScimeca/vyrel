@@ -1,4 +1,5 @@
 import { auth } from "@vyrel/auth";
+import { onlyVerifiedSession } from "@vyrel/auth/lib/verified-session";
 import type { AuthClaims } from "@vyrel/auth/lib/verify-bearer";
 import { verifyBearer } from "@vyrel/auth/lib/verify-bearer";
 import { type AuditableLogger, createLogger } from "@vyrel/logging";
@@ -52,7 +53,8 @@ export const createGraphqlContext = (
   Promise.all([
     auth.api.getSession({ headers: request.headers }),
     verifyBearer(request.headers),
-  ]).then(([session, user]) => {
+  ]).then(([rawSession, user]) => {
+    const session = onlyVerifiedSession(rawSession);
     const actorUserId = session?.user.id ?? user?.id ?? null;
     const isAuthenticated = actorUserId !== null;
     const requestLog = resolveRequestLogger();

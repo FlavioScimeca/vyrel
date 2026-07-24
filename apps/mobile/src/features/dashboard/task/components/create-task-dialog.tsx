@@ -39,6 +39,8 @@ import {
 } from "@/features/dashboard/task/graphql/queries";
 import { authClient } from "@/lib/auth-client";
 import { haptics } from "@/lib/haptics";
+import { DEFAULT_TASK_LABEL_COLOR } from "@/lib/task-label-colors";
+import { useIsOnline } from "@/lib/use-online-status";
 
 type MemberOption = {
   id: string;
@@ -73,6 +75,7 @@ function ComposerForm({
 }) {
   const awareHandlers = useBottomSheetAwareHandlers();
   const { toast } = useToast();
+  const isOnline = useIsOnline();
   const [image, setImage] = useState<PickedImage>();
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -330,13 +333,15 @@ function ComposerForm({
               />
             </TextField>
             <Button
-              isDisabled={creatingLabel || newLabel.trim().length === 0}
+              isDisabled={
+                !isOnline || creatingLabel || newLabel.trim().length === 0
+              }
               onPress={async () => {
                 const result = await createLabel({
                   refetchQueries: [TaskLabelsDocument],
                   variables: {
                     input: {
-                      color: "accent",
+                      color: DEFAULT_TASK_LABEL_COLOR,
                       name: newLabel.trim(),
                       organizationId,
                     },
@@ -373,7 +378,7 @@ function ComposerForm({
       </BottomSheetScrollView>
 
       <View className="border-separator border-t bg-surface px-5 pt-3 pb-safe-offset-3">
-        <Button isDisabled={loading} onPress={onSubmit} size="lg">
+        <Button isDisabled={!isOnline || loading} onPress={onSubmit} size="lg">
           {loading ? <Spinner color="default" size="sm" /> : null}
           <Button.Label>
             {loading ? "Creating task…" : "Create task"}

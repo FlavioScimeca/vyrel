@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { ApolloProvider } from "@/src/graphql/apollo/provider";
 import {
   clearStoredScreenshot,
   readStoredScreenshot,
@@ -11,7 +12,7 @@ type ScreenshotView = StoredScreenshot & {
   width: number;
 };
 
-function App() {
+function ScreenshotViewer() {
   const [screenshot, setScreenshot] = useState<ScreenshotView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,6 +105,14 @@ function App() {
         width={screenshot.width}
       />
     </main>
+  );
+}
+
+function App() {
+  return (
+    <ApolloProvider>
+      <ScreenshotViewer />
+    </ApolloProvider>
   );
 }
 

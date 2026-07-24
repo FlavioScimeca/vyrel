@@ -64,10 +64,9 @@ export default function AcceptInvitationRoute() {
               onPress={async () => {
                 setAccepting(true);
                 setError(undefined);
-                const result =
-                  await authClient.organization.acceptInvitation({
-                    invitationId,
-                  });
+                const result = await authClient.organization.acceptInvitation({
+                  invitationId,
+                });
                 if (result.error) {
                   setError(
                     result.error.message ?? "Unable to accept invitation."

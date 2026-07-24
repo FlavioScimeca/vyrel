@@ -1,0 +1,1 @@
+export const DEFAULT_TASK_LABEL_COLOR = "#7357C8";

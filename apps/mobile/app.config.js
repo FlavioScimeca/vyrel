@@ -1,6 +1,4 @@
-import type { ExpoConfig } from "expo/config";
-
-const config: ExpoConfig = {
+const config = {
   name: "Vyrel",
   slug: "vyrel-mobile",
   version: "1.0.0",
@@ -45,7 +43,11 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#111111",
+        backgroundColor: "#F6F3EF",
+        dark: {
+          backgroundColor: "#17151A",
+          image: "./assets/images/splash-icon.png",
+        },
         image: "./assets/images/splash-icon.png",
         imageWidth: 76,
       },

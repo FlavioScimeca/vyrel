@@ -13,6 +13,7 @@ describe("proxy-routes", () => {
     expect(isPublicRoute("/")).toBe(true);
     expect(isPublicRoute("/auth")).toBe(true);
     expect(isPublicRoute("/auth/sign-in")).toBe(true);
+    expect(isPublicRoute("/auth-succeeded")).toBe(true);
     expect(isPublicRoute("/api/auth/sign-in/email")).toBe(false);
     expect(isPublicRoute("/dashboard")).toBe(false);
   });

@@ -30,7 +30,8 @@ builder.mutationFields((t) => ({
           Effect.flatMap(({ actorUserId, input }) =>
             createTask(input, actorUserId)
           )
-        )
+        ),
+        { mutation: "createTask" }
       ),
     type: TaskObject,
     typeOptions: typeOptionsMetadata,

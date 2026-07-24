@@ -4,7 +4,7 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   manifest: {
     host_permissions: ["<all_urls>"],
-    permissions: ["activeTab", "storage", "tabs"],
+    permissions: ["activeTab", "cookies", "storage", "tabs"],
     icons: {
       16: "logo.png",
       24: "logo.png",

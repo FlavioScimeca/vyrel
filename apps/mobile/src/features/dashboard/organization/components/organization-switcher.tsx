@@ -10,7 +10,7 @@ import {
   useThemeColor,
   useToast,
 } from "heroui-native";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { OrganizationListItemFragment } from "@/features/dashboard/organization/graphql/fragments";
@@ -81,6 +81,22 @@ export function OrganizationSwitcher() {
                 );
                 const isActive = item.id === activeOrganizationId;
                 const isPending = item.id === pendingId;
+                let statusIndicator: ReactNode = null;
+                if (isPending) {
+                  statusIndicator = <Spinner size="sm" />;
+                } else if (isActive) {
+                  statusIndicator = (
+                    <SymbolView
+                      name={{
+                        android: "check_circle",
+                        ios: "checkmark.circle.fill",
+                        web: "check_circle",
+                      }}
+                      size={22}
+                      tintColor={foreground}
+                    />
+                  );
+                }
 
                 return (
                   <Pressable
@@ -140,19 +156,7 @@ export function OrganizationSwitcher() {
                         {item.slug}
                       </Typography>
                     </View>
-                    {isPending ? (
-                      <Spinner size="sm" />
-                    ) : isActive ? (
-                      <SymbolView
-                        name={{
-                          android: "check_circle",
-                          ios: "checkmark.circle.fill",
-                          web: "check_circle",
-                        }}
-                        size={22}
-                        tintColor={foreground}
-                      />
-                    ) : null}
+                    {statusIndicator}
                   </Pressable>
                 );
               })}

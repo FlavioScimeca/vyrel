@@ -1,0 +1,14 @@
+appId: ${APP_ID}
+---
+- launchApp
+- tapOn: "More tab"
+- tapOn: "Workspaces"
+- assertVisible: "Members"
+- back
+- tapOn: "Profile & security"
+- assertVisible: "App Lock"
+- assertVisible: "Account information"
+- back
+- tapOn: "Appearance"
+- tapOn: "Dark"
+- assertVisible: "Account"

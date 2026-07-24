@@ -1,4 +1,5 @@
 const AUTH_ROUTE_PREFIX = "/auth";
+const AUTH_SUCCEEDED_ROUTE = "/auth-succeeded";
 const AUTH_API_ROUTE_PREFIX = "/api/auth";
 const GRAPHQL_API_ROUTE = "/api/graphql";
 const USER_CREATE_API_ROUTE = "/api/users";
@@ -46,8 +47,14 @@ export function isOnboardingRoute(pathname: string): boolean {
   return pathname === ONBOARDING_ROUTE;
 }
 
+export function isAuthSucceededRoute(pathname: string): boolean {
+  return pathname === AUTH_SUCCEEDED_ROUTE;
+}
+
 export function isPublicRoute(pathname: string): boolean {
-  return pathname === "/" || isAuthRoute(pathname);
+  return (
+    pathname === "/" || isAuthRoute(pathname) || isAuthSucceededRoute(pathname)
+  );
 }
 
 export function shouldBypassAuthGuard(pathname: string): boolean {

@@ -24,6 +24,12 @@ vi.mock("@vyrel/auth/lib/verify-bearer", () => ({
   verifyBearer: bearerMocks.verifyBearer,
 }));
 
+vi.mock("@vyrel/env/server", () => ({
+  env: {
+    NODE_ENV: "test",
+  },
+}));
+
 vi.mock("@vyrel/logging", () => ({
   createLogger: () => loggerMocks,
 }));
@@ -36,7 +42,7 @@ import { createGraphqlContext, requireActorUserId } from "./context";
 
 const session = {
   session: { id: "session-1" },
-  user: { id: "cookie-user" },
+  user: { emailVerified: true, id: "cookie-user" },
 };
 
 const bearerUser = {
@@ -96,5 +102,19 @@ describe("GraphQL actor context", () => {
     expect(context.isAuthenticated).toBe(false);
     expect(() => requireActorUserId(context)).toThrow("UNAUTHENTICATED");
     expect(authMocks.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an unverified cookie session", async () => {
+    authMocks.getSession.mockResolvedValue({
+      session: { id: "session-1" },
+      user: { emailVerified: false, id: "cookie-user" },
+    });
+
+    const context = await createGraphqlContext(
+      new Request("http://localhost/api/graphql")
+    );
+
+    expect(context.actorUserId).toBeNull();
+    expect(context.isAuthenticated).toBe(false);
   });
 });

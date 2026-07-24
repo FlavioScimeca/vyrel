@@ -18,7 +18,8 @@
     "db:local": "turso dev --db-file local.db",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@libsql/client": "catalog:",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@vyrel/config": "workspace:*",
     "drizzle-kit": "1.0.0-rc.4",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

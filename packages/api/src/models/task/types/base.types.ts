@@ -59,8 +59,8 @@ export const taskCreateSchema = taskInsertSchema
       .meta({ pothosType: "File" }),
     labelIds: z.array(z.string().min(1)).max(20).default([]),
     organizationId: z.string().min(1, "Organization id is required"),
-    priority: taskPrioritySchema.optional(),
-    status: taskStatusSchema.optional(),
+    priority: taskPrioritySchema.default("NONE"),
+    status: taskStatusSchema.default("TODO"),
     title: z.string().trim().min(1, "Title is required"),
   });
 
@@ -85,6 +85,8 @@ export const taskUpdateSchema = taskCreateSchema
     title: true,
   })
   .extend({
+    labelIds: z.array(z.string().min(1)).max(20).optional(),
+    removeImage: z.boolean().optional(),
     taskId: z.string().min(1, "Task id is required"),
   });
 

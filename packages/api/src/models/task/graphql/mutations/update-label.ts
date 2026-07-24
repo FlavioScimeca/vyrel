@@ -16,7 +16,8 @@ builder.mutationFields((t) => ({
         updateTaskLabel(
           taskLabelUpdateSchema.parse(args.input),
           requireActorUserId(context)
-        )
+        ),
+        { mutation: "updateTaskLabel" }
       ),
     type: TaskLabelObject,
     typeOptions: {

@@ -26,8 +26,11 @@ import {
   signInFormSchema,
 } from "@/features/auth/form.schema";
 import { resolvePostAuthRedirect } from "@/features/auth/resolve-post-auth-redirect";
-import { AUTH_RESET_PASSWORD, AUTH_SIGN_UP } from "@/lib/routes";
-import { invitationRoute } from "@/lib/routes";
+import {
+  AUTH_RESET_PASSWORD,
+  AUTH_SIGN_UP,
+  invitationRoute,
+} from "@/lib/routes";
 
 export function SignInScreen() {
   const { invitationId } = useLocalSearchParams<{ invitationId?: string }>();
@@ -45,15 +48,23 @@ export function SignInScreen() {
     const result = await authenticate(values, "signin");
 
     if (!result.ok) {
+      if (result.requiresVerification === true) {
+        router.replace({
+          params: { email: values.email },
+          pathname: "./verify-email",
+        });
+        return;
+      }
+
       form.setError("root", { message: result.message });
       return;
     }
 
-    if (invitationId !== undefined) {
-      router.replace(invitationRoute(invitationId));
-    } else {
+    if (invitationId === undefined) {
       const next = await resolvePostAuthRedirect();
       router.replace(next);
+    } else {
+      router.replace(invitationRoute(invitationId));
     }
   });
 

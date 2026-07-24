@@ -1,0 +1,19 @@
+appId: ${APP_ID}
+---
+- launchApp
+- tapOn: "Tasks tab"
+- tapOn: "New task"
+- tapOn: "What needs to happen?"
+- inputText: "Maestro premium task"
+- tapOn: "High"
+- tapOn: "Create task"
+- assertVisible: "Task created"
+- assertVisible: "Maestro premium task"
+- tapOn: "Maestro premium task"
+- assertVisible: "Task details"
+- tapOn: "Edit task"
+- tapOn: "Done"
+- tapOn: "Save changes"
+- assertVisible: "Done"
+- tapOn: "Delete task"
+- tapOn: "Delete task"

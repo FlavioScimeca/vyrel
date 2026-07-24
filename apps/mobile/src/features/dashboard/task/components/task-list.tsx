@@ -8,6 +8,7 @@ import {
   Typography,
   useThemeColor,
 } from "heroui-native";
+import type { ReactNode } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 import { EmptyState, ErrorState } from "@/components/screen-state";
@@ -134,6 +135,19 @@ export function TaskList({
     return <ErrorState message={error} onRetry={onRefresh} />;
   }
 
+  let footer: ReactNode = null;
+  if (isLoadingMore) {
+    footer = (
+      <View className="items-center py-5">
+        <Spinner size="sm" />
+      </View>
+    );
+  } else if (error !== undefined) {
+    footer = <ErrorState message={error} onRetry={onEndReached} />;
+  } else if (hasNextPage) {
+    footer = <View className="h-8" />;
+  }
+
   return (
     <FlatList
       className="flex-1"
@@ -152,19 +166,7 @@ export function TaskList({
           title={hasActiveFilters ? "No matching tasks" : "A clean slate"}
         />
       }
-      ListFooterComponent={
-        isLoadingMore ? (
-          <View className="items-center py-5">
-            <Spinner size="sm" />
-          </View>
-        ) : error === undefined ? (
-          hasNextPage ? (
-            <View className="h-8" />
-          ) : null
-        ) : (
-          <ErrorState message={error} onRetry={onEndReached} />
-        )
-      }
+      ListFooterComponent={footer}
       onEndReached={hasNextPage && !isLoadingMore ? onEndReached : undefined}
       onEndReachedThreshold={0.4}
       refreshControl={

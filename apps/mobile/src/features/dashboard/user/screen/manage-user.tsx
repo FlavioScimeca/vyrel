@@ -63,7 +63,10 @@ function EditProfileSheet({ user }: { user: UserProfileRef }) {
       </BottomSheet.Trigger>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content className="gap-5 pb-safe-offset-5" keyboardBehavior="extend">
+        <BottomSheet.Content
+          className="gap-5 pb-safe-offset-5"
+          keyboardBehavior="extend"
+        >
           <BottomSheet.Close />
           <View className="gap-1 pr-10">
             <BottomSheet.Title>Edit profile</BottomSheet.Title>
@@ -100,8 +103,11 @@ function EditProfileSheet({ user }: { user: UserProfileRef }) {
                     mediaTypes: ["images"],
                     quality: 0.85,
                   });
-                  if (!result.canceled && result.assets[0] !== undefined) {
-                    const asset = result.assets[0];
+                  if (!result.canceled) {
+                    const [asset] = result.assets;
+                    if (asset === undefined) {
+                      return;
+                    }
                     setAvatar({
                       name: asset.fileName ?? "avatar.jpg",
                       type: asset.mimeType ?? "image/jpeg",
@@ -171,7 +177,9 @@ function EditProfileSheet({ user }: { user: UserProfileRef }) {
             size="lg"
           >
             {loading ? <Spinner color="default" size="sm" /> : null}
-            <Button.Label>{loading ? "Saving profile…" : "Save profile"}</Button.Label>
+            <Button.Label>
+              {loading ? "Saving profile…" : "Save profile"}
+            </Button.Label>
           </Button>
         </BottomSheet.Content>
       </BottomSheet.Portal>
@@ -268,7 +276,7 @@ export function ManageUserScreen() {
       </View>
     );
   }
-  if (data?.user == null) {
+  if (data?.user === null || data?.user === undefined) {
     return null;
   }
 

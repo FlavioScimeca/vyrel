@@ -4,6 +4,7 @@ import { getSessionCookieHeaders } from "@/lib/session-cookie-headers";
 export type CreateAccountResult = { ok: true } | { ok: false; message: string };
 
 export type CreateAccountInput = {
+  callbackURL?: string;
   email: string;
   name: string;
   password: string;
@@ -31,6 +32,7 @@ export async function createAccount(
     response = await fetch(`${getApiBaseURL()}/api/users`, {
       body: JSON.stringify({
         email: input.email,
+        callbackURL: input.callbackURL,
         name: input.name,
         password: input.password,
       }),

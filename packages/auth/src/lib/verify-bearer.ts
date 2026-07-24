@@ -64,10 +64,20 @@ export const verifyBearer = (
         return;
       }
 
+      const emailVerified = Boolean(payload.emailVerified);
+      if (!emailVerified && env.NODE_ENV !== "development") {
+        log.warn({
+          event: "auth.verifyBearer.denied",
+          reason: "email_unverified",
+          user: { id: payload.sub },
+        });
+        return;
+      }
+
       return {
         authorized: Boolean(payload.authorized),
         email: String(payload.email ?? ""),
-        emailVerified: Boolean(payload.emailVerified),
+        emailVerified,
         id: payload.sub,
         image: (payload.image as string | null | undefined) ?? null,
         name: String(payload.name ?? ""),

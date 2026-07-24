@@ -192,6 +192,7 @@ input UpdateTask {
   image: File
   labelIds: [String!]
   priority: TaskPriority
+  removeImage: Boolean
   status: TaskStatus
   taskId: String!
   title: String

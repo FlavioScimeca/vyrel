@@ -49,6 +49,14 @@ export function SignUpScreen() {
       return;
     }
 
+    if (result.requiresVerification === true) {
+      router.replace({
+        params: { email: values.email },
+        pathname: "./verify-email",
+      });
+      return;
+    }
+
     const next = await resolvePostAuthRedirect();
     router.replace(next);
   });

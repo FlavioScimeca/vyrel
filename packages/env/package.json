@@ -6,7 +6,8 @@
   "exports": {
     "./server": "./src/server.ts",
     "./web": "./src/web.ts",
-    "./native": "./src/native.ts"
+    "./native": "./src/native.ts",
+    "./extension": "./src/extension.ts"
   },
   "scripts": {
     "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"

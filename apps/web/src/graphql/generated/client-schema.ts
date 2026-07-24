@@ -1,5 +1,6 @@
 import { defineGraphqlClientRegistry } from "@vyrel/graphql-client/cache";
 import type { GraphqlClientSchemaMetadata, ModelOf } from "@vyrel/graphql-client/codegen";
+import type {} from "@vyrel/graphql-client";
 import type { ResultOf } from "gql.tada";
 import type { OrganizationListItemFragment as FragmentDocument0 } from "../../features/dashboard/organization/graphql/fragments";
 import type { TaskListItemFragment as FragmentDocument1 } from "../../features/dashboard/task/graphql/fragments";
@@ -16,7 +17,25 @@ declare module "@vyrel/graphql-client" {
 }
 
 export const graphqlClientSchema = {
-  "enums": {},
+  "enums": {
+    "TaskPriority": [
+      "HIGH",
+      "LOW",
+      "MEDIUM",
+      "NONE"
+    ],
+    "TaskSort": [
+      "DUE_DATE",
+      "NEWEST",
+      "PRIORITY",
+      "RECENTLY_UPDATED"
+    ],
+    "TaskStatus": [
+      "DONE",
+      "IN_PROGRESS",
+      "TODO"
+    ]
+  },
   "mutationType": "Mutation",
   "queryType": "Query",
   "types": {
@@ -28,6 +47,12 @@ export const graphqlClientSchema = {
             "name": "Task"
           }
         },
+        "createTaskLabel": {
+          "type": {
+            "kind": "NAMED",
+            "name": "TaskLabel"
+          }
+        },
         "deleteOrganization": {
           "type": {
             "kind": "NAMED",
@@ -35,6 +60,12 @@ export const graphqlClientSchema = {
           }
         },
         "deleteTask": {
+          "type": {
+            "kind": "NAMED",
+            "name": "String"
+          }
+        },
+        "deleteTaskLabel": {
           "type": {
             "kind": "NAMED",
             "name": "String"
@@ -56,6 +87,12 @@ export const graphqlClientSchema = {
           "type": {
             "kind": "NAMED",
             "name": "Task"
+          }
+        },
+        "updateTaskLabel": {
+          "type": {
+            "kind": "NAMED",
+            "name": "TaskLabel"
           }
         },
         "updateUser": {
@@ -169,6 +206,39 @@ export const graphqlClientSchema = {
             "name": "Task"
           }
         },
+        "taskConnection": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "TaskConnection"
+            }
+          }
+        },
+        "taskLabels": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "LIST",
+              "ofType": {
+                "kind": "NON_NULL",
+                "ofType": {
+                  "kind": "NAMED",
+                  "name": "TaskLabel"
+                }
+              }
+            }
+          }
+        },
+        "taskSummary": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "TaskSummary"
+            }
+          }
+        },
         "tasks": {
           "type": {
             "kind": "NON_NULL",
@@ -195,6 +265,18 @@ export const graphqlClientSchema = {
     },
     "Task": {
       "fields": {
+        "assignee": {
+          "type": {
+            "kind": "NAMED",
+            "name": "User"
+          }
+        },
+        "assigneeId": {
+          "type": {
+            "kind": "NAMED",
+            "name": "String"
+          }
+        },
         "createdAt": {
           "type": {
             "kind": "NON_NULL",
@@ -219,6 +301,12 @@ export const graphqlClientSchema = {
             "name": "String"
           }
         },
+        "dueDate": {
+          "type": {
+            "kind": "NAMED",
+            "name": "LocalDate"
+          }
+        },
         "id": {
           "type": {
             "kind": "NON_NULL",
@@ -240,12 +328,45 @@ export const graphqlClientSchema = {
             "name": "String"
           }
         },
+        "labels": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "LIST",
+              "ofType": {
+                "kind": "NON_NULL",
+                "ofType": {
+                  "kind": "NAMED",
+                  "name": "TaskLabel"
+                }
+              }
+            }
+          }
+        },
         "organizationId": {
           "type": {
             "kind": "NON_NULL",
             "ofType": {
               "kind": "NAMED",
               "name": "String"
+            }
+          }
+        },
+        "priority": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "TaskPriority"
+            }
+          }
+        },
+        "status": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "TaskStatus"
             }
           }
         },
@@ -271,6 +392,157 @@ export const graphqlClientSchema = {
       "keyFields": [
         "id"
       ]
+    },
+    "TaskConnection": {
+      "fields": {
+        "nodes": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "LIST",
+              "ofType": {
+                "kind": "NON_NULL",
+                "ofType": {
+                  "kind": "NAMED",
+                  "name": "Task"
+                }
+              }
+            }
+          }
+        },
+        "pageInfo": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "TaskPageInfo"
+            }
+          }
+        }
+      },
+      "keyFields": []
+    },
+    "TaskLabel": {
+      "fields": {
+        "color": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "String"
+            }
+          }
+        },
+        "createdAt": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "DateTime"
+            }
+          }
+        },
+        "id": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "ID"
+            }
+          }
+        },
+        "name": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "String"
+            }
+          }
+        },
+        "organizationId": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "String"
+            }
+          }
+        }
+      },
+      "keyFields": [
+        "id"
+      ]
+    },
+    "TaskPageInfo": {
+      "fields": {
+        "endCursor": {
+          "type": {
+            "kind": "NAMED",
+            "name": "String"
+          }
+        },
+        "hasNextPage": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Boolean"
+            }
+          }
+        }
+      },
+      "keyFields": []
+    },
+    "TaskSummary": {
+      "fields": {
+        "done": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Int"
+            }
+          }
+        },
+        "inProgress": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Int"
+            }
+          }
+        },
+        "overdue": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Int"
+            }
+          }
+        },
+        "todo": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Int"
+            }
+          }
+        },
+        "total": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "Int"
+            }
+          }
+        }
+      },
+      "keyFields": []
     },
     "User": {
       "fields": {
@@ -358,6 +630,7 @@ export interface GraphqlClientScalars {
   readonly "DateTime": string;
   readonly "File": File;
   readonly "JSON": unknown;
+  readonly "LocalDate": string;
   readonly "URL": string;
 }
 
@@ -366,6 +639,7 @@ export type GraphqlClientModel<TName extends keyof typeof graphqlClientSchema.ty
 export const graphqlClientTypePolicies = {
   "Organization": { keyFields: ["id"] },
   "Task": { keyFields: ["id"] },
+  "TaskLabel": { keyFields: ["id"] },
   "User": { keyFields: ["id"] },
 } as const;
 

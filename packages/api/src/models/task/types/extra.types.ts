@@ -55,7 +55,17 @@ export const tasksByOrganizationSchema = z
   .refine(createdFromBeforeCreatedTo, {
     message: "createdFrom must be on or before createdTo",
     path: ["createdFrom"],
-  });
+  })
+  .refine(
+    (value) =>
+      value.dueFrom === undefined ||
+      value.dueTo === undefined ||
+      value.dueFrom <= value.dueTo,
+    {
+      message: "dueFrom must be on or before dueTo",
+      path: ["dueFrom"],
+    }
+  );
 
 export const taskConnectionSchema = tasksByOrganizationSchema.extend({
   after: z.string().optional(),

@@ -41,7 +41,7 @@ export default function TaskDetailsRoute() {
     );
   }
 
-  if (data?.task == null) {
+  if (data?.task === null || data?.task === undefined) {
     return (
       <View className="flex-1 bg-background">
         <ErrorState

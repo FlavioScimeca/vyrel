@@ -18,7 +18,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.25",
@@ -40,6 +41,7 @@
     "@effect/language-service": "catalog:",
     "@types/react": "catalog:",
     "@vyrel/config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

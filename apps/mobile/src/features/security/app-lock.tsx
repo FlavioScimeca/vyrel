@@ -3,7 +3,7 @@ import {
   hasHardwareAsync,
   isEnrolledAsync,
 } from "expo-local-authentication";
-import { getItemAsync, setItemAsync } from "expo-secure-store";
+import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 import { Button, Typography } from "heroui-native";
 import {
   createContext,
@@ -31,6 +31,7 @@ type AppLockContextValue = {
 };
 
 const APP_LOCK_KEY = "vyrel.app-lock.settings";
+const APP_LOCK_BACKGROUNDED_AT_KEY = "vyrel.app-lock.backgrounded-at";
 const DEFAULT_SETTINGS: AppLockSettings = {
   backgroundTimeoutSeconds: 30,
   enabled: false,
@@ -66,6 +67,7 @@ const authenticate = async (): Promise<boolean> => {
 
 export function AppLockProvider({ children }: { children: ReactNode }) {
   const { data: session } = authClient.useSession();
+  const sessionUserId = session?.user.id;
   const [settings, setSettings] = useState<AppLockSettings>(DEFAULT_SETTINGS);
   const [isAvailable, setIsAvailable] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -83,16 +85,12 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       .then(([hasHardware, isEnrolled, storedSettings]) => {
         setIsAvailable(hasHardware && isEnrolled);
         setSettings(storedSettings);
-        if (
-          storedSettings.enabled &&
-          session !== null &&
-          session !== undefined
-        ) {
+        if (storedSettings.enabled && sessionUserId !== undefined) {
           setIsLocked(true);
         }
       })
       .catch(() => undefined);
-  }, [session]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     if (isLocked) {
@@ -104,14 +102,17 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     const handleAppStateChange = (nextState: AppStateStatus) => {
       if (nextState === "background" || nextState === "inactive") {
         backgroundedAt.current = Date.now();
+        setItemAsync(
+          APP_LOCK_BACKGROUNDED_AT_KEY,
+          String(backgroundedAt.current)
+        ).catch(() => undefined);
         return;
       }
 
       if (
         nextState === "active" &&
         settings.enabled &&
-        session !== null &&
-        session !== undefined &&
+        sessionUserId !== undefined &&
         backgroundedAt.current !== null
       ) {
         const elapsedSeconds = (Date.now() - backgroundedAt.current) / 1000;
@@ -119,6 +120,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
           setIsLocked(true);
         }
         backgroundedAt.current = null;
+        deleteItemAsync(APP_LOCK_BACKGROUNDED_AT_KEY).catch(() => undefined);
       }
     };
 
@@ -127,7 +129,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       handleAppStateChange
     );
     return () => subscription.remove();
-  }, [session, settings]);
+  }, [sessionUserId, settings]);
 
   const updateEnabled = useCallback(
     async (enabled: boolean): Promise<boolean> => {

@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { readFragment } from "gql.tada";
+import { Image } from "expo-image";
+import { type ResultOf, readFragment } from "gql.tada";
 import {
   BottomSheet,
   Button,
@@ -33,10 +34,24 @@ import {
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { authClient } from "@/lib/auth-client";
 import { haptics } from "@/lib/haptics";
+import { useIsOnline } from "@/lib/use-online-status";
 
 type MemberOption = { id: string; name: string };
 type TaskPriority = "HIGH" | "LOW" | "MEDIUM" | "NONE";
 type TaskStatus = "DONE" | "IN_PROGRESS" | "TODO";
+type TaskListItem = ResultOf<typeof TaskListItemFragment>;
+
+type TaskDraft = {
+  assigneeId: string;
+  description: string;
+  dueDate: string;
+  hasNewImage: boolean;
+  labelIds: string[];
+  priority: TaskPriority;
+  removeExistingImage: boolean;
+  status: TaskStatus;
+  title: string;
+};
 
 const formatLocalDate = (date: Date): string => {
   const year = date.getFullYear();
@@ -45,10 +60,53 @@ const formatLocalDate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+function hasTaskChanges(draft: TaskDraft, original: TaskListItem): boolean {
+  const originalLabelIds = original.labels.map((label) => label.id);
+  return (
+    draft.title !== original.title ||
+    draft.description !== (original.description ?? "") ||
+    draft.status !== original.status ||
+    draft.priority !== original.priority ||
+    draft.dueDate !== (original.dueDate ?? "") ||
+    draft.assigneeId !== (original.assignee?.id ?? "") ||
+    draft.hasNewImage ||
+    draft.removeExistingImage ||
+    draft.labelIds.join(",") !== originalLabelIds.join(",")
+  );
+}
+
+function SheetTextField({
+  label,
+  multiline = false,
+  onChangeText,
+  value,
+}: {
+  label: string;
+  multiline?: boolean;
+  onChangeText: (value: string) => void;
+  value: string;
+}) {
+  const awareHandlers = useBottomSheetAwareHandlers();
+  return (
+    <TextField isInvalid={label === "Title" && value.trim().length === 0}>
+      <Label>{label}</Label>
+      <Input
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : 1}
+        onBlur={awareHandlers.onBlur}
+        onChangeText={onChangeText}
+        onFocus={awareHandlers.onFocus}
+        textAlignVertical={multiline ? "top" : "center"}
+        value={value}
+      />
+    </TextField>
+  );
+}
+
 export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
   const item = readFragment(TaskListItemFragment, task);
-  const awareHandlers = useBottomSheetAwareHandlers();
   const { toast } = useToast();
+  const isOnline = useIsOnline();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description ?? "");
@@ -60,6 +118,7 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
     item.labels.map((label) => label.id)
   );
   const [image, setImage] = useState<PickedImage>();
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [updateTask, { loading }] = useMutation(UpdateTaskDocument);
@@ -86,15 +145,20 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
       .catch(() => undefined);
   }, [item.organizationId, open]);
 
-  const isDirty =
-    title !== item.title ||
-    description !== (item.description ?? "") ||
-    status !== item.status ||
-    priority !== item.priority ||
-    dueDate !== (item.dueDate ?? "") ||
-    assigneeId !== (item.assignee?.id ?? "") ||
-    image !== undefined ||
-    labelIds.join(",") !== item.labels.map((label) => label.id).join(",");
+  const isDirty = hasTaskChanges(
+    {
+      assigneeId,
+      description,
+      dueDate,
+      hasNewImage: image !== undefined,
+      labelIds,
+      priority,
+      removeExistingImage,
+      status,
+      title,
+    },
+    item
+  );
 
   const reset = () => {
     setTitle(item.title);
@@ -105,6 +169,7 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
     setAssigneeId(item.assignee?.id ?? "");
     setLabelIds(item.labels.map((label) => label.id));
     setImage(undefined);
+    setRemoveExistingImage(false);
     setOpen(false);
   };
 
@@ -155,27 +220,17 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
                 Update the work, ownership, or timing.
               </BottomSheet.Description>
             </View>
-            <TextField isInvalid={title.trim().length === 0} isRequired>
-              <Label>Title</Label>
-              <Input
-                onBlur={awareHandlers.onBlur}
-                onChangeText={setTitle}
-                onFocus={awareHandlers.onFocus}
-                value={title}
-              />
-            </TextField>
-            <TextField>
-              <Label>Description</Label>
-              <Input
-                multiline
-                numberOfLines={4}
-                onBlur={awareHandlers.onBlur}
-                onChangeText={setDescription}
-                onFocus={awareHandlers.onFocus}
-                textAlignVertical="top"
-                value={description}
-              />
-            </TextField>
+            <SheetTextField
+              label="Title"
+              onChangeText={setTitle}
+              value={title}
+            />
+            <SheetTextField
+              label="Description"
+              multiline
+              onChangeText={setDescription}
+              value={description}
+            />
             <OptionChips
               label="Status"
               onSelect={setStatus}
@@ -279,11 +334,37 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
                 })}
               </View>
             </View>
-            <TaskImagePicker onChange={setImage} value={image} />
+            {!removeExistingImage && (item.imageThumb ?? item.imageFull) ? (
+              <View className="gap-2">
+                <Typography className="font-medium">Current image</Typography>
+                <Image
+                  accessibilityLabel={`Current image for ${item.title}`}
+                  className="h-40 w-full rounded-2xl"
+                  contentFit="cover"
+                  source={{ uri: item.imageThumb ?? item.imageFull ?? "" }}
+                />
+                <Button
+                  onPress={() => setRemoveExistingImage(true)}
+                  size="sm"
+                  variant="danger-soft"
+                >
+                  <Button.Label>Remove current image</Button.Label>
+                </Button>
+              </View>
+            ) : null}
+            <TaskImagePicker
+              onChange={(nextImage) => {
+                setImage(nextImage);
+                if (nextImage !== undefined) {
+                  setRemoveExistingImage(false);
+                }
+              }}
+              value={image}
+            />
           </BottomSheetScrollView>
           <View className="border-separator border-t bg-surface px-5 pt-3 pb-safe-offset-3">
             <Button
-              isDisabled={loading || title.trim().length === 0}
+              isDisabled={!isOnline || loading || title.trim().length === 0}
               onPress={async () => {
                 try {
                   await updateTask({
@@ -302,6 +383,7 @@ export function EditTaskDialog({ task }: { task: TaskListItemRef }) {
                           image === undefined ? undefined : toUploadFile(image),
                         labelIds,
                         priority,
+                        removeImage: removeExistingImage,
                         status,
                         taskId: item.id,
                         title: title.trim(),

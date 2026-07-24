@@ -4,8 +4,8 @@ export const TaskListItemFragment = graphql(`
   fragment TaskListItem on Task {
     assignee {
       id
-      name
       imageThumb
+      name
     }
     createdAt
     description

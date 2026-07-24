@@ -1,4 +1,5 @@
 import { auth } from "@vyrel/auth";
+import { onlyVerifiedSession } from "@vyrel/auth/lib/verified-session";
 import { selectActiveOrganizationId } from "@vyrel/db/utils/membership-selection";
 import { listOrganizationMembershipIdentities } from "@vyrel/db/utils/organization-memberships";
 import { Effect } from "effect";
@@ -15,9 +16,11 @@ export const authPlugin = new Elysia({ name: "auth" })
     Effect.runPromise(
       Effect.gen(function* () {
         const authSession = yield* Effect.tryPromise(() =>
-          auth.api.getSession({
-            headers: request.headers,
-          })
+          auth.api
+            .getSession({
+              headers: request.headers,
+            })
+            .then(onlyVerifiedSession)
         );
 
         if (authSession === null) {
@@ -65,12 +68,26 @@ export const authPlugin = new Elysia({ name: "auth" })
     )
   )
   .get("/api/auth/get-session", ({ request }) =>
-    auth.api.getSession({ headers: request.headers })
+    auth.api.getSession({ headers: request.headers }).then(onlyVerifiedSession)
   )
   .get("/api/auth/organization/list", ({ request, status }) =>
-    auth.api
-      .listOrganizations({ headers: request.headers })
-      .catch(() => status(401))
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const authSession = yield* Effect.tryPromise(() =>
+          auth.api
+            .getSession({ headers: request.headers })
+            .then(onlyVerifiedSession)
+        );
+
+        if (authSession === null) {
+          return status(401);
+        }
+
+        return yield* Effect.tryPromise(() =>
+          auth.api.listOrganizations({ headers: request.headers })
+        );
+      }).pipe(Effect.catchAll(() => Effect.succeed(status(401))))
+    )
   )
   .all("/api/auth/*", ({ request, status }) => {
     if (authMethods.has(request.method)) {

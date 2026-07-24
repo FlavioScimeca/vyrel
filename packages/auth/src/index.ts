@@ -18,11 +18,13 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
+import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 import { OrganizationInvitation } from "./emails/organization-invitation";
 import { ResetPassword } from "./emails/reset-password";
 import { VerifyEmail } from "./emails/verify-email";
 import { sendEmail } from "./lib/email";
+import { getExtensionTrustedOrigins } from "./lib/extension-origins";
 
 const isDevelopment = env.NODE_ENV === "development";
 
@@ -52,6 +54,16 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (sessionRecord) => {
+          const authUser = await db
+            .select({ emailVerified: user.emailVerified })
+            .from(user)
+            .where(eq(user.id, sessionRecord.userId))
+            .get();
+
+          if (!isDevelopment && authUser?.emailVerified !== true) {
+            return false;
+          }
+
           const memberships = await Effect.runPromise(
             listOrganizationMembershipIdentities(sessionRecord.userId)
           );
@@ -71,6 +83,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: !isDevelopment,
     resetPasswordTokenExpiresIn: 60 * 60,
     revokeSessionsOnPasswordReset: false,
     sendResetPassword: ({ user: authUser, url }) => {
@@ -88,6 +101,7 @@ export const auth = betterAuth({
   },
   emailVerification: {
     autoSignInAfterVerification: true,
+    sendOnSignIn: true,
     sendOnSignUp: true,
     sendVerificationEmail: ({ user: authUser, url }) => {
       // Start send without awaiting so Better Auth can return immediately.
@@ -154,6 +168,7 @@ export const auth = betterAuth({
     env.CORS_ORIGIN,
     "vyrel-mobile://",
     "vyrel-mobile://*",
+    ...getExtensionTrustedOrigins(isDevelopment),
     ...(isDevelopment
       ? [
           // Expo Go / Metro (see Better Auth Expo docs)

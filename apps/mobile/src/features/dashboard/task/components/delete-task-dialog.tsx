@@ -12,6 +12,7 @@ import {
 } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { haptics } from "@/lib/haptics";
+import { useIsOnline } from "@/lib/use-online-status";
 
 export function DeleteTaskDialog({
   onDeleted,
@@ -24,6 +25,7 @@ export function DeleteTaskDialog({
   const [open, setOpen] = useState(false);
   const [deleteTask, { loading }] = useMutation(DeleteTaskDocument);
   const { toast } = useToast();
+  const isOnline = useIsOnline();
 
   return (
     <Dialog isOpen={open} onOpenChange={setOpen}>
@@ -46,7 +48,7 @@ export function DeleteTaskDialog({
               <Button.Label>Keep task</Button.Label>
             </Button>
             <Button
-              isDisabled={loading}
+              isDisabled={!isOnline || loading}
               onPress={async () => {
                 try {
                   await deleteTask({

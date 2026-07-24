@@ -25,6 +25,7 @@ const program = Effect.gen(function* () {
   const outputFiles = [
     "../../../apps/web/schema.graphql",
     "../../../apps/mobile/schema.graphql",
+    "../../../apps/extension/schema.graphql",
   ];
   for (const relativeOutputFile of outputFiles) {
     const outputFile = path.resolve(import.meta.dirname, relativeOutputFile);
