@@ -6,6 +6,7 @@ export const UserProfileFragment = graphql(`
     createdAt
     email
     emailVerified
+    id
     imageFull
     imageThumb
     name

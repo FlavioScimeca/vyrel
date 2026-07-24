@@ -1,4 +1,4 @@
-import { resolveActorUserId } from "@vyrel/graphql/context";
+import { requireActorUserId } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
 import { z } from "zod/v4";
 
@@ -26,7 +26,7 @@ builder.mutationFields((t) => ({
         deleteUser(
           userDeleteSchema.parse(args.input),
           context.headers,
-          resolveActorUserId(context)
+          requireActorUserId(context)
         )
       ),
     type: "String",

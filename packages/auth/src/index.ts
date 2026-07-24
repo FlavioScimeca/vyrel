@@ -1,5 +1,7 @@
 import { JWT_EXPIRATION_TIME } from "@vyrel/consts/server";
 import { db } from "@vyrel/db";
+import { selectActiveOrganizationId } from "@vyrel/db/membership-selection";
+import { listOrganizationMembershipIdentities } from "@vyrel/db/organization-memberships";
 import {
   account,
   invitation,
@@ -15,7 +17,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-
+import { ResetPassword } from "./emails/reset-password";
 import { VerifyEmail } from "./emails/verify-email";
 import { sendEmail } from "./lib/email";
 
@@ -41,8 +43,43 @@ export const auth = betterAuth({
       verification,
     },
   }),
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (sessionRecord) => {
+          const memberships = await listOrganizationMembershipIdentities(
+            sessionRecord.userId
+          );
+
+          return {
+            data: {
+              ...sessionRecord,
+              activeOrganizationId: selectActiveOrganizationId(
+                memberships,
+                null
+              ),
+            },
+          };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: false,
+    sendResetPassword: ({ user: authUser, url }) => {
+      // Start send without awaiting so Better Auth can return immediately.
+      sendEmail({
+        react: ResetPassword({
+          resetUrl: url,
+          username: authUser.name,
+        }),
+        subject: "Reset your password",
+        to: authUser.email,
+      }).catch(() => undefined);
+      return Promise.resolve();
+    },
   },
   emailVerification: {
     autoSignInAfterVerification: true,

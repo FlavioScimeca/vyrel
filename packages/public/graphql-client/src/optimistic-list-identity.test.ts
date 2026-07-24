@@ -12,7 +12,7 @@ describe("createOptimisticListIdentity", () => {
     expect(optimisticId).toBe("optimistic-temp");
     expect(identity.getKey(optimisticId)).toBe("optimistic-temp");
 
-    identity.commit("server-1");
+    identity.commit(optimisticId, "server-1");
 
     expect(identity.getKey("server-1")).toBe("optimistic-temp");
     expect(identity.getKey("optimistic-temp")).toBe("optimistic-temp");
@@ -23,7 +23,7 @@ describe("createOptimisticListIdentity", () => {
     const optimisticId = identity.begin("optimistic-custom");
 
     expect(optimisticId).toBe("optimistic-custom");
-    identity.commit("server-2");
+    identity.commit(optimisticId, "server-2");
     expect(identity.getKey("server-2")).toBe("optimistic-custom");
   });
 
@@ -32,23 +32,49 @@ describe("createOptimisticListIdentity", () => {
       createId: () => "optimistic-aborted",
     });
 
-    identity.begin();
-    identity.abandon();
-    identity.commit("server-3");
+    const optimisticId = identity.begin();
+    identity.abandon(optimisticId);
+    identity.commit(optimisticId, "server-3");
 
     expect(identity.getKey("server-3")).toBe("server-3");
   });
 
-  it("matches FIFO order for concurrent pending creates", () => {
+  it("commits concurrent creates by optimistic id when responses finish out of order", () => {
     const identity = createOptimisticListIdentity();
     const first = identity.begin("optimistic-a");
     const second = identity.begin("optimistic-b");
 
-    identity.commit("server-a");
-    identity.commit("server-b");
+    identity.commit(second, "server-b");
+    identity.commit(first, "server-a");
 
     expect(identity.getKey("server-a")).toBe(first);
     expect(identity.getKey("server-b")).toBe(second);
+  });
+
+  it("abandons only the selected concurrent create", () => {
+    const identity = createOptimisticListIdentity();
+    const first = identity.begin("optimistic-a");
+    const second = identity.begin("optimistic-b");
+
+    identity.abandon(first);
+    identity.commit(second, "server-b");
+
+    expect(identity.getKey("server-a")).toBe("server-a");
+    expect(identity.getKey("server-b")).toBe(second);
+  });
+
+  it("ignores unknown or already settled optimistic ids", () => {
+    const identity = createOptimisticListIdentity();
+    const optimisticId = identity.begin("optimistic-a");
+
+    identity.commit("optimistic-unknown", "server-unknown");
+    identity.abandon("optimistic-unknown");
+    identity.commit(optimisticId, "server-a");
+    identity.commit(optimisticId, "server-repeated");
+
+    expect(identity.getKey("server-unknown")).toBe("server-unknown");
+    expect(identity.getKey("server-a")).toBe(optimisticId);
+    expect(identity.getKey("server-repeated")).toBe("server-repeated");
   });
 
   it("detects optimistic ids by prefix", () => {
@@ -62,5 +88,39 @@ describe("createOptimisticListIdentity", () => {
   it("falls back to the entity id when no binding exists", () => {
     const identity = createOptimisticListIdentity();
     expect(identity.getKey("unknown")).toBe("unknown");
+  });
+
+  it("rejects an optimistic id that is already registered", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-duplicate");
+
+    expect(() => identity.begin("optimistic-duplicate")).toThrow(
+      'Optimistic list identity "optimistic-duplicate" is already registered.'
+    );
+  });
+
+  it("releases one completed mapping without changing the others", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-a");
+    identity.begin("optimistic-b");
+    identity.commit("optimistic-a", "server-a");
+    identity.commit("optimistic-b", "server-b");
+
+    identity.release("server-a");
+
+    expect(identity.getKey("server-a")).toBe("server-a");
+    expect(identity.getKey("server-b")).toBe("optimistic-b");
+  });
+
+  it("clears every pending and completed mapping", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-pending");
+    identity.begin("optimistic-complete");
+    identity.commit("optimistic-complete", "server-complete");
+
+    identity.clear();
+
+    expect(identity.getKey("optimistic-pending")).toBe("optimistic-pending");
+    expect(identity.getKey("server-complete")).toBe("server-complete");
   });
 });

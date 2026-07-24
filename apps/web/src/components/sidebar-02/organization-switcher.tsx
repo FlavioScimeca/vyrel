@@ -4,6 +4,7 @@ import { useSuspenseQuery } from "@apollo/client/react";
 import { IconBuilding, IconCheck } from "@tabler/icons-react";
 import { readFragment } from "gql.tada";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
 } from "@/features/dashboard/organization/graphql/fragments";
 import { ListOrganizationsDocument } from "@/features/dashboard/organization/graphql/queries";
 import { authClient } from "@/lib/auth-client";
+import { switchActiveOrganization } from "./switch-active-organization";
 
 const WHITESPACE_PATTERN = /\s+/;
 
@@ -68,12 +70,14 @@ function OrganizationAvatar({
 }
 
 type OrganizationOptionProps = {
+  disabled: boolean;
   isActive: boolean;
   onSelect: (organizationId: string) => void;
   organization: OrganizationListItemRef;
 };
 
 function OrganizationOption({
+  disabled,
   isActive,
   onSelect,
   organization,
@@ -88,6 +92,7 @@ function OrganizationOption({
   return (
     <DropdownMenuItem
       className="cursor-pointer gap-2 p-2"
+      disabled={disabled}
       onClick={handleSelect}
     >
       <OrganizationAvatar
@@ -102,33 +107,52 @@ function OrganizationOption({
   );
 }
 
-export function OrganizationSwitcher() {
+export function OrganizationSwitcher({
+  activeOrganizationId,
+}: {
+  activeOrganizationId: string;
+}) {
   const { isMobile } = useSidebar();
   const router = useRouter();
-  const { data: sessionData } = authClient.useSession();
+  const [switchError, setSwitchError] = useState<string | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
   const { data } = useSuspenseQuery(ListOrganizationsDocument);
 
-  const activeOrganizationId =
-    sessionData?.session.activeOrganizationId ?? null;
   const { organizations } = data;
 
-  const activeOrganizationRef =
-    organizations.find((organization) => {
-      const org = readFragment(OrganizationListItemFragment, organization);
-      return org.id === activeOrganizationId;
-    }) ?? organizations[0];
+  const activeOrganizationRef = organizations.find((organization) => {
+    const org = readFragment(OrganizationListItemFragment, organization);
+    return org.id === activeOrganizationId;
+  });
 
   const activeOrganization = activeOrganizationRef
     ? readFragment(OrganizationListItemFragment, activeOrganizationRef)
     : null;
 
   const handleSelect = async (organizationId: string) => {
-    if (organizationId === activeOrganizationId) {
+    if (organizationId === activeOrganizationId || isSwitching) {
       return;
     }
 
-    await authClient.organization.setActive({ organizationId });
-    router.refresh();
+    setIsSwitching(true);
+    setSwitchError(null);
+
+    try {
+      const errorMessage = await switchActiveOrganization({
+        organizationId,
+        refresh: router.refresh,
+        setActiveOrganization: async (nextOrganizationId) =>
+          await authClient.organization.setActive({
+            organizationId: nextOrganizationId,
+          }),
+      });
+
+      if (errorMessage !== null) {
+        setSwitchError(errorMessage);
+      }
+    } finally {
+      setIsSwitching(false);
+    }
   };
 
   if (!activeOrganization) {
@@ -187,6 +211,11 @@ export function OrganizationSwitcher() {
               <DropdownMenuLabel className="text-muted-foreground text-xs">
                 Organizations
               </DropdownMenuLabel>
+              {switchError ? (
+                <DropdownMenuLabel className="text-destructive text-xs">
+                  {switchError}
+                </DropdownMenuLabel>
+              ) : null}
               {organizations.map((organization) => {
                 const org = readFragment(
                   OrganizationListItemFragment,
@@ -195,6 +224,7 @@ export function OrganizationSwitcher() {
 
                 return (
                   <OrganizationOption
+                    disabled={isSwitching}
                     isActive={org.id === activeOrganization.id}
                     key={org.id}
                     onSelect={handleSelect}

@@ -23,6 +23,7 @@ export const useOptimisticUpdate = useOptimisticUpdateImplementation;
 
 export type { CollectionOverride } from "./collection";
 export type {
+  ControlledMutationFunction,
   MutationDataOf,
   MutationVariablesOf,
   OptimisticCreateCollectionOption,
@@ -41,7 +42,10 @@ export type {
   DataOf,
   FragmentDataOf,
   FragmentTypeRegistry,
+  MutationFieldOption,
   MutationFragmentData,
+  MutationFragmentDataAt,
+  MutationResponseKey,
   UnmaskedDataOf,
   VariablesOf,
 } from "./types";

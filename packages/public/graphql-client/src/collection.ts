@@ -15,6 +15,8 @@ export interface CollectionDescriptor {
   readonly variables: OperationVariables;
 }
 
+export type CollectionPlacement = "append" | "prepend";
+
 type UnknownRecord = Record<string, unknown>;
 
 const isRecord = (value: unknown): value is UnknownRecord =>
@@ -53,7 +55,7 @@ const updateList = (
       const items = data[field];
       if (!Array.isArray(items)) {
         throw new Error(
-          `The collection field "${field}" must be a top-level array in V1.`
+          `The collection field "${field}" must be a top-level array.`
         );
       }
 
@@ -64,23 +66,34 @@ const updateList = (
   );
 };
 
-export const prependToList = (
+export const insertIntoList = (
   cache: ApolloCache,
   collection: CollectionDescriptor,
-  entity: unknown
+  entity: unknown,
+  placement: CollectionPlacement
 ): void => {
   const entityCacheId = identify(cache, entity);
 
   updateList(cache, collection, (items) => {
     if (entityCacheId === undefined) {
-      return [entity, ...items];
+      return placement === "prepend" ? [entity, ...items] : [...items, entity];
     }
 
-    return [
-      entity,
-      ...items.filter((item) => identify(cache, item) !== entityCacheId),
-    ];
+    const remainingItems = items.filter(
+      (item) => identify(cache, item) !== entityCacheId
+    );
+    return placement === "prepend"
+      ? [entity, ...remainingItems]
+      : [...remainingItems, entity];
   });
+};
+
+export const prependToList = (
+  cache: ApolloCache,
+  collection: CollectionDescriptor,
+  entity: unknown
+): void => {
+  insertIntoList(cache, collection, entity, "prepend");
 };
 
 /** Exact list query + variables used for a dual-write / escape-hatch update. */
@@ -139,6 +152,34 @@ export const prependToCollectionVariant = <
       variables: options.variables,
     },
     options.entity
+  );
+};
+
+export const insertIntoCollectionVariant = <
+  TData,
+  TVariables extends OperationVariables,
+>(
+  cache: ApolloCache,
+  options: {
+    readonly entity: unknown;
+    readonly placement: CollectionPlacement;
+    readonly query: TypedDocumentNode<TData, TVariables>;
+    readonly responseKey?: string;
+    readonly variables: TVariables;
+  }
+): void => {
+  const responseKey =
+    options.responseKey ?? getRootResponseKey(options.query, "query");
+
+  insertIntoList(
+    cache,
+    {
+      query: options.query,
+      responseKey,
+      variables: options.variables,
+    },
+    options.entity,
+    options.placement
   );
 };
 

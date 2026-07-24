@@ -7,10 +7,6 @@ const config: CodegenConfig = {
       plugins: [
         {
           "@vyrel/graphql-client/codegen-plugin": {
-            keyFields: {
-              Organization: "slug",
-              User: "email",
-            },
             scalars: {
               DateTime: "string",
               File: "File",

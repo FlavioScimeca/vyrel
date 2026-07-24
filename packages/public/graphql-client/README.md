@@ -52,6 +52,10 @@ prepended automatically.
 The optimistic callback intentionally remains explicit. A generic library
 cannot safely invent a title, price, status or other domain value.
 
+Set `placement: "append"` when new items belong at the end. The default is
+`"prepend"`; the same placement is applied to the canonical list and an
+optional collection override.
+
 ## Update on demand
 
 Each call site chooses only the fields it wants to change.
@@ -94,7 +98,12 @@ const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
 
 The package builds the scalar optimistic response, finds `Task` through the
 generated mutation registry, removes the item from every cached argument variant
-of the canonical `tasks` collection and evicts its normalized entity.
+of the canonical `tasks` collection and evicts its normalized entity. If an
+entity has no canonical list query, delete still evicts the normalized entity
+optimistically and rolls that eviction back on failure. The
+application-provided `id` callback is the sole source of the Apollo cache key;
+the server response remains available to callbacks but is not interpreted as a
+cache identity.
 
 ## Server freshness
 
@@ -116,7 +125,7 @@ the package, without reconstructing query variables in another abstraction.
 
 Apollo replaces the temporary create id with the server id. If the list uses
 `key={entity.id}`, React remounts the row. Opt into a per-feature identity
-tracker (not wired into the create hook):
+tracker and pass it to the create hook:
 
 ```ts
 import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphql-client";
@@ -124,24 +133,21 @@ import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphq
 const taskListIdentity = createOptimisticListIdentity();
 
 const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  identity: taskListIdentity,
   optimistic: ({ input }) => ({ title: input.title }),
-  optimisticId: () => taskListIdentity.begin(),
-  onError: () => {
-    taskListIdentity.abandon();
-  },
-  update: (_cache, result) => {
-    const id = result.data?.createTask?.id;
-    if (id !== undefined && !taskListIdentity.isOptimisticId(id)) {
-      taskListIdentity.commit(id);
-    }
-  },
 });
 
 // In the list:
 // <Row key={taskListIdentity.getKey(task.id)} task={task} />
 ```
 
-Call `commit` from `update` (before React re-renders), not from `onCompleted`.
+The hook binds each temporary id to its own response, so concurrent creates can
+finish in any order without swapping React keys. For manual integrations, call
+`commit(optimisticId, realId)` before React re-renders and
+`abandon(optimisticId)` on failure. Pass the same identity to
+`useOptimisticDelete`; a successful delete calls `release(realId)`, while a
+failed delete preserves the mapping for Apollo's restored row. Call `clear()`
+when the owning feature/list unmounts.
 
 ## Apollo options and escape hatches
 
@@ -159,9 +165,19 @@ useOptimisticCreate(CreateTaskDocument, {
 });
 ```
 
-Pass `field` when a mutation has multiple top-level fields. Cache key fields are
-generated from the plugin configuration (and default to `id`); `keyField` remains
-an override, while `optimisticId` supplies a custom temporary-ID strategy.
+For a mutation with multiple top-level fields, `field` is required and
+autocompletes the valid response keys. `current` and `optimistic` are typed only
+from fragments belonging to that selected field. For a single-root mutation,
+`field` remains optional.
+
+Cache key fields are configured only in codegen and default to `id`, keeping
+Apollo type policies, optimistic identification and eviction aligned.
+`optimisticId` remains the optional temporary-ID strategy.
+
+The mutation function returned by every hook accepts normal per-call Apollo
+options, but does not expose `optimisticResponse`. A per-call `update` follows
+Apollo semantics: it replaces the configured application callback, while the
+package's built-in cache behavior always runs first.
 
 Reads continue to use Apollo's `useQuery`. It is already concise and fully typed;
 wrapping it would add an abstraction without removing meaningful boilerplate.
@@ -192,7 +208,8 @@ const config: CodegenConfig = {
       plugins: [
         {
           "@vyrel/graphql-client/codegen-plugin": {
-            keyFields: { Organization: "slug" },
+            // Use only immutable, single-field identities.
+            keyFields: { Article: "uuid" },
             scalars: { DateTime: "string" },
           },
         },
@@ -209,6 +226,9 @@ exported as `TaskListItemFragment`, and operation `ListTasks` as
 `ListTasksDocument`. Codegen validates these export names. A mutation can spread
 multiple fragments and select multiple CRUD root fields; their result types and
 per-field variable bindings are generated independently.
+Codegen also verifies that each cache key exists in the schema and is selected
+without an alias in canonical collections and create/update responses, including
+through nested fragment spreads.
 
 Register the generated runtime registry once for each Apollo cache. The `/cache`
 entry is isomorphic and does not import the React client bundle:
@@ -243,11 +263,12 @@ generated optimistic registry.
 The generated artifact also exports schema metadata for `ModelOf` extensions.
 The `/codegen` and `/codegen-plugin` exports never enter the React bundle.
 
-## V1 boundaries
+## 0.2 boundaries
 
 - Apollo Client 4 with React 18.2 or React 19 is supported.
-- Mutations may contain multiple CRUD root fields; `field` selects the one used
-  by a hook. Canonical collection queries contain one top-level list field.
+- Mutations may contain multiple CRUD root fields; `field` is then a required,
+  typed response key. Canonical collection queries contain one top-level list
+  field.
 - Canonical collections are top-level arrays. When multiple list queries return
   the same entity, the unique `List<Field>` operation is canonical; unresolved
   ambiguity fails code generation.
@@ -256,5 +277,5 @@ The `/codegen` and `/codegen-plugin` exports never enter the React bundle.
 - The package does not generate operations or replace Apollo or gql.tada.
 
 See [docs/flow-a-z.md](./docs/flow-a-z.md) for the complete server-to-client
-flow and [docs/contract-v1.md](./docs/contract-v1.md) for the architectural
-contract.
+flow and [docs/contract-v1.md](./docs/contract-v1.md) for the current
+architectural contract.

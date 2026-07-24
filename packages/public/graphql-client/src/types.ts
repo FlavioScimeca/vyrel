@@ -31,15 +31,23 @@ type SymbolValues<TValue> = TValue extends object
   ? TValue[SymbolKeys<TValue>]
   : never;
 
-type MutationEntity<TData> = NonNullish<TData[keyof TData]>;
+export type MutationResponseKey<TData> = Extract<keyof TData, string>;
 
-type FragmentNames<TData> = keyof Extract<
-  SymbolValues<MutationEntity<TData>>,
-  object
->;
+type MutationEntityAt<
+  TData,
+  TField extends MutationResponseKey<TData>,
+> = NonNullish<TData[TField]>;
 
-type RegisteredFragmentData<TData> = FragmentTypeRegistry[Extract<
-  FragmentNames<TData>,
+type FragmentNamesAt<
+  TData,
+  TField extends MutationResponseKey<TData>,
+> = keyof Extract<SymbolValues<MutationEntityAt<TData, TField>>, object>;
+
+type RegisteredFragmentDataAt<
+  TData,
+  TField extends MutationResponseKey<TData>,
+> = FragmentTypeRegistry[Extract<
+  FragmentNamesAt<TData, TField>,
   keyof FragmentTypeRegistry
 >];
 
@@ -51,9 +59,33 @@ type UnionToIntersection<TValue> = (
   ? TIntersection
   : never;
 
-export type MutationFragmentData<TData> = UnionToIntersection<
-  RegisteredFragmentData<TData>
+export type MutationFragmentDataAt<
+  TData,
+  TField extends MutationResponseKey<TData>,
+> = UnionToIntersection<RegisteredFragmentDataAt<TData, TField>>;
+
+/**
+ * Fragment data selected by a mutation. Prefer {@link MutationFragmentDataAt}
+ * for multi-root mutations.
+ */
+export type MutationFragmentData<TData> = MutationFragmentDataAt<
+  TData,
+  MutationResponseKey<TData>
 >;
+
+type IsUnion<TValue, TCandidate = TValue> = TValue extends TCandidate
+  ? [TCandidate] extends [TValue]
+    ? false
+    : true
+  : never;
+
+export type MutationFieldOption<
+  TData,
+  TField extends MutationResponseKey<TData>,
+> =
+  IsUnion<MutationResponseKey<TData>> extends true
+    ? { readonly field: TField }
+    : { readonly field?: TField };
 
 export type ArrayFieldKey<TData> = {
   [TKey in keyof TData]-?: NonNullish<TData[TKey]> extends readonly unknown[]

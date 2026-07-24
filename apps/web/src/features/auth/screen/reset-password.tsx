@@ -1,8 +1,21 @@
 "use client";
 
-import { IconCheck, IconChevronLeft } from "@tabler/icons-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  IconAlertTriangle,
+  IconCheck,
+  IconChevronLeft,
+} from "@tabler/icons-react";
 import Link from "next/link";
-import { type ChangeEvent, type SubmitEvent, useState } from "react";
+import { type FormEventHandler, type ReactNode, useState } from "react";
+import {
+  type FieldError as HookFormFieldError,
+  type UseFormRegister,
+  type UseFormRegisterReturn,
+  useForm,
+  useFormState,
+} from "react-hook-form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,80 +25,142 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  type ResetPasswordRequestValues,
+  type ResetPasswordValues,
+  resetPasswordDefaultValues,
+  resetPasswordRequestDefaultValues,
+  resetPasswordRequestSchema,
+  resetPasswordSchema,
+} from "@/features/auth/form.schema";
+import { redirectAfterPasswordReset } from "@/features/auth/redirect-after-password-reset";
+import { authClient } from "@/lib/auth-client";
 
-export function AuthResetPasswordShowcasePage() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [pending, setPending] = useState(false);
+const REQUEST_FORM_ID = "reset-password-request";
+const PASSWORD_FORM_ID = "reset-password";
 
-  const reset = () => {
-    setSent(false);
-    setEmail("");
+type AuthResetPasswordPageProps = {
+  invalidToken: boolean;
+  token: string | null;
+};
+
+export function AuthResetPasswordPage({
+  invalidToken,
+  token,
+}: AuthResetPasswordPageProps) {
+  if (invalidToken) {
+    return (
+      <ResetPasswordShell>
+        <InvalidTokenState />
+      </ResetPasswordShell>
+    );
+  }
+
+  if (token !== null) {
+    return (
+      <ResetPasswordShell>
+        <NewPasswordState token={token} />
+      </ResetPasswordShell>
+    );
+  }
+
+  return <RequestPasswordReset />;
+}
+
+function RequestPasswordReset() {
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const form = useForm<ResetPasswordRequestValues>({
+    defaultValues: resetPasswordRequestDefaultValues,
+    resolver: zodResolver(resetPasswordRequestSchema),
+  });
+  const formState = useFormState({ control: form.control });
+
+  const requestReset = async (email: string) => {
+    const { error } = await authClient.requestPasswordReset({
+      email,
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+
+    if (error !== null) {
+      throw new Error(error.message ?? "Unable to send the reset link.");
+    }
   };
 
-  const onEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setEmail(event.target.value);
-  };
+  const onSubmit = form.handleSubmit(async ({ email }) => {
+    form.clearErrors("root");
+    try {
+      await requestReset(email);
+      setSentEmail(email);
+    } catch (error) {
+      form.setError("root", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to send the reset link.",
+      });
+    }
+  });
 
-  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!email.trim() || pending) {
+  const onResend = async () => {
+    if (sentEmail === null || resending) {
       return;
     }
-    setPending(true);
-    window.setTimeout(() => {
-      setPending(false);
-      setSent(true);
-    }, 700);
+
+    setResending(true);
+    setResendError(null);
+    try {
+      await requestReset(sentEmail);
+    } catch (error) {
+      setResendError(
+        error instanceof Error ? error.message : "Unable to resend the link."
+      );
+    } finally {
+      setResending(false);
+    }
   };
 
-  const onResend = () => {
-    if (!email.trim() || pending) {
-      return;
-    }
-    setPending(true);
-    window.setTimeout(() => {
-      setPending(false);
-    }, 700);
+  const onTryDifferent = () => {
+    setSentEmail(null);
+    setResendError(null);
+    form.reset(resetPasswordRequestDefaultValues);
   };
 
-  const toggleDemoState = () => {
-    if (sent) {
-      reset();
-      return;
-    }
-    setSent(true);
-  };
+  if (sentEmail !== null) {
+    return (
+      <ResetPasswordShell>
+        <SentState
+          email={sentEmail}
+          error={resendError}
+          onResend={onResend}
+          onTryDifferent={onTryDifferent}
+          pending={resending}
+        />
+      </ResetPasswordShell>
+    );
+  }
 
   return (
-    <div className="relative flex min-h-svh items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        {sent ? (
-          <SentState
-            email={email}
-            onResend={onResend}
-            onTryDifferent={reset}
-            pending={pending}
-          />
-        ) : (
-          <RequestState
-            email={email}
-            onEmailChange={onEmailChange}
-            onSubmit={onSubmit}
-            pending={pending}
-          />
-        )}
-      </Card>
+    <ResetPasswordShell>
+      <RequestState
+        emailError={formState.errors.email}
+        onSubmit={onSubmit}
+        pending={formState.isSubmitting}
+        register={form.register}
+        rootError={formState.errors.root?.message}
+      />
+    </ResetPasswordShell>
+  );
+}
 
-      <Button
-        className="absolute right-4 bottom-4 cursor-pointer rounded font-mono text-[10px] text-muted-foreground uppercase tracking-[0.2em] opacity-40 transition-opacity hover:opacity-80 focus-visible:opacity-80 focus-visible:outline-none"
-        onClick={toggleDemoState}
-        type="button"
-      >
-        Demo: toggle state →
-      </Button>
+function ResetPasswordShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-sm">{children}</Card>
     </div>
   );
 }
@@ -101,15 +176,17 @@ function BrandMark() {
 }
 
 function RequestState({
-  email,
-  onEmailChange,
-  pending,
+  emailError,
   onSubmit,
+  pending,
+  register,
+  rootError,
 }: {
-  email: string;
-  onEmailChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  emailError?: HookFormFieldError;
+  onSubmit: FormEventHandler<HTMLFormElement>;
   pending: boolean;
-  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void;
+  register: UseFormRegister<ResetPasswordRequestValues>;
+  rootError?: string;
 }) {
   return (
     <>
@@ -123,47 +200,45 @@ function RequestState({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <Field>
-            <FieldLabel htmlFor="reset-email">Email</FieldLabel>
+        <form
+          className="flex flex-col gap-4"
+          id={REQUEST_FORM_ID}
+          onSubmit={onSubmit}
+        >
+          <Field data-invalid={emailError !== undefined}>
+            <FieldLabel htmlFor={`${REQUEST_FORM_ID}-email`}>Email</FieldLabel>
             <Input
+              aria-invalid={emailError !== undefined}
               autoComplete="email"
-              id="reset-email"
-              onChange={onEmailChange}
+              id={`${REQUEST_FORM_ID}-email`}
               placeholder="you@example.com"
-              required
               type="email"
-              value={email}
+              {...register("email")}
             />
+            {emailError ? <FieldError errors={[emailError]} /> : null}
           </Field>
-
-          <Button className="mt-1" disabled={pending} size="lg" type="submit">
-            Send reset link
+          <FormError message={rootError} />
+          <Button disabled={pending} size="lg" type="submit">
+            {pending ? <Spinner className="size-4" /> : "Send reset link"}
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="justify-center">
-        <Link
-          className="inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
-          href="/auth"
-        >
-          <IconChevronLeft className="size-3.5" />
-          Back to sign in
-        </Link>
-      </CardFooter>
+      <BackToSignIn />
     </>
   );
 }
 
 function SentState({
   email,
+  error,
   onTryDifferent,
   onResend,
   pending,
 }: {
   email: string;
+  error: string | null;
   onTryDifferent: () => void;
-  onResend: () => void;
+  onResend: () => Promise<void>;
   pending: boolean;
 }) {
   return (
@@ -176,14 +251,16 @@ function SentState({
           Check your inbox
         </CardTitle>
         <CardDescription className="wrap-break-word text-sm">
-          We sent a reset link to{" "}
-          <strong className="break-all text-foreground">{email}</strong>
+          If an account exists for{" "}
+          <strong className="break-all text-foreground">{email}</strong>, we've
+          sent it a password reset link.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="text-center text-muted-foreground text-xs">
-          The link expires in 30 minutes. Didn't get it? Check your spam folder.
+          The link expires in 60 minutes. Didn't get it? Check your spam folder.
         </p>
+        <FormError message={error ?? undefined} />
         <div className="flex flex-col gap-2">
           <Button
             disabled={pending}
@@ -192,7 +269,7 @@ function SentState({
             type="button"
             variant="outline"
           >
-            Resend link
+            {pending ? <Spinner className="size-4" /> : "Resend link"}
           </Button>
           <Button
             onClick={onTryDifferent}
@@ -204,14 +281,153 @@ function SentState({
           </Button>
         </div>
       </CardContent>
-      <CardFooter className="justify-center">
-        <Link
-          className="text-muted-foreground text-xs hover:text-foreground"
-          href="/auth"
-        >
-          Back to sign in
-        </Link>
-      </CardFooter>
+      <BackToSignIn />
     </>
+  );
+}
+
+function NewPasswordState({ token }: { token: string }) {
+  const form = useForm<ResetPasswordValues>({
+    defaultValues: resetPasswordDefaultValues,
+    resolver: zodResolver(resetPasswordSchema),
+  });
+  const formState = useFormState({ control: form.control });
+  const onSubmit = form.handleSubmit(async ({ password }) => {
+    form.clearErrors("root");
+    const { error } = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    });
+
+    if (error !== null) {
+      form.setError("root", {
+        message: error.message ?? "Unable to reset your password.",
+      });
+      return;
+    }
+
+    redirectAfterPasswordReset();
+  });
+
+  return (
+    <>
+      <CardHeader className="items-center text-center">
+        <BrandMark />
+        <CardTitle className="mt-4 font-heading text-2xl tracking-tight">
+          Choose a new password
+        </CardTitle>
+        <CardDescription className="text-sm">
+          Use at least 8 characters for your new password.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="flex flex-col gap-4"
+          id={PASSWORD_FORM_ID}
+          onSubmit={onSubmit}
+        >
+          <PasswordField
+            error={formState.errors.password}
+            id={`${PASSWORD_FORM_ID}-password`}
+            label="New password"
+            registration={form.register("password")}
+          />
+          <PasswordField
+            error={formState.errors.confirmPassword}
+            id={`${PASSWORD_FORM_ID}-confirm-password`}
+            label="Confirm password"
+            registration={form.register("confirmPassword")}
+          />
+          <FormError message={formState.errors.root?.message} />
+          <Button disabled={formState.isSubmitting} size="lg" type="submit">
+            {formState.isSubmitting ? (
+              <Spinner className="size-4" />
+            ) : (
+              "Reset password"
+            )}
+          </Button>
+        </form>
+      </CardContent>
+      <BackToSignIn />
+    </>
+  );
+}
+
+function PasswordField({
+  error,
+  id,
+  label,
+  registration,
+}: {
+  error?: HookFormFieldError;
+  id: string;
+  label: string;
+  registration: UseFormRegisterReturn;
+}) {
+  return (
+    <Field data-invalid={error !== undefined}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        aria-invalid={error !== undefined}
+        autoComplete="new-password"
+        id={id}
+        type="password"
+        {...registration}
+      />
+      {error ? <FieldError errors={[error]} /> : null}
+    </Field>
+  );
+}
+
+function InvalidTokenState() {
+  return (
+    <>
+      <CardHeader className="items-center text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-destructive/15">
+          <IconAlertTriangle className="size-6 text-destructive" />
+        </div>
+        <CardTitle className="mt-4 font-heading text-2xl tracking-tight">
+          Reset link expired
+        </CardTitle>
+        <CardDescription className="text-sm">
+          This password reset link is invalid or has expired.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button
+          className="w-full"
+          render={<Link href="/auth/reset-password" />}
+        >
+          Request a new link
+        </Button>
+      </CardContent>
+      <BackToSignIn />
+    </>
+  );
+}
+
+function FormError({ message }: { message?: string }) {
+  if (message === undefined || message.length === 0) {
+    return null;
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  );
+}
+
+function BackToSignIn() {
+  return (
+    <CardFooter className="justify-center">
+      <Link
+        className="inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
+        href="/auth"
+      >
+        <IconChevronLeft className="size-3.5" />
+        Back to sign in
+      </Link>
+    </CardFooter>
   );
 }

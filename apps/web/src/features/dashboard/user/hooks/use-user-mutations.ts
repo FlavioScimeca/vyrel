@@ -26,10 +26,10 @@ export function useUpdateUserMutation(existingUser: OptimisticUserExisting) {
   });
 }
 
-/** Cache key for User is `email`; pass the current email for eviction. */
-export function useDeleteUserMutation(userEmail: string) {
+/** Pass the immutable User cache identity generated from the schema. */
+export function useDeleteUserMutation(userId: string) {
   return useOptimisticDelete(DeleteUserDocument, {
-    id: () => userEmail,
+    id: () => userId,
     onCompleted: () => {
       toast.success("Account deleted");
     },

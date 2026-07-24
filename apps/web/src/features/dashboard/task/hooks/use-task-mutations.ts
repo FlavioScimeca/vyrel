@@ -7,10 +7,9 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
-import { readFragment } from "gql.tada";
+import type { VariablesOf } from "gql.tada";
 import { toast } from "sonner";
-import { useTaskListVariables } from "@/features/dashboard/task/context/task-list-scope";
-import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
+import { useTaskListScope } from "@/features/dashboard/task/context/task-list-scope";
 import {
   CreateTaskDocument,
   DeleteTaskDocument,
@@ -21,11 +20,27 @@ import {
   shouldRemoveFromVisibleFilteredList,
   taskBelongsToVisibleList,
 } from "@/features/dashboard/task/lib/matches-visible-task-list";
-import { taskListIdentity } from "@/features/dashboard/task/lib/task-list-identity";
 import { ListTasksDocument } from "../graphql/queries";
 
+type UpdateTaskVariables = VariablesOf<typeof UpdateTaskDocument>;
+type OptimisticTaskPatch = Pick<
+  OptimisticTaskExisting,
+  "description" | "title"
+>;
+
+const buildOptimisticTaskPatch = (
+  variables: UpdateTaskVariables,
+  existingTask: OptimisticTaskExisting
+): OptimisticTaskPatch => ({
+  description:
+    variables.input.description === undefined
+      ? existingTask.description
+      : (variables.input.description ?? null),
+  title: variables.input.title ?? existingTask.title,
+});
+
 export function useCreateTaskMutation() {
-  const listVariables = useTaskListVariables();
+  const { identity, listVariables } = useTaskListScope();
 
   return useOptimisticCreate(CreateTaskDocument, {
     collection: ({ input }) =>
@@ -40,11 +55,11 @@ export function useCreateTaskMutation() {
           listVariables
         ),
       }),
+    identity,
     onCompleted: () => {
       toast.success("Task created");
     },
     onError: (error) => {
-      taskListIdentity.abandon();
       toast.error(error.message || "Unable to create task.");
     },
     optimistic: (variables) => ({
@@ -53,24 +68,11 @@ export function useCreateTaskMutation() {
       imageThumb: null,
       title: variables.input.title,
     }),
-    optimisticId: () => taskListIdentity.begin(),
-    // Bind before React re-renders from the cache write (onCompleted is too late).
-    update: (_cache, result) => {
-      const created = result.data?.createTask;
-      if (created === undefined || created === null) {
-        return;
-      }
-
-      const { id } = readFragment(TaskListItemFragment, created);
-      if (!taskListIdentity.isOptimisticId(id)) {
-        taskListIdentity.commit(id);
-      }
-    },
   });
 }
 
 export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
-  const listVariables = useTaskListVariables();
+  const { listVariables } = useTaskListScope();
 
   return useOptimisticUpdate(UpdateTaskDocument, {
     current: existingTask,
@@ -80,25 +82,14 @@ export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
     onError: (error) => {
       toast.error(error.message || "Unable to update task.");
     },
-    optimistic: (variables) => ({
-      description:
-        variables.input.description === undefined
-          ? existingTask.description
-          : (variables.input.description ?? null),
-      title: variables.input.title ?? existingTask.title,
-    }),
+    optimistic: (variables) =>
+      buildOptimisticTaskPatch(variables, existingTask),
     update: (cache, _result, { variables }) => {
       if (variables === undefined) {
         return;
       }
 
-      const nextTask = {
-        description:
-          variables.input.description === undefined
-            ? existingTask.description
-            : (variables.input.description ?? null),
-        title: variables.input.title ?? existingTask.title,
-      };
+      const nextTask = buildOptimisticTaskPatch(variables, existingTask);
 
       if (!shouldRemoveFromVisibleFilteredList(nextTask, listVariables)) {
         return;
@@ -114,8 +105,11 @@ export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
 }
 
 export function useDeleteTaskMutation() {
+  const { identity } = useTaskListScope();
+
   return useOptimisticDelete(DeleteTaskDocument, {
     id: (variables) => variables.input.taskId,
+    identity,
     onCompleted: () => {
       toast.success("Task deleted");
     },

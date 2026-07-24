@@ -5,14 +5,10 @@ import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import { type TaskTypeDelete, taskDeleteSchema } from "../types/base.types";
-import { assertTaskAccess, resolveActorUserId } from "../utils/auth-api";
+import { assertTaskAccess } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 
-export const deleteTask = (
-  input: TaskTypeDelete,
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const deleteTask = (input: TaskTypeDelete, actorUserId: string) =>
   Effect.gen(function* () {
     const safeValues = taskDeleteSchema.safeParse(input);
     if (!safeValues.success) {
@@ -23,8 +19,7 @@ export const deleteTask = (
     }
 
     const { taskId } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
-    const record = yield* assertTaskAccess(taskId, userId);
+    const record = yield* assertTaskAccess(taskId, actorUserId);
 
     const objectKeys = [record.imageFull, record.imageThumb].filter(
       (key): key is string => key !== null && key.length > 0

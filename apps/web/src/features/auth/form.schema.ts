@@ -22,6 +22,36 @@ export const signUpFormSchema = userCreateSchema
 export type SignInFormValues = z.infer<typeof signInFormSchema>;
 export type SignUpFormValues = z.infer<typeof signUpFormSchema>;
 
+export const resetPasswordRequestSchema = signInFormSchema.pick({
+  email: true,
+});
+
+export const resetPasswordSchema = z
+  .object({
+    confirmPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordRequestValues = z.infer<
+  typeof resetPasswordRequestSchema
+>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
+export const resetPasswordRequestDefaultValues: ResetPasswordRequestValues = {
+  email: "",
+};
+
+export const resetPasswordDefaultValues: ResetPasswordValues = {
+  confirmPassword: "",
+  password: "",
+};
+
 export const signInDefaultValues: SignInFormValues = {
   email: "",
   password: "",

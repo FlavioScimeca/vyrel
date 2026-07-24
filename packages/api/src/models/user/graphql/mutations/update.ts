@@ -1,4 +1,4 @@
-import { resolveActorUserId } from "@vyrel/graphql/context";
+import { requireActorUserId } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
 import { Effect } from "effect";
 
@@ -20,11 +20,12 @@ builder.mutationFields((t) => ({
     resolve: (_root, args, context) =>
       runUserGraphqlEffect(
         Effect.sync(() => ({
+          actorUserId: requireActorUserId(context),
           headers: context.headers,
           input: userUpdateSchema.parse(args.input),
         })).pipe(
-          Effect.flatMap(({ input, headers }) =>
-            updateUser(input, headers, resolveActorUserId(context))
+          Effect.flatMap(({ actorUserId, headers, input }) =>
+            updateUser(input, headers, actorUserId)
           )
         )
       ),

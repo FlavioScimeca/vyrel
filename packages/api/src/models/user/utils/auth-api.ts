@@ -1,4 +1,3 @@
-import { auth } from "@vyrel/auth";
 import { db } from "@vyrel/db";
 import type { user } from "@vyrel/db/schema";
 import { user as userTable } from "@vyrel/db/schema";
@@ -69,46 +68,19 @@ export function mapAuthApiFailure(
   });
 }
 
-/** Resolves the authenticated user id from the Better Auth session cookie. */
-export const fetchSessionUserId = (
-  headers: Headers
-): Effect.Effect<string | null> =>
+export const fetchCurrentUser = (actorUserId: string) =>
   Effect.tryPromise({
     catch: (cause) =>
       new UserRepositoryError({
         cause,
-        message: "Unable to load session.",
+        message: "Unable to load current user.",
       }),
-    try: () => auth.api.getSession({ headers }),
-  }).pipe(
-    Effect.map((session) => session?.user?.id ?? null),
-    Effect.catchTag("UserRepositoryError", () => Effect.succeed(null))
-  );
+    try: () =>
+      db.select().from(userTable).where(eq(userTable.id, actorUserId)).get(),
+  }).pipe(Effect.map((record) => record ?? null));
 
-/** Resolves the authenticated user from session cookie or Bearer JWT fallback. */
-export const fetchCurrentUser = (headers: Headers, jwtUserId?: string) =>
-  Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
-    if (userId === null) {
-      return null;
-    }
-
-    const record = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new UserRepositoryError({
-          cause,
-          message: "Unable to load current user.",
-        }),
-      try: () =>
-        db.select().from(userTable).where(eq(userTable.id, userId)).get(),
-    });
-
-    return record ?? null;
-  });
-
-export const fetchUser = (id: string, headers: Headers, jwtUserId?: string) =>
-  fetchCurrentUser(headers, jwtUserId).pipe(
+export const fetchUser = (id: string, actorUserId: string) =>
+  fetchCurrentUser(actorUserId).pipe(
     Effect.flatMap((currentUser) => {
       if (currentUser === null) {
         return Effect.succeed(null);

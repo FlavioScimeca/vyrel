@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
-import { type ReactNode, useTransition } from "react";
+import { type ReactNode, useMemo, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import { TaskListScopeProvider } from "@/features/dashboard/task/context/task-li
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useTaskFilters } from "@/features/dashboard/task/hooks/use-task-filters";
-import { authClient } from "@/lib/auth-client";
 
 type TasksScreenProps = {
-  initialOrganizationId: string | null;
+  organizationId: string;
 };
 
 function TasksListErrorFallback({
@@ -88,8 +87,17 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setSearch,
   } = useTaskFilters();
   const [, startTransition] = useTransition();
+  const { createdFrom, createdTo, search: querySearch } = queryVariables;
 
-  const listVariables = { organizationId, ...queryVariables };
+  const listVariables = useMemo(
+    () => ({
+      ...(createdFrom === undefined ? {} : { createdFrom }),
+      ...(createdTo === undefined ? {} : { createdTo }),
+      organizationId,
+      ...(querySearch === undefined ? {} : { search: querySearch }),
+    }),
+    [createdFrom, createdTo, organizationId, querySearch]
+  );
 
   const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
     fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",
@@ -135,27 +143,6 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   );
 }
 
-export default function TasksScreen({
-  initialOrganizationId,
-}: TasksScreenProps) {
-  const { data: sessionData } = authClient.useSession();
-  const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
-  // Prefer live session org (e.g. after sidebar switch); fall back to server prop.
-  const organizationId = sessionOrgId ?? initialOrganizationId;
-  const hasOrganization = organizationId !== null && organizationId.length > 0;
-
-  if (hasOrganization) {
-    return <TasksWithOrganization organizationId={organizationId} />;
-  }
-
-  return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <TasksHeader />
-      <Alert>
-        <AlertDescription>
-          Select an active organization to view and create tasks.
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
+export default function TasksScreen({ organizationId }: TasksScreenProps) {
+  return <TasksWithOrganization organizationId={organizationId} />;
 }

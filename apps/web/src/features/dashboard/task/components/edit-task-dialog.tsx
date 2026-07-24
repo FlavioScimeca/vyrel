@@ -48,15 +48,7 @@ type EditTaskDialogProps = {
 export function EditTaskDialog({ task }: EditTaskDialogProps) {
   const item = readFragment(TaskListItemFragment, task);
   const [open, setOpen] = useState(false);
-  const [updateTask] = useUpdateTaskMutation({
-    createdAt: item.createdAt,
-    description: item.description,
-    id: item.id,
-    imageFull: item.imageFull,
-    imageThumb: item.imageThumb,
-    title: item.title,
-    updatedAt: item.updatedAt,
-  });
+  const [updateTask] = useUpdateTaskMutation(item);
 
   const form = useForm<EditTaskFormValues>({
     defaultValues: {

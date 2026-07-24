@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   defaultRouteForOrganization,
+  isBackendApiRoute,
   isOnboardingRoute,
   isPublicRoute,
   shouldBypassAuthGuard,
@@ -16,12 +17,19 @@ describe("proxy-routes", () => {
     expect(isPublicRoute("/dashboard")).toBe(false);
   });
 
-  it("bypasses auth guard for auth API routes", () => {
+  it("bypasses auth guard for backend API routes", () => {
     expect(shouldBypassAuthGuard("/api/auth/sign-in/email")).toBe(true);
     expect(shouldBypassAuthGuard("/api/auth/get-session")).toBe(true);
+    expect(shouldBypassAuthGuard("/api/graphql")).toBe(true);
     expect(shouldBypassAuthGuard("/api/users")).toBe(true);
     expect(shouldBypassAuthGuard("/api/organizations")).toBe(true);
     expect(shouldBypassAuthGuard("/dashboard")).toBe(false);
+  });
+
+  it("matches only the exact GraphQL endpoint", () => {
+    expect(isBackendApiRoute("/api/graphql")).toBe(true);
+    expect(isBackendApiRoute("/api/graphql/extra")).toBe(false);
+    expect(isBackendApiRoute("/api/graphql.json")).toBe(false);
   });
 
   it("detects onboarding route", () => {

@@ -3,7 +3,7 @@ export {
   createGraphqlContext,
   type GraphQLContext,
   type GraphQLSession,
-  resolveActorUserId,
+  requireActorUserId,
 } from "./context";
 export { graphqlYogaServer } from "./handler";
 export type { PothosContext } from "./pothos";
