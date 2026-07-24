@@ -19,6 +19,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { Effect } from "effect";
+import { OrganizationInvitation } from "./emails/organization-invitation";
 import { ResetPassword } from "./emails/reset-password";
 import { VerifyEmail } from "./emails/verify-email";
 import { sendEmail } from "./lib/email";
@@ -104,6 +105,22 @@ export const auth = betterAuth({
   plugins: [
     expo(),
     organizationPlugin({
+      invitationExpiresIn: 60 * 60 * 48,
+      requireEmailVerificationOnInvitation: true,
+      sendInvitationEmail: (data) => {
+        const invitationUrl = `vyrel-mobile://invite/${data.id}`;
+        sendEmail({
+          react: OrganizationInvitation({
+            invitationUrl,
+            inviterName: data.inviter.user.name,
+            organizationName: data.organization.name,
+            role: data.role,
+          }),
+          subject: `Join ${data.organization.name} on Vyrel`,
+          to: data.email,
+        }).catch(() => undefined);
+        return Promise.resolve();
+      },
       schema: {
         organization: {
           additionalFields: {
@@ -152,6 +169,9 @@ export const auth = betterAuth({
       : []),
   ],
   user: {
+    deleteUser: {
+      enabled: true,
+    },
     additionalFields: {
       imageAssetId: {
         required: false,

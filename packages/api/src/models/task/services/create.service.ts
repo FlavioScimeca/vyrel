@@ -1,11 +1,12 @@
 import { db } from "@vyrel/db";
-import { task } from "@vyrel/db/schema";
+import { task, taskLabelAssignment } from "@vyrel/db/schema";
 import { Effect } from "effect";
 
 import { type TaskTypeCreate, taskCreateSchema } from "../types/base.types";
 import { assertOrgMembership } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
+import { validateTaskRelations } from "./task-relations.service";
 
 export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
   Effect.gen(function* () {
@@ -17,8 +18,23 @@ export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
       });
     }
 
-    const { description, image, organizationId, title } = safeValues.data;
+    const {
+      assigneeId,
+      description,
+      dueDate,
+      image,
+      labelIds,
+      organizationId,
+      priority,
+      status,
+      title,
+    } = safeValues.data;
     yield* assertOrgMembership(organizationId, actorUserId);
+    const taskRelations = yield* validateTaskRelations(
+      organizationId,
+      assigneeId,
+      labelIds
+    );
 
     const taskId = yield* Effect.sync(() => Bun.randomUUIDv7());
 
@@ -39,18 +55,35 @@ export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
           message: "Unable to create task.",
         }),
       try: () =>
-        db
-          .insert(task)
-          .values({
-            createdById: actorUserId,
-            description: description ?? null,
-            id: taskId,
-            organizationId,
-            title,
-            ...imageFields,
-          })
-          .returning()
-          .get(),
+        db.transaction(async (transaction) => {
+          const createdTask = await transaction
+            .insert(task)
+            .values({
+              assigneeId: taskRelations.assigneeId,
+              createdById: actorUserId,
+              description: description ?? null,
+              dueDate: dueDate ?? null,
+              id: taskId,
+              organizationId,
+              priority: priority ?? "NONE",
+              status: status ?? "TODO",
+              title,
+              ...imageFields,
+            })
+            .returning()
+            .get();
+
+          if (taskRelations.labelIds.length > 0) {
+            await transaction.insert(taskLabelAssignment).values(
+              taskRelations.labelIds.map((labelId) => ({
+                labelId,
+                taskId,
+              }))
+            );
+          }
+
+          return createdTask;
+        }),
     });
 
     if (record === undefined) {

@@ -22,11 +22,14 @@ const program = Effect.gen(function* () {
   const { schema } = yield* Effect.promise(() => import("../src/schema"));
   const sdl = printSchema(lexicographicSortSchema(schema));
 
-  const outputFile = path.resolve(
-    import.meta.dirname,
-    "../../../apps/web/schema.graphql"
-  );
-  yield* fs.writeFileString(outputFile, sdl);
+  const outputFiles = [
+    "../../../apps/web/schema.graphql",
+    "../../../apps/mobile/schema.graphql",
+  ];
+  for (const relativeOutputFile of outputFiles) {
+    const outputFile = path.resolve(import.meta.dirname, relativeOutputFile);
+    yield* fs.writeFileString(outputFile, sdl);
+  }
 
   log.info("gen-schema", "✅ 🔨 GraphQL schema generated successfully");
 });

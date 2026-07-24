@@ -8,6 +8,7 @@ export const graphql = initGraphQLTada<{
     DateTime: string;
     File: unknown;
     JSON: unknown;
+    LocalDate: string;
     URL: string;
   };
 }>();

@@ -2,17 +2,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import {
   Button,
+  Description,
   FieldError,
   Input,
   Label,
   Spinner,
-  Surface,
   TextField,
-  Typography,
 } from "heroui-native";
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { type TextInput, View } from "react-native";
 
+import {
+  AuthScaffold,
+  FormAlert,
+} from "@/features/auth/components/auth-scaffold";
 import { createOrganization } from "@/features/auth/create-organization";
 import {
   type OnboardingFormValues,
@@ -27,105 +31,90 @@ export function OnboardingScreen() {
     defaultValues: onboardingDefaultValues,
     resolver: zodResolver(onboardingFormSchema),
   });
-
+  const slugRef = useRef<TextInput>(null);
   const pending = form.formState.isSubmitting;
   const slugIsDirty = form.formState.dirtyFields.slug === true;
-  const rootError = form.formState.errors.root?.message;
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
-
-    const result = await createOrganization({
-      name: values.name,
-      slug: values.slug,
-    });
+    const result = await createOrganization(values);
 
     if (!result.ok) {
       form.setError("root", { message: result.message });
       return;
     }
-
     router.replace(APP_HOME);
   });
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1 bg-background"
+    <AuthScaffold
+      description="Give your team a home. You can invite people and change these details later."
+      title="Create a workspace"
     >
-      <View className="flex-1 justify-center px-6">
-        <Surface className="gap-6 rounded-3xl p-6" variant="secondary">
-          <View className="gap-2">
-            <Typography.Heading className="text-2xl">
-              Create your organization
-            </Typography.Heading>
-            <Typography.Paragraph>
-              You need a workspace before using the dashboard.
-            </Typography.Paragraph>
-          </View>
+      <View className="gap-5">
+        <Controller
+          control={form.control}
+          name="name"
+          render={({ field, fieldState }) => (
+            <TextField isInvalid={fieldState.error !== undefined} isRequired>
+              <Label>Workspace name</Label>
+              <Input
+                autoComplete="organization"
+                onBlur={field.onBlur}
+                onChangeText={(value) => {
+                  field.onChange(value);
+                  if (!slugIsDirty) {
+                    form.setValue("slug", slugifyOrganizationName(value), {
+                      shouldValidate: true,
+                    });
+                  }
+                }}
+                onSubmitEditing={() => slugRef.current?.focus()}
+                placeholder="Acme Studio"
+                returnKeyType="next"
+                submitBehavior="submit"
+                value={field.value}
+              />
+              <FieldError>{fieldState.error?.message}</FieldError>
+            </TextField>
+          )}
+        />
 
-          <View className="gap-4">
-            <Controller
-              control={form.control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Organization name</Label>
-                  <Input
-                    onBlur={field.onBlur}
-                    onChangeText={(value) => {
-                      field.onChange(value);
-                      if (!slugIsDirty) {
-                        form.setValue("slug", slugifyOrganizationName(value), {
-                          shouldValidate: true,
-                        });
-                      }
-                    }}
-                    placeholder="Acme Inc"
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
-            />
+        <Controller
+          control={form.control}
+          name="slug"
+          render={({ field, fieldState }) => (
+            <TextField isInvalid={fieldState.error !== undefined} isRequired>
+              <Label>Workspace URL</Label>
+              <Input
+                autoCapitalize="none"
+                autoCorrect={false}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                onSubmitEditing={onSubmit}
+                placeholder="acme-studio"
+                ref={slugRef}
+                returnKeyType="done"
+                submitBehavior="blurAndSubmit"
+                value={field.value}
+              />
+              <Description>
+                vyrel.app/{field.value || "your-workspace"}
+              </Description>
+              <FieldError>{fieldState.error?.message}</FieldError>
+            </TextField>
+          )}
+        />
 
-            <Controller
-              control={form.control}
-              name="slug"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Slug</Label>
-                  <Input
-                    autoCapitalize="none"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="acme-inc"
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
-            />
+        <FormAlert message={form.formState.errors.root?.message} />
 
-            {rootError === undefined ? null : (
-              <Typography className="text-danger text-sm">
-                {rootError}
-              </Typography>
-            )}
-
-            <Button isDisabled={pending} onPress={onSubmit}>
-              {pending ? <Spinner color="default" size="sm" /> : null}
-              <Button.Label>Continue</Button.Label>
-            </Button>
-          </View>
-        </Surface>
+        <Button isDisabled={pending} onPress={onSubmit} size="lg">
+          {pending ? <Spinner color="default" size="sm" /> : null}
+          <Button.Label>
+            {pending ? "Creating workspace…" : "Create workspace"}
+          </Button.Label>
+        </Button>
       </View>
-    </KeyboardAvoidingView>
+    </AuthScaffold>
   );
 }

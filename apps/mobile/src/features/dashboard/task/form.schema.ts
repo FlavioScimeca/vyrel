@@ -1,7 +1,12 @@
 import z from "zod/v4";
 
 export const createTaskFormSchema = z.object({
+  assigneeId: z.string().optional(),
   description: z.string().trim().optional(),
+  dueDate: z.string().optional(),
+  labelIds: z.array(z.string()),
+  priority: z.enum(["NONE", "LOW", "MEDIUM", "HIGH"]),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
   title: z.string().trim().min(1, "Title is required"),
 });
 

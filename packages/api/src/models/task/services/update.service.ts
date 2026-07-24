@@ -1,5 +1,5 @@
 import { db } from "@vyrel/db";
-import { task } from "@vyrel/db/schema";
+import { task, taskLabelAssignment } from "@vyrel/db/schema";
 import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
@@ -7,6 +7,7 @@ import { type TaskTypeUpdate, taskUpdateSchema } from "../types/base.types";
 import { assertTaskAccess } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
+import { validateTaskRelations } from "./task-relations.service";
 
 export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
   Effect.gen(function* () {
@@ -18,16 +19,35 @@ export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
       });
     }
 
-    const { description, image, taskId, title } = safeValues.data;
-    yield* assertTaskAccess(taskId, actorUserId);
+    const {
+      assigneeId,
+      description,
+      dueDate,
+      image,
+      labelIds,
+      priority,
+      status,
+      taskId,
+      title,
+    } = safeValues.data;
+    const existingTask = yield* assertTaskAccess(taskId, actorUserId);
+    const taskRelations = yield* validateTaskRelations(
+      existingTask.organizationId,
+      assigneeId === undefined ? existingTask.assigneeId : assigneeId,
+      labelIds
+    );
 
     const updates: {
       description?: string | null;
+      assigneeId?: string | null;
+      dueDate?: string | null;
       title?: string;
       imageAssetId?: string;
       imageFull?: string;
       imagePlaceholder?: string;
       imageThumb?: string;
+      priority?: "NONE" | "LOW" | "MEDIUM" | "HIGH";
+      status?: "TODO" | "IN_PROGRESS" | "DONE";
     } = {};
 
     if (title !== undefined) {
@@ -38,12 +58,28 @@ export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
       updates.description = description.length > 0 ? description : null;
     }
 
+    if (assigneeId !== undefined) {
+      updates.assigneeId = taskRelations.assigneeId;
+    }
+
+    if (dueDate !== undefined) {
+      updates.dueDate = dueDate;
+    }
+
+    if (priority !== undefined) {
+      updates.priority = priority;
+    }
+
+    if (status !== undefined) {
+      updates.status = status;
+    }
+
     if (image !== undefined) {
       const imageFields = yield* uploadTaskImage(taskId, image);
       Object.assign(updates, imageFields);
     }
 
-    if (Object.keys(updates).length > 0) {
+    if (Object.keys(updates).length > 0 || labelIds !== undefined) {
       yield* Effect.tryPromise({
         catch: (cause) =>
           new TaskRepositoryError({
@@ -51,7 +87,31 @@ export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
             message: "Unable to update task.",
           }),
         try: () =>
-          db.update(task).set(updates).where(eq(task.id, taskId)).run(),
+          db.transaction(async (transaction) => {
+            if (Object.keys(updates).length > 0) {
+              await transaction
+                .update(task)
+                .set(updates)
+                .where(eq(task.id, taskId))
+                .run();
+            }
+
+            if (labelIds !== undefined) {
+              await transaction
+                .delete(taskLabelAssignment)
+                .where(eq(taskLabelAssignment.taskId, taskId))
+                .run();
+
+              if (taskRelations.labelIds.length > 0) {
+                await transaction.insert(taskLabelAssignment).values(
+                  taskRelations.labelIds.map((labelId) => ({
+                    labelId,
+                    taskId,
+                  }))
+                );
+              }
+            }
+          }),
       });
     }
 

@@ -8,6 +8,9 @@
       {
         "name": "@effect/language-service"
       }
-    ]
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
   }
 }

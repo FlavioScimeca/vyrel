@@ -1,22 +1,51 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
-import "./App.css";
+import { Button } from "@/src/components/ui/button";
+import { captureActiveTabAndOpenViewer } from "@/src/lib/capture-visible-tab";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const increment = useCallback(() => setCount((value) => value + 1), []);
+  async function handleCapture() {
+    setIsCapturing(true);
+    setError(null);
+
+    try {
+      await captureActiveTabAndOpenViewer();
+      window.close();
+    } catch (captureError) {
+      setError(
+        captureError instanceof Error
+          ? captureError.message
+          : "Failed to capture page"
+      );
+      setIsCapturing(false);
+    }
+  }
 
   return (
-    <main>
-      <p className="eyebrow">Better Fullstack Extension</p>
-      <h1>WXT + React</h1>
-      <button onClick={increment} type="button">
-        Count is {count}
-      </button>
-      <p className="hint">
-        Edit the popup, background, or content entrypoints to get started.
-      </p>
+    <main className="w-72 space-y-3 bg-background p-4 text-foreground">
+      <div className="space-y-1">
+        <p className="text-muted-foreground text-xs">Vyrel Extension</p>
+        <h1 className="font-medium text-base">Page capture</h1>
+        <p className="text-muted-foreground text-xs">
+          Capture the visible tab and open it in a new viewer tab.
+        </p>
+      </div>
+
+      <Button
+        className="w-full"
+        disabled={isCapturing}
+        onClick={() => {
+          handleCapture().catch(() => undefined);
+        }}
+        type="button"
+      >
+        {isCapturing ? "Capturing…" : "Screenshot page"}
+      </Button>
+
+      {error ? <p className="text-destructive text-xs">{error}</p> : null}
     </main>
   );
 }

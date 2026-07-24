@@ -1,7 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "vyrel-mobile",
+  name: "Vyrel",
   slug: "vyrel-mobile",
   version: "1.0.0",
   orientation: "portrait",
@@ -11,6 +11,10 @@ const config: ExpoConfig = {
   ios: {
     icon: "./assets/expo.icon",
     bundleIdentifier: "com.flavio-scimeca.vyrel-mobile",
+    infoPlist: {
+      NSFaceIDUsageDescription:
+        "Use Face ID to unlock Vyrel and protect your workspace.",
+    },
   },
   android: {
     adaptiveIcon: {
@@ -21,6 +25,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
     package: "com.flavio_scimeca.vyrel_mobile",
+    softwareKeyboardLayoutMode: "pan",
   },
   web: {
     output: "static",
@@ -29,6 +34,7 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     "expo-secure-store",
+    "expo-local-authentication",
     [
       "expo-image-picker",
       {

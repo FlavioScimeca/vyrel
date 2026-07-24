@@ -6,14 +6,20 @@ import {
   Input,
   Label,
   Spinner,
-  Surface,
   TextField,
   Typography,
 } from "heroui-native";
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import { type TextInput, View } from "react-native";
 
 import { authenticate } from "@/features/auth/authenticate";
+import {
+  AuthScaffold,
+  AuthTextLink,
+  FormAlert,
+} from "@/features/auth/components/auth-scaffold";
+import { PasswordField } from "@/features/auth/components/password-field";
 import {
   type SignUpFormValues,
   signUpDefaultValues,
@@ -27,6 +33,9 @@ export function SignUpScreen() {
     defaultValues: signUpDefaultValues,
     resolver: zodResolver(signUpFormSchema),
   });
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const pending = form.formState.isSubmitting;
   const rootError = form.formState.errors.root?.message;
@@ -45,132 +54,112 @@ export function SignUpScreen() {
   });
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1 bg-background"
+    <AuthScaffold
+      description="Create your account, then set up a calm workspace for your team."
+      showBack
+      title="Create account"
     >
-      <View className="flex-1 justify-center px-6">
-        <Surface className="gap-6 rounded-3xl p-6" variant="secondary">
-          <View className="gap-2">
-            <Typography.Heading className="text-2xl">
-              Create an account
-            </Typography.Heading>
-            <Typography.Paragraph>
-              Start tracking work for your organization.
-            </Typography.Paragraph>
-          </View>
+      <View className="gap-5">
+        <Controller
+          control={form.control}
+          name="name"
+          render={({ field, fieldState }) => (
+            <TextField isInvalid={fieldState.error !== undefined} isRequired>
+              <Label>Name</Label>
+              <Input
+                autoComplete="name"
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                onSubmitEditing={() => emailRef.current?.focus()}
+                placeholder="Your name"
+                returnKeyType="next"
+                submitBehavior="submit"
+                value={field.value}
+              />
+              <FieldError>{fieldState.error?.message}</FieldError>
+            </TextField>
+          )}
+        />
 
-          <View className="gap-4">
-            <Controller
-              control={form.control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Name</Label>
-                  <Input
-                    autoComplete="name"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="Your name"
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <TextField isInvalid={fieldState.error !== undefined} isRequired>
+              <Label>Email</Label>
+              <Input
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                placeholder="you@example.com"
+                ref={emailRef}
+                returnKeyType="next"
+                submitBehavior="submit"
+                value={field.value}
+              />
+              <FieldError>{fieldState.error?.message}</FieldError>
+            </TextField>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <PasswordField
+              autoComplete="new-password"
+              error={fieldState.error?.message}
+              inputRef={passwordRef}
+              label="Password"
+              onBlur={field.onBlur}
+              onChangeText={field.onChange}
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              returnKeyType="next"
+              showRequirements
+              value={field.value}
             />
+          )}
+        />
 
-            <Controller
-              control={form.control}
-              name="email"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Email</Label>
-                  <Input
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="you@example.com"
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
+        <Controller
+          control={form.control}
+          name="confirmPassword"
+          render={({ field, fieldState }) => (
+            <PasswordField
+              autoComplete="new-password"
+              error={fieldState.error?.message}
+              inputRef={confirmPasswordRef}
+              label="Confirm password"
+              onBlur={field.onBlur}
+              onChangeText={field.onChange}
+              onSubmitEditing={onSubmit}
+              returnKeyType="done"
+              value={field.value}
             />
+          )}
+        />
 
-            <Controller
-              control={form.control}
-              name="password"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Password</Label>
-                  <Input
-                    autoComplete="new-password"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="••••••••"
-                    secureTextEntry
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
-            />
+        <FormAlert message={rootError} />
 
-            <Controller
-              control={form.control}
-              name="confirmPassword"
-              render={({ field, fieldState }) => (
-                <TextField
-                  isInvalid={fieldState.error !== undefined}
-                  isRequired
-                >
-                  <Label>Confirm password</Label>
-                  <Input
-                    autoComplete="new-password"
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    placeholder="••••••••"
-                    secureTextEntry
-                    value={field.value}
-                  />
-                  <FieldError>{fieldState.error?.message}</FieldError>
-                </TextField>
-              )}
-            />
+        <Button isDisabled={pending} onPress={onSubmit} size="lg">
+          {pending ? <Spinner color="default" size="sm" /> : null}
+          <Button.Label>
+            {pending ? "Creating account…" : "Create account"}
+          </Button.Label>
+        </Button>
 
-            {rootError === undefined ? null : (
-              <Typography className="text-danger text-sm">
-                {rootError}
-              </Typography>
-            )}
-
-            <Button isDisabled={pending} onPress={onSubmit}>
-              {pending ? <Spinner color="default" size="sm" /> : null}
-              <Button.Label>Create account</Button.Label>
-            </Button>
-
-            <Pressable onPress={() => router.push(AUTH_SIGN_IN)}>
-              <Typography className="text-center text-sm">
-                Already have an account?{" "}
-                <Typography className="font-semibold text-accent">
-                  Sign in
-                </Typography>
-              </Typography>
-            </Pressable>
-          </View>
-        </Surface>
+        <AuthTextLink onPress={() => router.replace(AUTH_SIGN_IN)}>
+          <Typography className="text-center text-sm">
+            Already have an account?{" "}
+            <Typography className="font-semibold text-accent">
+              Sign in
+            </Typography>
+          </Typography>
+        </AuthTextLink>
       </View>
-    </KeyboardAvoidingView>
+    </AuthScaffold>
   );
 }

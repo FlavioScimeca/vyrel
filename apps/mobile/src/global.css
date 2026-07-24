@@ -6,15 +6,84 @@
 /* Monorepo: heroui-native is hoisted to the workspace root with bun. */
 @source "../../../node_modules/heroui-native/lib";
 
-/* Neutral grayscale accents to align with web look. */
+@theme {
+  --font-normal: "Inter_400Regular";
+  --font-medium: "Inter_500Medium";
+  --font-semibold: "Inter_600SemiBold";
+  --radius: 0.625rem;
+  --field-radius: calc(var(--radius) * 1.5);
+  --field-border-width: 1px;
+}
+
+/* Calm productivity palette: warm neutrals with a restrained violet accent. */
 @layer theme {
   @variant light {
-    --accent: hsl(0 0% 9%);
-    --accent-foreground: hsl(0 0% 98%);
+    --background: hsl(36 33% 97%);
+    --foreground: hsl(245 18% 14%);
+    --surface: hsl(36 40% 99%);
+    --surface-foreground: var(--foreground);
+    --surface-secondary: hsl(34 25% 94%);
+    --surface-secondary-foreground: var(--foreground);
+    --surface-tertiary: hsl(34 20% 91%);
+    --surface-tertiary-foreground: var(--foreground);
+    --overlay: hsl(36 40% 99%);
+    --overlay-foreground: var(--foreground);
+    --backdrop: hsl(245 20% 10% / 35%);
+    --muted: hsl(245 8% 45%);
+    --default: hsl(34 20% 91%);
+    --default-foreground: var(--foreground);
+    --accent: hsl(252 70% 56%);
+    --accent-foreground: hsl(0 0% 100%);
+    --field-background: hsl(36 40% 99%);
+    --field-foreground: var(--foreground);
+    --field-placeholder: hsl(245 7% 52%);
+    --field-border: hsl(245 10% 84%);
+    --success: hsl(153 50% 43%);
+    --success-foreground: hsl(0 0% 100%);
+    --warning: hsl(37 88% 54%);
+    --warning-foreground: hsl(34 40% 12%);
+    --danger: hsl(3 72% 55%);
+    --danger-foreground: hsl(0 0% 100%);
+    --segment: hsl(36 40% 99%);
+    --segment-foreground: var(--foreground);
+    --border: hsl(245 10% 88%);
+    --separator: hsl(245 10% 84%);
+    --focus: var(--accent);
+    --link: var(--accent);
   }
 
   @variant dark {
-    --accent: hsl(0 0% 98%);
-    --accent-foreground: hsl(0 0% 9%);
+    --background: hsl(245 16% 9%);
+    --foreground: hsl(36 25% 94%);
+    --surface: hsl(245 15% 13%);
+    --surface-foreground: var(--foreground);
+    --surface-secondary: hsl(245 14% 17%);
+    --surface-secondary-foreground: var(--foreground);
+    --surface-tertiary: hsl(245 13% 21%);
+    --surface-tertiary-foreground: var(--foreground);
+    --overlay: hsl(245 15% 15%);
+    --overlay-foreground: var(--foreground);
+    --backdrop: hsl(245 30% 3% / 60%);
+    --muted: hsl(245 8% 65%);
+    --default: hsl(245 12% 21%);
+    --default-foreground: var(--foreground);
+    --accent: hsl(252 78% 68%);
+    --accent-foreground: hsl(245 20% 10%);
+    --field-background: hsl(245 15% 14%);
+    --field-foreground: var(--foreground);
+    --field-placeholder: hsl(245 8% 58%);
+    --field-border: hsl(245 10% 28%);
+    --success: hsl(153 52% 52%);
+    --success-foreground: hsl(153 40% 10%);
+    --warning: hsl(37 90% 62%);
+    --warning-foreground: hsl(34 40% 12%);
+    --danger: hsl(3 75% 64%);
+    --danger-foreground: hsl(3 35% 10%);
+    --segment: hsl(245 14% 17%);
+    --segment-foreground: var(--foreground);
+    --border: hsl(245 10% 25%);
+    --separator: hsl(245 10% 31%);
+    --focus: var(--accent);
+    --link: var(--accent);
   }
 }

@@ -8,6 +8,10 @@ export const APP_HOME = "/home" as const;
 export const APP_USER = "/more/user" as const;
 export const APP_ORGANIZATION = "/more/organization" as const;
 
+export function invitationRoute(invitationId: string): Href {
+  return `/invite/${encodeURIComponent(invitationId)}` as Href;
+}
+
 export function defaultRouteForOrganization(hasOrganization: boolean): Href {
   return hasOrganization ? APP_HOME : ONBOARDING;
 }
