@@ -49,6 +49,7 @@ This file provides context about the project for AI assistants.
 vyrel/
 ├── apps/
 │   ├── web/         # Frontend application
+│   ├── mobile/      # Expo React Native app (HeroUI Native)
 │   ├── server/      # Backend API
 │   ├── docs/        # Documentation site
 │   └── extension/   # Browser extension

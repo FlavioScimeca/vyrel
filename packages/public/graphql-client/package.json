@@ -65,7 +65,7 @@
     "validate": "bun run script/verify.ts"
   },
   "devDependencies": {
-    "@apollo/client": "^4.2.6",
+    "@apollo/client": "catalog:",
     "@effect/language-service": "catalog:",
     "@testing-library/react": "^16.3.2",
     "@types/bun": "catalog:",
@@ -84,7 +84,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@apollo/client": "^4.2.6",
+    "@apollo/client": "catalog:",
     "graphql": "^16.0.0",
     "react": "^18.2.0 || ^19.0.0"
   },

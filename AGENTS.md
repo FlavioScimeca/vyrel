@@ -47,6 +47,7 @@ This file provides context about the project for AI assistants.
 vyrel/
 ├── apps/
 │   ├── web/         # Frontend application
+│   ├── mobile/      # Expo React Native app (HeroUI Native)
 │   ├── server/      # Backend API
 │   ├── docs/        # Documentation site
 │   └── extension/   # Browser extension
@@ -82,6 +83,9 @@ vyrel/
 - `bun graphql:schema` - Generate GraphQL SDL for the web app
 - `bun run --cwd apps/web gql:client` - Run GraphQL Codegen for the gql.tada fragment, canonical CRUD and schema registries
 - `bun run --cwd apps/web gql:client:watch` - Regenerate the GraphQL client registry as documents change
+- `bun run --cwd apps/mobile start` - Start the Expo mobile app
+- `bun run --cwd apps/mobile gql:generate` - Generate gql.tada introspection for mobile
+- `bun run --cwd apps/mobile gql:client` - Generate GraphQL client registry for mobile
 - `bun run --cwd packages/public/graphql-client validate` - Validate GraphQL client types, lint, exports and tests
 - `bun run --cwd packages/public/graphql-client size` - Report GraphQL client bundle and publish sizes
 

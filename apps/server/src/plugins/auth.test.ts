@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -20,7 +21,7 @@ vi.mock("@vyrel/auth", () => ({
   },
 }));
 
-vi.mock("@vyrel/db/organization-memberships", () => membershipMocks);
+vi.mock("@vyrel/db/utils/organization-memberships", () => membershipMocks);
 
 import { authPlugin } from "./auth";
 
@@ -52,8 +53,8 @@ function bootstrapRequest(cookie = "better-auth.session_token=session") {
 describe("POST /api/auth/bootstrap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    membershipMocks.listOrganizationMembershipIdentities.mockResolvedValue(
-      memberships
+    membershipMocks.listOrganizationMembershipIdentities.mockReturnValue(
+      Effect.succeed(memberships)
     );
     authMocks.setActiveOrganization.mockResolvedValue({});
   });
@@ -106,7 +107,9 @@ describe("POST /api/auth/bootstrap", () => {
 
   it("returns no membership without converting it to an error", async () => {
     authMocks.getSession.mockResolvedValue(authSession(null));
-    membershipMocks.listOrganizationMembershipIdentities.mockResolvedValue([]);
+    membershipMocks.listOrganizationMembershipIdentities.mockReturnValue(
+      Effect.succeed([])
+    );
 
     const response = await authPlugin.handle(bootstrapRequest());
 
@@ -119,8 +122,8 @@ describe("POST /api/auth/bootstrap", () => {
 
   it("surfaces infrastructure failures as 503", async () => {
     authMocks.getSession.mockResolvedValue(authSession(null));
-    membershipMocks.listOrganizationMembershipIdentities.mockRejectedValue(
-      new Error("database unavailable")
+    membershipMocks.listOrganizationMembershipIdentities.mockReturnValue(
+      Effect.fail(new Error("database unavailable"))
     );
 
     const response = await authPlugin.handle(bootstrapRequest());

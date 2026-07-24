@@ -1,16 +1,16 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "mobile",
-  slug: "mobile",
+  name: "vyrel-mobile",
+  slug: "vyrel-mobile",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon-generic/logo.png",
-  scheme: "mobile",
+  scheme: "vyrel-mobile",
   userInterfaceStyle: "automatic",
   ios: {
     icon: "./assets/expo.icon",
-    bundleIdentifier: "com.flavio-scimeca.mobile",
+    bundleIdentifier: "com.flavio-scimeca.vyrel-mobile",
   },
   android: {
     adaptiveIcon: {
@@ -20,7 +20,7 @@ const config: ExpoConfig = {
       monochromeImage: "./assets/icon-android/logo.png",
     },
     predictiveBackGestureEnabled: false,
-    package: "com.flavio_scimeca.mobile",
+    package: "com.flavio_scimeca.vyrel_mobile",
   },
   web: {
     output: "static",
@@ -28,10 +28,18 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-secure-store",
+    [
+      "expo-image-picker",
+      {
+        photosPermission:
+          "Allow Vyrel to access your photos for task and profile images.",
+      },
+    ],
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#208AEF",
+        backgroundColor: "#111111",
         image: "./assets/images/splash-icon.png",
         imageWidth: 76,
       },
@@ -40,6 +48,11 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  extra: {
+    eas: {
+      projectId: "2e001335-1ccd-4f1f-afbf-954b1efeb8af",
+    },
   },
 };
 

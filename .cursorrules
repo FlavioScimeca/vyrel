@@ -4,11 +4,11 @@
 You are working on a TypeScript project.
 Runtime: bun
 Package manager: bun
-Frontend: next
+Frontend: next + expo (apps/mobile)
 Backend: elysia
 Database: sqlite with drizzle
 API: graphql-yoga
-Auth: better-auth-organizations
+Auth: better-auth-organizations (+ @better-auth/expo for mobile)
 Testing: vitest-playwright
 Validation: zod
 

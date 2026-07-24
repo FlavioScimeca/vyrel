@@ -1,7 +1,6 @@
+import { expo } from "@better-auth/expo";
 import { JWT_EXPIRATION_TIME } from "@vyrel/consts/server";
 import { db } from "@vyrel/db";
-import { selectActiveOrganizationId } from "@vyrel/db/membership-selection";
-import { listOrganizationMembershipIdentities } from "@vyrel/db/organization-memberships";
 import {
   account,
   invitation,
@@ -12,14 +11,19 @@ import {
   user,
   verification,
 } from "@vyrel/db/schema";
+import { selectActiveOrganizationId } from "@vyrel/db/utils/membership-selection";
+import { listOrganizationMembershipIdentities } from "@vyrel/db/utils/organization-memberships";
 import { env } from "@vyrel/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
+import { Effect } from "effect";
 import { ResetPassword } from "./emails/reset-password";
 import { VerifyEmail } from "./emails/verify-email";
 import { sendEmail } from "./lib/email";
+
+const isDevelopment = env.NODE_ENV === "development";
 
 export const auth = betterAuth({
   advanced: {
@@ -47,8 +51,8 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (sessionRecord) => {
-          const memberships = await listOrganizationMembershipIdentities(
-            sessionRecord.userId
+          const memberships = await Effect.runPromise(
+            listOrganizationMembershipIdentities(sessionRecord.userId)
           );
 
           return {
@@ -98,6 +102,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    expo(),
     organizationPlugin({
       schema: {
         organization: {
@@ -128,7 +133,24 @@ export const auth = betterAuth({
       },
     }),
   ],
-  trustedOrigins: [env.CORS_ORIGIN],
+  trustedOrigins: [
+    env.CORS_ORIGIN,
+    "vyrel-mobile://",
+    "vyrel-mobile://*",
+    ...(isDevelopment
+      ? [
+          // Expo Go / Metro (see Better Auth Expo docs)
+          "exp://",
+          "exp://**",
+          "exp://192.168.*.*:*/**",
+          "exp://10.*.*.*:*/**",
+          // Android emulator loopback to host API
+          "http://10.0.2.2:3000",
+          "http://localhost:3000",
+          "https://flavios-macbook-pro.tailf1b5e4.ts.net",
+        ]
+      : []),
+  ],
   user: {
     additionalFields: {
       imageAssetId: {

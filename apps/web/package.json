@@ -21,7 +21,7 @@
     "ui:add": "bunx --bun shadcn@latest add"
   },
   "dependencies": {
-    "@apollo/client": "^4.2.6",
+    "@apollo/client": "catalog:",
     "@apollo/client-integration-nextjs": "^0.14.5",
     "@base-ui/react": "^1.6.0",
     "@elysia/eden": "^1.4.10",
@@ -55,7 +55,7 @@
     "react": "catalog:",
     "react-day-picker": "^10.0.1",
     "react-dom": "catalog:",
-    "react-hook-form": "^7.81.0",
+    "react-hook-form": "^7.82.0",
     "react-resizable-panels": "^4.12.1",
     "recharts": "3.8.0",
     "shadcn": "^4.13.0",
