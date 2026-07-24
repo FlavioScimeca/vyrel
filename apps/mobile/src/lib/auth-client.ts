@@ -32,7 +32,7 @@ export const authClient = createAuthClient({
   plugins: [
     organizationClient(),
     expoClient({
-      scheme: "mobile",
+      scheme: "vyrel-mobile",
       storage: { getItem, setItem },
       storagePrefix: "vyrel",
     }) as unknown as BetterAuthClientPlugin,

@@ -17,6 +17,7 @@ const corsOrigins = isDevelopment
       env.CORS_ORIGIN,
       "http://localhost:3000",
       "http://10.0.2.2:3000",
+      "https://flavios-macbook-pro.tailf1b5e4.ts.net",
       "mobile://",
     ]
   : env.CORS_ORIGIN;

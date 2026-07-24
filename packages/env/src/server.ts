@@ -21,6 +21,7 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
+    PORT: z.coerce.number().int().positive().default(3000),
     PROFILE_SQL_LIMIT: z.coerce.number().int().positive().default(20),
     PROFILING: envBoolean.default(false),
     R2_ACCESS_KEY_ID: z.string().min(1),

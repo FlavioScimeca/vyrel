@@ -18,6 +18,7 @@
     "clean": "rm -rf dist",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
+    "dev:tailscale": "bun run script/dev-tailscale.ts",
     "size": "bun run script/size.ts",
     "start": "bun run dist/index.js",
     "test": "vitest run --passWithNoTests",

@@ -147,6 +147,7 @@ export const auth = betterAuth({
           // Android emulator loopback to host API
           "http://10.0.2.2:3000",
           "http://localhost:3000",
+          "https://flavios-macbook-pro.tailf1b5e4.ts.net",
         ]
       : []),
   ],

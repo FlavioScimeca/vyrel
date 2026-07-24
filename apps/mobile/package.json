@@ -1,11 +1,15 @@
 {
-  "name": "mobile",
+  "name": "vyrel-mobile",
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
     "check-types": "tsc --noEmit",
+    "eas:configure": "eas build:configure",
+    "eas:dev-android": "eas build --profile development --platform android",
+    "eas:preview-android": "eas build --profile preview --platform android",
+    "eas:production-android": "eas build --profile production --platform android",
     "expo:doctor": "bun x expo-doctor@latest",
     "expo:install-check": "bun x expo install --check",
     "gql:client": "bun run --cwd ../.. --filter @vyrel/graphql-client build && graphql-codegen --config codegen.ts",
@@ -25,6 +29,7 @@
     "better-auth": "catalog:",
     "expo": "~57.0.7",
     "expo-constants": "~57.0.6",
+    "expo-dev-client": "~57.0.9",
     "expo-device": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-glass-effect": "~57.0.1",
@@ -63,6 +68,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^7.2.0",
     "@types/react": "catalog:",
+    "eas-cli": "^21.2.0",
     "typescript": "catalog:"
   },
   "expo": {
