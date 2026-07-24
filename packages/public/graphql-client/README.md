@@ -119,7 +119,7 @@ the package, without reconstructing query variables in another abstraction.
 
 Apollo replaces the temporary create id with the server id. If the list uses
 `key={entity.id}`, React remounts the row. Opt into a per-feature identity
-tracker (not wired into the create hook):
+tracker and pass it to the create hook:
 
 ```ts
 import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphql-client";
@@ -127,24 +127,18 @@ import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphq
 const taskListIdentity = createOptimisticListIdentity();
 
 const [createTask] = useOptimisticCreate(CreateTaskDocument, {
+  identity: taskListIdentity,
   optimistic: ({ input }) => ({ title: input.title }),
-  optimisticId: () => taskListIdentity.begin(),
-  onError: () => {
-    taskListIdentity.abandon();
-  },
-  update: (_cache, result) => {
-    const id = result.data?.createTask?.id;
-    if (id !== undefined && !taskListIdentity.isOptimisticId(id)) {
-      taskListIdentity.commit(id);
-    }
-  },
 });
 
 // In the list:
 // <Row key={taskListIdentity.getKey(task.id)} task={task} />
 ```
 
-Call `commit` from `update` (before React re-renders), not from `onCompleted`.
+The hook binds each temporary id to its own response, so concurrent creates can
+finish in any order without swapping React keys. For manual integrations, call
+`commit(optimisticId, realId)` before React re-renders and
+`abandon(optimisticId)` on failure.
 
 ## Apollo options and escape hatches
 

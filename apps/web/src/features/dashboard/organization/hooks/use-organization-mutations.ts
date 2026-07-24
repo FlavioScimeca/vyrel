@@ -29,10 +29,9 @@ export function useUpdateOrganizationMutation(
   });
 }
 
-/** Cache key for Organization is `slug`; pass the current slug for eviction. */
-export function useDeleteOrganizationMutation(organizationSlug: string) {
+export function useDeleteOrganizationMutation() {
   return useOptimisticDelete(DeleteOrganizationDocument, {
-    id: () => organizationSlug,
+    id: ({ input }) => input.organizationId,
     onCompleted: () => {
       toast.success("Organization deleted");
     },

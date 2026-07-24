@@ -131,7 +131,7 @@ export const graphqlClientSchema = {
         }
       },
       "keyFields": [
-        "slug"
+        "id"
       ]
     },
     "Query": {
@@ -355,7 +355,7 @@ export interface GraphqlClientScalars {
 export type GraphqlClientModel<TName extends keyof typeof graphqlClientSchema.types> = ModelOf<typeof graphqlClientSchema, TName, GraphqlClientScalars>;
 
 export const graphqlClientTypePolicies = {
-  "Organization": { keyFields: ["slug"] },
+  "Organization": { keyFields: ["id"] },
   "Task": { keyFields: ["id"] },
   "User": { keyFields: ["email"] },
 } as const;
@@ -370,7 +370,7 @@ export const graphqlClientRegistry = defineGraphqlClientRegistry({
       "createTask": {"collectionVariablePaths":{"organizationId":["input","organizationId"]},"entityType":"Task","keyField":"id","kind":"create"},
     },
     "DeleteOrganization": {
-      "deleteOrganization": {"entityType":"Organization","keyField":"slug","kind":"delete"},
+      "deleteOrganization": {"entityType":"Organization","keyField":"id","kind":"delete"},
     },
     "DeleteTask": {
       "deleteTask": {"entityType":"Task","keyField":"id","kind":"delete"},
@@ -379,7 +379,7 @@ export const graphqlClientRegistry = defineGraphqlClientRegistry({
       "deleteUser": {"entityType":"User","keyField":"email","kind":"delete"},
     },
     "UpdateOrganization": {
-      "updateOrganization": {"entityType":"Organization","keyField":"slug","kind":"update"},
+      "updateOrganization": {"entityType":"Organization","keyField":"id","kind":"update"},
     },
     "UpdateTask": {
       "updateTask": {"entityType":"Task","keyField":"id","kind":"update"},

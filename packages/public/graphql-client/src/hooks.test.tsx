@@ -18,6 +18,7 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "./hooks";
+import { createOptimisticListIdentity } from "./optimistic-list-identity";
 import {
   configureGraphqlClientCache,
   defineGraphqlClientRegistry,
@@ -91,6 +92,18 @@ interface DeleteOrganizationVariables {
   };
 }
 
+interface UpdateOrganizationData {
+  readonly updateOrganization: Organization;
+}
+
+interface UpdateOrganizationVariables {
+  readonly input: {
+    readonly name?: string;
+    readonly organizationId: string;
+    readonly slug?: string;
+  };
+}
+
 const tasksDocument = parse(`
   query ListTasks($organizationId: ID!, $search: String) {
     tasks(organizationId: $organizationId, search: $search) {
@@ -156,6 +169,20 @@ const deleteOrganizationDocument = parse(`
   }
 `) as TypedDocumentNode<DeleteOrganizationData, DeleteOrganizationVariables>;
 
+const updateOrganizationDocument = parse(`
+  mutation UpdateOrganization($input: UpdateOrganization!) {
+    updateOrganization(input: $input) {
+      ...OrganizationCacheIdentity
+    }
+  }
+
+  fragment OrganizationCacheIdentity on Organization {
+    id
+    name
+    slug
+  }
+`) as TypedDocumentNode<UpdateOrganizationData, UpdateOrganizationVariables>;
+
 const registry = defineGraphqlClientRegistry({
   collections: {
     Task: {
@@ -211,10 +238,42 @@ const organizationRegistry = defineGraphqlClientRegistry({
   },
 });
 
+const organizationIdRegistry = defineGraphqlClientRegistry({
+  collections: {
+    Organization: {
+      query: organizationsDocument,
+      responseKey: "organizations",
+      storeFieldName: "organizations",
+    },
+  },
+  mutations: {
+    DeleteOrganization: {
+      deleteOrganization: {
+        entityType: "Organization",
+        keyField: "id",
+        kind: "delete",
+      },
+    },
+    UpdateOrganization: {
+      updateOrganization: {
+        entityType: "Organization",
+        keyField: "id",
+        kind: "update",
+      },
+    },
+  },
+});
+
 interface PendingNetwork {
   readonly client: ApolloClient;
   readonly reject: (error: Error) => void;
   readonly resolve: (data: unknown) => void;
+}
+
+interface ConcurrentNetwork {
+  readonly client: ApolloClient;
+  readonly reject: (title: string, error: Error) => void;
+  readonly resolve: (title: string, data: unknown) => void;
 }
 
 const createPendingNetwork = (): PendingNetwork => {
@@ -261,6 +320,63 @@ const createPendingNetwork = (): PendingNetwork => {
   };
 };
 
+const createConcurrentNetwork = (): ConcurrentNetwork => {
+  const pendingRequests = new Map<
+    string,
+    {
+      readonly complete: () => void;
+      readonly reject: (error: Error) => void;
+      readonly resolve: (result: { readonly data: unknown }) => void;
+    }
+  >();
+  const cache = configureGraphqlClientCache(
+    new InMemoryCache({
+      typePolicies: {
+        Query: {
+          fields: {
+            tasks: { keyArgs: ["organizationId", "search"] },
+          },
+        },
+        Task: { keyFields: ["id"] },
+      },
+    }),
+    registry
+  );
+  const link = new ApolloLink(
+    (operation) =>
+      new Observable((observer) => {
+        const { input } = operation.variables as CreateTaskVariables;
+        const { title } = input;
+        pendingRequests.set(title, {
+          complete: () => observer.complete(),
+          reject: (error) => observer.error(error),
+          resolve: (result) => observer.next(result as never),
+        });
+      })
+  );
+  const getRequest = (title: string) => {
+    const request = pendingRequests.get(title);
+    if (request === undefined) {
+      throw new Error(`No pending GraphQL request for "${title}".`);
+    }
+    return request;
+  };
+
+  return {
+    client: new ApolloClient({ cache, link }),
+    reject: (title, error) => {
+      getRequest(title).reject(error);
+      pendingRequests.delete(title);
+    },
+    resolve: (title, data) => {
+      const request = getRequest(title);
+      request.resolve({ data });
+      request.complete();
+      pendingRequests.delete(title);
+    },
+  };
+};
+
 const createOrganizationDeleteNetwork = (): PendingNetwork => {
   let completeRequest: (() => void) | undefined;
   let failRequest: ((error: Error) => void) | undefined;
@@ -272,6 +388,45 @@ const createOrganizationDeleteNetwork = (): PendingNetwork => {
       },
     }),
     organizationRegistry
+  );
+  const link = new ApolloLink(
+    () =>
+      new Observable((observer) => {
+        completeRequest = () => observer.complete();
+        failRequest = (error) => observer.error(error);
+        sendResult = (result) => observer.next(result as never);
+      })
+  );
+
+  return {
+    client: new ApolloClient({ cache, link }),
+    reject: (error) => {
+      if (failRequest === undefined) {
+        throw new Error("No pending GraphQL request to reject.");
+      }
+      failRequest(error);
+    },
+    resolve: (data) => {
+      if (sendResult === undefined || completeRequest === undefined) {
+        throw new Error("No pending GraphQL request to resolve.");
+      }
+      sendResult({ data });
+      completeRequest();
+    },
+  };
+};
+
+const createOrganizationIdNetwork = (): PendingNetwork => {
+  let completeRequest: (() => void) | undefined;
+  let failRequest: ((error: Error) => void) | undefined;
+  let sendResult: ((result: { readonly data: unknown }) => void) | undefined;
+  const cache = configureGraphqlClientCache(
+    new InMemoryCache({
+      typePolicies: {
+        Organization: { keyFields: ["id"] },
+      },
+    }),
+    organizationIdRegistry
   );
   const link = new ApolloLink(
     () =>
@@ -368,6 +523,186 @@ describe("optimistic mutation hooks", () => {
       readTaskIds(network.client, { organizationId: "org-1" }, false)
     ).toEqual(["task-1"]);
     expect(customUpdateCalls).toBe(2);
+  });
+
+  it("registers a custom optimistic id with the integrated identity", async () => {
+    const network = createPendingNetwork();
+    const identity = createOptimisticListIdentity();
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1" },
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          identity,
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "optimistic-custom",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Custom" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, { organizationId: "org-1" })).toEqual([
+      "optimistic-custom",
+    ]);
+
+    await act(async () => {
+      network.resolve({
+        createTask: {
+          __typename: "Task",
+          id: "task-custom",
+          title: "Custom",
+        },
+      });
+      await mutationPromise;
+    });
+
+    expect(identity.getKey("task-custom")).toBe("optimistic-custom");
+  });
+
+  it("binds concurrent optimistic identities to out-of-order responses", async () => {
+    const network = createConcurrentNetwork();
+    const optimisticIds = ["optimistic-a", "optimistic-b"];
+    const identity = createOptimisticListIdentity({
+      createId: () => {
+        const nextId = optimisticIds.shift();
+        if (nextId === undefined) {
+          throw new Error("No optimistic id available.");
+        }
+        return nextId;
+      },
+    });
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1" },
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          identity,
+          optimistic: ({ input }) => ({ title: input.title }),
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let firstMutation: ReturnType<(typeof result.current)[0]>;
+    let secondMutation: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      firstMutation = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "First" },
+        },
+      });
+      secondMutation = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Second" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, { organizationId: "org-1" })).toEqual([
+      "optimistic-b",
+      "optimistic-a",
+    ]);
+
+    await act(async () => {
+      network.resolve("Second", {
+        createTask: {
+          __typename: "Task",
+          id: "task-b",
+          title: "Second",
+        },
+      });
+      await secondMutation;
+    });
+    await act(async () => {
+      network.resolve("First", {
+        createTask: {
+          __typename: "Task",
+          id: "task-a",
+          title: "First",
+        },
+      });
+      await firstMutation;
+    });
+
+    expect(identity.getKey("task-a")).toBe("optimistic-a");
+    expect(identity.getKey("task-b")).toBe("optimistic-b");
+    expect(
+      readTaskIds(network.client, { organizationId: "org-1" }, false)
+    ).toEqual(["task-a", "task-b"]);
+  });
+
+  it("abandons only the failed identity while another create succeeds", async () => {
+    const network = createConcurrentNetwork();
+    const optimisticIds = ["optimistic-failed", "optimistic-success"];
+    const identity = createOptimisticListIdentity({
+      createId: () => optimisticIds.shift() ?? "optimistic-unexpected",
+    });
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: { tasks: [] },
+      query: tasksDocument,
+      variables: { organizationId: "org-1" },
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          identity,
+          onError: () => undefined,
+          optimistic: ({ input }) => ({ title: input.title }),
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let failedMutation: ReturnType<(typeof result.current)[0]>;
+    let successfulMutation: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      failedMutation = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Failed" },
+        },
+      });
+      successfulMutation = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Successful" },
+        },
+      });
+    });
+
+    await act(async () => {
+      network.resolve("Successful", {
+        createTask: {
+          __typename: "Task",
+          id: "task-success",
+          title: "Successful",
+        },
+      });
+      await successfulMutation;
+    });
+    await act(async () => {
+      network.reject("Failed", new Error("Create failed"));
+      await expect(failedMutation).rejects.toThrow("Create failed");
+    });
+
+    expect(identity.getKey("task-success")).toBe("optimistic-success");
+    expect(identity.getKey("optimistic-failed")).toBe("optimistic-failed");
+    expect(
+      readTaskIds(network.client, { organizationId: "org-1" }, false)
+    ).toEqual(["task-success"]);
   });
 
   it("writes only the canonical collection when collection override is omitted", () => {
@@ -724,6 +1059,125 @@ describe("optimistic mutation hooks", () => {
         query: organizationsDocument,
       })?.organizations
     ).toEqual([]);
+    expect(
+      network.client.cache.readFragment({
+        fragment: organizationCacheFragment,
+        id: normalizedId,
+        optimistic: false,
+      })
+    ).toBeNull();
+  });
+
+  it("keeps an organization normalized by id when its slug changes", async () => {
+    const network = createOrganizationIdNetwork();
+    activeClient = network.client;
+    const organization = {
+      __typename: "Organization",
+      id: "org-1",
+      name: "Acme",
+      slug: "acme",
+    } as const;
+    network.client.cache.writeQuery({
+      data: { organizations: [organization] },
+      query: organizationsDocument,
+    });
+    const normalizedId = network.client.cache.identify(organization);
+    const { result } = renderHook(
+      () =>
+        useOptimisticUpdate(updateOrganizationDocument, {
+          current: organization,
+          optimistic: ({ input }) => ({
+            name: input.name ?? organization.name,
+            slug: input.slug ?? organization.slug,
+          }),
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: organization.id, slug: "acme-renamed" },
+        },
+      });
+    });
+
+    expect(
+      network.client.cache.readQuery({
+        optimistic: true,
+        query: organizationsDocument,
+      })?.organizations
+    ).toEqual([
+      {
+        ...organization,
+        slug: "acme-renamed",
+      },
+    ]);
+
+    await act(async () => {
+      network.resolve({
+        updateOrganization: {
+          ...organization,
+          slug: "acme-renamed",
+        },
+      });
+      await mutationPromise;
+    });
+
+    expect(network.client.cache.identify(organization)).toBe(normalizedId);
+    expect(
+      network.client.cache.readQuery({
+        optimistic: false,
+        query: organizationsDocument,
+      })?.organizations
+    ).toHaveLength(1);
+  });
+
+  it("deletes an organization by its immutable id", async () => {
+    const network = createOrganizationIdNetwork();
+    activeClient = network.client;
+    const organization = {
+      __typename: "Organization",
+      id: "org-1",
+      name: "Acme",
+      slug: "acme",
+    } as const;
+    network.client.cache.writeQuery({
+      data: { organizations: [organization] },
+      query: organizationsDocument,
+    });
+    const normalizedId = network.client.cache.identify(organization);
+    if (normalizedId === undefined) {
+      throw new Error("Expected Organization to have a normalized cache id.");
+    }
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteOrganizationDocument, {
+          id: ({ input }) => input.organizationId,
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { organizationId: organization.id } },
+      });
+    });
+
+    expect(
+      network.client.cache.readQuery({
+        optimistic: true,
+        query: organizationsDocument,
+      })?.organizations
+    ).toEqual([]);
+
+    await act(async () => {
+      network.resolve({ deleteOrganization: organization.id });
+      await mutationPromise;
+    });
+
     expect(
       network.client.cache.readFragment({
         fragment: organizationCacheFragment,

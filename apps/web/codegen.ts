@@ -8,7 +8,6 @@ const config: CodegenConfig = {
         {
           "@vyrel/graphql-client/codegen-plugin": {
             keyFields: {
-              Organization: "slug",
               User: "email",
             },
             scalars: {

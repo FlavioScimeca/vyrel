@@ -17,6 +17,7 @@ import {
   getOperationName,
   getRootResponseKey,
 } from "./document";
+import type { OptimisticListIdentity } from "./optimistic-list-identity";
 import {
   type CanonicalCollectionDefinition,
   type CrudMutationDefinition,
@@ -93,6 +94,11 @@ export type OptimisticCreateOptions<
     >;
     /** Apollo cache key field. Defaults to `id`. */
     readonly keyField?: string;
+    /**
+     * Optional stable list-key tracker. Each mutation invocation owns its
+     * optimistic id, including when concurrent responses finish out of order.
+     */
+    readonly identity?: OptimisticListIdentity;
     readonly optimistic: (
       variables: TVariables
     ) => Partial<MutationFragmentData<TMutationData>>;
@@ -220,9 +226,10 @@ export const useOptimisticCreate = <
   const {
     collection: collectionOverride,
     field,
+    identity,
     keyField,
     optimistic,
-    optimisticId = createOptimisticId,
+    optimisticId,
     update,
     ...apolloOptions
   } = options;
@@ -238,66 +245,136 @@ export const useOptimisticCreate = <
   );
   const resolvedKeyField = keyField ?? canonical.mutation.keyField;
 
+  const {
+    onCompleted: configuredOnCompleted,
+    onError: configuredOnError,
+    ...baseApolloOptions
+  } = apolloOptions;
   const mutationOptions: useMutation.Options<
     TMutationData,
     TVariables,
     ApolloCache,
     NoConfiguredVariables
   > = {
-    ...apolloOptions,
-    optimisticResponse: (variables) => {
-      const optimisticEntity = optimistic(variables);
-      const optimisticRecord = asRecord(optimisticEntity) ?? {};
-      const entity = addConventionalFields(
-        {
-          __typename: entitySelection.typename,
-          [resolvedKeyField]:
-            optimisticRecord[resolvedKeyField] ?? optimisticId(variables),
-          ...optimisticRecord,
-        },
-        entitySelection.fields
-      );
+    ...baseApolloOptions,
+  };
+  const [mutate, mutationResult] = useMutation(mutation, mutationOptions);
 
-      return { [responseKey]: entity } as never;
-    },
-    update: (cache, result, context) => {
-      const entity = readRootValue(result.data, responseKey);
-      if (entity !== null && entity !== undefined) {
-        const variables = resolveCollectionVariables(
-          canonical.mutation.collectionVariablePaths ?? {},
-          context.variables ?? {}
-        );
-        prependToList(
-          cache,
-          {
-            query: canonical.collection.query,
-            responseKey: canonical.collection.responseKey,
-            variables,
-          },
-          entity
-        );
+  const writeCreatedEntityToCollections = (
+    cache: ApolloCache,
+    createdEntity: unknown,
+    mutationVariables: TVariables | undefined
+  ): void => {
+    const collectionVariables = resolveCollectionVariables(
+      canonical.mutation.collectionVariablePaths ?? {},
+      mutationVariables ?? {}
+    );
+    prependToList(
+      cache,
+      {
+        query: canonical.collection.query,
+        responseKey: canonical.collection.responseKey,
+        variables: collectionVariables,
+      },
+      createdEntity
+    );
 
-        if (collectionOverride !== undefined) {
-          const resolvedOverride =
-            typeof collectionOverride === "function"
-              ? collectionOverride(context.variables ?? ({} as TVariables))
-              : collectionOverride;
+    if (collectionOverride === undefined) {
+      return;
+    }
 
-          if (resolvedOverride !== undefined) {
-            prependToCollectionVariant(cache, {
-              entity,
-              query: resolvedOverride.query,
-              variables: resolvedOverride.variables,
-            });
-          }
-        }
-      }
+    const resolvedOverride =
+      typeof collectionOverride === "function"
+        ? collectionOverride(mutationVariables ?? ({} as TVariables))
+        : collectionOverride;
 
-      update?.(cache, result, context);
-    },
+    if (resolvedOverride !== undefined) {
+      prependToCollectionVariant(cache, {
+        entity: createdEntity,
+        query: resolvedOverride.query,
+        variables: resolvedOverride.variables,
+      });
+    }
   };
 
-  return useMutation(mutation, mutationOptions);
+  const execute = ((...args: Parameters<typeof mutate>) => {
+    const [executeOptions] = args;
+    const mutationVariables = {
+      ...apolloOptions.variables,
+      ...executeOptions?.variables,
+    } as unknown as TVariables;
+    const optimisticEntity = optimistic(mutationVariables);
+    const optimisticRecord = asRecord(optimisticEntity) ?? {};
+    const optimisticRecordId = optimisticRecord[resolvedKeyField];
+    const explicitOptimisticId =
+      typeof optimisticRecordId === "string"
+        ? optimisticRecordId
+        : optimisticId?.(mutationVariables);
+    const temporaryId =
+      identity?.begin(explicitOptimisticId) ??
+      explicitOptimisticId ??
+      createOptimisticId();
+    let identitySettled = false;
+    const applicationUpdate = executeOptions?.update ?? update;
+    const applicationOnError = executeOptions?.onError ?? configuredOnError;
+    const applicationOnCompleted =
+      executeOptions?.onCompleted ?? configuredOnCompleted;
+    const optimisticResponseEntity = addConventionalFields(
+      {
+        __typename: entitySelection.typename,
+        [resolvedKeyField]: optimisticRecord[resolvedKeyField] ?? temporaryId,
+        ...optimisticRecord,
+      },
+      entitySelection.fields
+    );
+
+    return mutate({
+      ...executeOptions,
+      onCompleted: (data, clientOptions) => {
+        if (!identitySettled) {
+          identity?.abandon(temporaryId);
+          identitySettled = true;
+        }
+        applicationOnCompleted?.(data, clientOptions);
+      },
+      onError: (error, clientOptions) => {
+        if (!identitySettled) {
+          identity?.abandon(temporaryId);
+          identitySettled = true;
+        }
+        applicationOnError?.(error, clientOptions);
+      },
+      optimisticResponse: {
+        [responseKey]: optimisticResponseEntity,
+      } as never,
+      update: (cache, result, context) => {
+        const createdEntity = readRootValue(result.data, responseKey);
+        if (createdEntity !== null && createdEntity !== undefined) {
+          writeCreatedEntityToCollections(
+            cache,
+            createdEntity,
+            context.variables
+          );
+
+          const entityKey = asRecord(createdEntity)?.[resolvedKeyField];
+          if (
+            identity !== undefined &&
+            !identitySettled &&
+            typeof entityKey === "string" &&
+            entityKey !== temporaryId
+          ) {
+            identity.commit(temporaryId, entityKey);
+            identitySettled = true;
+          }
+        }
+
+        applicationUpdate?.(cache, result, context);
+      },
+      variables: mutationVariables,
+    });
+  }) as typeof mutate;
+
+  return [execute, mutationResult] as const;
 };
 
 export const useOptimisticUpdate = <

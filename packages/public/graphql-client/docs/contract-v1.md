@@ -145,8 +145,8 @@ the codegen bundles are separate Node entry points.
 - interpreting filtered-list membership (search, dates, permissions);
 - updating every cached list variant on create;
 - UI toasts, pending states or error presentation;
-- auto-wiring React list keys into create (opt-in via
-  `createOptimisticListIdentity`);
+- React list-key tracking unless explicitly enabled with `identity` and
+  `createOptimisticListIdentity`;
 - offline persistence, mutation queues, undo or conflict resolution;
 - nested/Relay connection pagination adapters.
 

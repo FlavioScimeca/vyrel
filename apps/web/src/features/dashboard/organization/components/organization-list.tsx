@@ -98,7 +98,7 @@ export function OrganizationList({ organizations }: OrganizationListProps) {
       {organizations.map((organization) => {
         const org = readFragment(OrganizationListItemFragment, organization);
 
-        return <OrganizationCard key={org.slug} organization={organization} />;
+        return <OrganizationCard key={org.id} organization={organization} />;
       })}
     </div>
   );

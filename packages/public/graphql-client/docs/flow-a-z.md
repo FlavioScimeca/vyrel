@@ -953,6 +953,8 @@ Le escape hatch disponibili sono:
 - `field` per mutation con più campi top-level;
 - `keyField` per cache key diversa da `id`;
 - `optimisticId` per una strategia custom di ID temporaneo;
+- `identity` per correlare list key optimistic e reali anche con create
+  concorrenti;
 - `update` per comportamento cache aggiuntivo.
 
 Quando un'inferenza non è sicura, codegen o runtime producono un errore
@@ -974,8 +976,8 @@ descrittivo invece di scegliere implicitamente.
 - implementa undo;
 - risolve conflitti concorrenti;
 - gestisce ancora Relay connection o liste nested;
-- collega automaticamente le React list key al create (usa
-  `createOptimisticListIdentity` opt-in per feature).
+- gestisce React list key senza l'opzione `identity` e un
+  `createOptimisticListIdentity` opt-in per feature.
 
 Per le letture continuiamo a usare Apollo direttamente:
 

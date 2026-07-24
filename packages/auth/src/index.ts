@@ -15,7 +15,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization as organizationPlugin } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-
+import { ResetPassword } from "./emails/reset-password";
 import { VerifyEmail } from "./emails/verify-email";
 import { sendEmail } from "./lib/email";
 
@@ -43,6 +43,20 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: false,
+    sendResetPassword: ({ user: authUser, url }) => {
+      // Start send without awaiting so Better Auth can return immediately.
+      sendEmail({
+        react: ResetPassword({
+          resetUrl: url,
+          username: authUser.name,
+        }),
+        subject: "Reset your password",
+        to: authUser.email,
+      }).catch(() => undefined);
+      return Promise.resolve();
+    },
   },
   emailVerification: {
     autoSignInAfterVerification: true,
