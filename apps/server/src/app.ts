@@ -10,14 +10,31 @@ import { graphqlPlugin } from "./plugins/graphql";
 import { organizationRestPlugin } from "./plugins/organization-rest";
 import { userRestPlugin } from "./plugins/user-rest";
 
+const isDevelopment = env.NODE_ENV === "development";
+
+const corsOrigins = isDevelopment
+  ? [
+      env.CORS_ORIGIN,
+      "http://localhost:3000",
+      "http://10.0.2.2:3000",
+      "mobile://",
+    ]
+  : env.CORS_ORIGIN;
+
 export const app = new Elysia()
   .use(createVyrelElysiaPlugin({ service: "vyrel-server" }))
   .use(
     cors({
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "Cookie",
+        "expo-origin",
+        "x-skip-oauth-proxy",
+      ],
       credentials: true,
-      methods: ["GET", "POST", "OPTIONS"],
-      origin: env.CORS_ORIGIN,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      origin: corsOrigins,
     })
   )
   .use(graphqlPlugin)

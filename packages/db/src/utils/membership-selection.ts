@@ -1,3 +1,5 @@
+import { Option } from "effect";
+
 export type OrganizationMembershipIdentity = {
   createdAt: Date;
   id: string;
@@ -20,13 +22,15 @@ export function selectActiveOrganizationId(
   memberships: readonly OrganizationMembershipIdentity[],
   currentActiveOrganizationId: string | null | undefined
 ): string | null {
+  const currentId = Option.fromNullable(currentActiveOrganizationId).pipe(
+    Option.filter((organizationId) => organizationId.length > 0)
+  );
+
   if (
-    currentActiveOrganizationId &&
-    memberships.some(
-      ({ organizationId }) => organizationId === currentActiveOrganizationId
-    )
+    Option.isSome(currentId) &&
+    memberships.some(({ organizationId }) => organizationId === currentId.value)
   ) {
-    return currentActiveOrganizationId;
+    return currentId.value;
   }
 
   const [firstMembership] = [...memberships].sort(

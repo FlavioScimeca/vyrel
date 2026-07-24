@@ -1,4 +1,4 @@
-import { selectActiveOrganizationId } from "@vyrel/db/membership-selection";
+import { selectActiveOrganizationId } from "@vyrel/db/utils/membership-selection";
 import { describe, expect, it } from "vitest";
 
 const membership = (id: string, organizationId: string, createdAt: string) => ({

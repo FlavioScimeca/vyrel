@@ -5,3 +5,16 @@
 
 /* Monorepo: heroui-native is hoisted to the workspace root with bun. */
 @source "../../../node_modules/heroui-native/lib";
+
+/* Neutral grayscale accents to align with web look. */
+@layer theme {
+  @variant light {
+    --accent: hsl(0 0% 9%);
+    --accent-foreground: hsl(0 0% 98%);
+  }
+
+  @variant dark {
+    --accent: hsl(0 0% 98%);
+    --accent-foreground: hsl(0 0% 9%);
+  }
+}

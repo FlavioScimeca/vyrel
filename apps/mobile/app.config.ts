@@ -28,10 +28,18 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-secure-store",
+    [
+      "expo-image-picker",
+      {
+        photosPermission:
+          "Allow Vyrel to access your photos for task and profile images.",
+      },
+    ],
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#208AEF",
+        backgroundColor: "#111111",
         image: "./assets/images/splash-icon.png",
         imageWidth: 76,
       },
