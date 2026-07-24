@@ -3,6 +3,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import {
   buildSchema,
   type DocumentNode,
+  type FragmentDefinitionNode,
   getNamedType,
   type GraphQLInputType,
   type GraphQLObjectType,
@@ -18,6 +19,7 @@ import {
   isScalarType,
   isSpecifiedScalarType,
   Kind,
+  type SelectionSetNode,
   typeFromAST,
   visit,
 } from "graphql";
@@ -46,6 +48,7 @@ export interface GraphqlOperationSource {
   readonly filePath: string;
   readonly operationName: string;
   readonly operationType: "mutation" | "query";
+  readonly relatedFragments?: readonly FragmentDefinitionNode[];
 }
 
 interface GeneratedCanonicalCollection {
@@ -287,11 +290,22 @@ export const collectGraphqlSources = (
     }
   }
 
+  const relatedFragments = documents.flatMap(({ document }) =>
+    (document?.definitions ?? []).filter(
+      (definition): definition is FragmentDefinitionNode =>
+        definition.kind === Kind.FRAGMENT_DEFINITION
+    )
+  );
+  const collectedOperations = [...operations.values()].map((operation) => ({
+    ...operation,
+    relatedFragments,
+  }));
+
   return {
     fragments: [...fragments.values()].toSorted((left, right) =>
       left.fragmentName.localeCompare(right.fragmentName)
     ),
-    operations: [...operations.values()].toSorted((left, right) =>
+    operations: collectedOperations.toSorted((left, right) =>
       left.operationName.localeCompare(right.operationName)
     ),
   };
@@ -507,6 +521,127 @@ const getEntityKeyField = (
   );
 };
 
+type KeySelectionStatus = "aliased" | "missing" | "selected";
+
+const combineKeySelectionStatus = (
+  current: KeySelectionStatus,
+  next: KeySelectionStatus
+): KeySelectionStatus => {
+  if (current === "selected" || next === "selected") {
+    return "selected";
+  }
+  if (current === "aliased" || next === "aliased") {
+    return "aliased";
+  }
+  return "missing";
+};
+
+const findCacheKeySelection = (
+  selectionSet: SelectionSetNode,
+  keyField: string,
+  fragments: ReadonlyMap<string, FragmentDefinitionNode>,
+  visitedFragments: ReadonlySet<string> = new Set()
+): KeySelectionStatus => {
+  let status: KeySelectionStatus = "missing";
+
+  for (const selection of selectionSet.selections) {
+    if (selection.kind === Kind.FIELD) {
+      if (selection.name.value === keyField) {
+        status = combineKeySelectionStatus(
+          status,
+          selection.alias === undefined ? "selected" : "aliased"
+        );
+      }
+      continue;
+    }
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
+      status = combineKeySelectionStatus(
+        status,
+        findCacheKeySelection(
+          selection.selectionSet,
+          keyField,
+          fragments,
+          visitedFragments
+        )
+      );
+      continue;
+    }
+
+    const fragmentName = selection.name.value;
+    if (visitedFragments.has(fragmentName)) {
+      continue;
+    }
+    const fragment = fragments.get(fragmentName);
+    if (fragment === undefined) {
+      continue;
+    }
+    status = combineKeySelectionStatus(
+      status,
+      findCacheKeySelection(
+        fragment.selectionSet,
+        keyField,
+        fragments,
+        new Set(visitedFragments).add(fragmentName)
+      )
+    );
+  }
+
+  return status;
+};
+
+const collectFragmentDefinitions = (
+  operations: readonly GraphqlOperationSource[]
+): ReadonlyMap<string, FragmentDefinitionNode> => {
+  const fragments = new Map<string, FragmentDefinitionNode>();
+  for (const operation of operations) {
+    const definitions = [
+      ...operation.document.definitions,
+      ...(operation.relatedFragments ?? []),
+    ];
+    for (const definition of definitions) {
+      if (definition.kind === Kind.FRAGMENT_DEFINITION) {
+        fragments.set(definition.name.value, definition);
+      }
+    }
+  }
+  return fragments;
+};
+
+const requireUnaliasedCacheKey = (
+  operation: GraphqlOperationSource,
+  responseKey: string,
+  entityType: string,
+  keyField: string,
+  fragments: ReadonlyMap<string, FragmentDefinitionNode>,
+  usage: "canonical collection" | "mutation response"
+): void => {
+  const rootField = getOperationDefinition(operation).selectionSet.selections.find(
+    (selection) =>
+      selection.kind === Kind.FIELD &&
+      (selection.alias?.value ?? selection.name.value) === responseKey
+  );
+  if (rootField?.kind !== Kind.FIELD || rootField.selectionSet === undefined) {
+    throw new Error(
+      `The ${usage} "${operation.operationName}.${responseKey}" must select cache key "${entityType}.${keyField}".`
+    );
+  }
+  const status = findCacheKeySelection(
+    rootField.selectionSet,
+    keyField,
+    fragments
+  );
+  if (status === "selected") {
+    return;
+  }
+  const reason =
+    status === "aliased"
+      ? "is selected with an alias; cache keys must be selected without aliases"
+      : "is not selected";
+  throw new Error(
+    `Cache key "${entityType}.${keyField}" ${reason} in ${usage} "${operation.operationName}.${responseKey}".`
+  );
+};
+
 const inferCrudMutations = (
   schema: GraphQLSchema,
   operation: GraphqlOperationSource,
@@ -583,6 +718,42 @@ const createGeneratedCrudRegistryFromSchema = (
   const operationByName = new Map(
     operations.map((operation) => [operation.operationName, operation])
   );
+  const fragments = collectFragmentDefinitions(operations);
+  for (const [entityType, operation] of canonical) {
+    const field = getSingleRootField(operation);
+    if (field === undefined) {
+      throw new Error(
+        `Canonical collection "${operation.operationName}" must select one root field.`
+      );
+    }
+    requireUnaliasedCacheKey(
+      operation,
+      field.alias?.value ?? field.name.value,
+      entityType,
+      getEntityKeyField(schema, entityType, configuration),
+      fragments,
+      "canonical collection"
+    );
+  }
+  for (const mutation of mutations) {
+    if (mutation.kind === "delete") {
+      continue;
+    }
+    const operation = operationByName.get(mutation.operationName);
+    if (operation === undefined) {
+      throw new Error(
+        `Could not find mutation operation "${mutation.operationName}".`
+      );
+    }
+    requireUnaliasedCacheKey(
+      operation,
+      mutation.responseKey,
+      mutation.entityType,
+      mutation.keyField,
+      fragments,
+      "mutation response"
+    );
+  }
   const collections = [...canonical].map(
     ([entityType, operation]): GeneratedCanonicalCollection => {
       const field = getSingleRootField(operation);

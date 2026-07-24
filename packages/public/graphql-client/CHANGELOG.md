@@ -10,13 +10,15 @@
 
 ### Patch Changes
 
-- d7983ce: eureka
+- d7983ce: Add concurrency-safe optimistic list identity tracking and integrate
+  it with optimistic create flows.
 
 ## 0.1.4
 
 ### Patch Changes
 
-- 7da9b9b: cleanup e refactor logic api for refetch queries logic
+- 7da9b9b: Simplify query freshness responsibilities by keeping refetch policy
+  in application code and cache mechanics in the optimistic hooks.
 
 ## 0.1.3
 

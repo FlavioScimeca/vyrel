@@ -301,6 +301,15 @@ export const graphqlClientSchema = {
             }
           }
         },
+        "id": {
+          "type": {
+            "kind": "NON_NULL",
+            "ofType": {
+              "kind": "NAMED",
+              "name": "ID"
+            }
+          }
+        },
         "imageFull": {
           "type": {
             "kind": "NAMED",
@@ -339,7 +348,7 @@ export const graphqlClientSchema = {
         }
       },
       "keyFields": [
-        "email"
+        "id"
       ]
     }
   }
@@ -357,7 +366,7 @@ export type GraphqlClientModel<TName extends keyof typeof graphqlClientSchema.ty
 export const graphqlClientTypePolicies = {
   "Organization": { keyFields: ["id"] },
   "Task": { keyFields: ["id"] },
-  "User": { keyFields: ["email"] },
+  "User": { keyFields: ["id"] },
 } as const;
 
 export const graphqlClientRegistry = defineGraphqlClientRegistry({
@@ -376,7 +385,7 @@ export const graphqlClientRegistry = defineGraphqlClientRegistry({
       "deleteTask": {"entityType":"Task","keyField":"id","kind":"delete"},
     },
     "DeleteUser": {
-      "deleteUser": {"entityType":"User","keyField":"email","kind":"delete"},
+      "deleteUser": {"entityType":"User","keyField":"id","kind":"delete"},
     },
     "UpdateOrganization": {
       "updateOrganization": {"entityType":"Organization","keyField":"id","kind":"update"},
@@ -385,7 +394,7 @@ export const graphqlClientRegistry = defineGraphqlClientRegistry({
       "updateTask": {"entityType":"Task","keyField":"id","kind":"update"},
     },
     "UpdateUser": {
-      "updateUser": {"entityType":"User","keyField":"email","kind":"update"},
+      "updateUser": {"entityType":"User","keyField":"id","kind":"update"},
     },
   },
 });

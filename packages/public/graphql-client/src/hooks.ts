@@ -8,8 +8,9 @@ import type {
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import {
   type CollectionOverride,
-  prependToCollectionVariant,
-  prependToList,
+  type CollectionPlacement,
+  insertIntoCollectionVariant,
+  insertIntoList,
   removeFromAllListVariants,
 } from "./collection";
 import {
@@ -24,7 +25,13 @@ import {
   getGraphqlClientRegistry,
   resolveCollectionVariables,
 } from "./registry";
-import type { DataOf, MutationFragmentData, VariablesOf } from "./types";
+import type {
+  DataOf,
+  MutationFieldOption,
+  MutationFragmentDataAt,
+  MutationResponseKey,
+  VariablesOf,
+} from "./types";
 
 type MutationDocument<
   TData,
@@ -47,12 +54,32 @@ type MutationUpdate<TData, TVariables extends OperationVariables> = NonNullable<
   >["update"]
 >;
 
-interface SharedOptions {
-  /** Top-level mutation field. Only needed for multi-field mutations. */
-  readonly field?: string;
-}
+type ControlledMutationFunctionOptions<
+  TData,
+  TVariables extends OperationVariables,
+> = Omit<
+  useMutation.MutationFunctionOptions<TData, TVariables, ApolloCache>,
+  "optimisticResponse"
+>;
 
-/** Additional list variant to prepend into after the canonical collection write. */
+export type ControlledMutationFunction<
+  TData,
+  TVariables extends OperationVariables,
+> = (
+  ...[options]: NoConfiguredVariables extends TVariables
+    ? [
+        options?: ControlledMutationFunctionOptions<TData, TVariables> & {
+          readonly variables?: TVariables;
+        },
+      ]
+    : [
+        options: ControlledMutationFunctionOptions<TData, TVariables> & {
+          readonly variables: TVariables;
+        },
+      ]
+) => ReturnType<useMutation.MutationFunction<TData, TVariables, ApolloCache>>;
+
+/** Additional list variant to update after the canonical collection write. */
 export type OptimisticCreateCollectionOverride<
   TData = unknown,
   TVariables extends OperationVariables = OperationVariables,
@@ -78,8 +105,10 @@ export type OptimisticCreateOptions<
   TVariables extends OperationVariables,
   TCollectionData = unknown,
   TCollectionVariables extends OperationVariables = OperationVariables,
+  TField extends
+    MutationResponseKey<TMutationData> = MutationResponseKey<TMutationData>,
 > = MutationOptions<TMutationData, TVariables> &
-  SharedOptions & {
+  MutationFieldOption<TMutationData, TField> & {
     /**
      * Optional extra list variant to update in addition to the canonical
      * collection resolved from the mutation registry. Never replaces the base
@@ -92,8 +121,8 @@ export type OptimisticCreateOptions<
       TCollectionData,
       TCollectionVariables
     >;
-    /** Apollo cache key field. Defaults to `id`. */
-    readonly keyField?: string;
+    /** Insert at the start (default) or end of canonical and override lists. */
+    readonly placement?: CollectionPlacement;
     /**
      * Optional stable list-key tracker. Each mutation invocation owns its
      * optimistic id, including when concurrent responses finish out of order.
@@ -101,7 +130,7 @@ export type OptimisticCreateOptions<
     readonly identity?: OptimisticListIdentity;
     readonly optimistic: (
       variables: TVariables
-    ) => Partial<MutationFragmentData<TMutationData>>;
+    ) => Partial<MutationFragmentDataAt<TMutationData, TField>>;
     readonly optimisticId?: (variables: TVariables) => string;
     /** Additional Apollo update callback, invoked after the built-in behavior. */
     readonly update?: MutationUpdate<TMutationData, TVariables>;
@@ -110,14 +139,16 @@ export type OptimisticCreateOptions<
 export type OptimisticUpdateOptions<
   TMutationData,
   TVariables extends OperationVariables,
+  TField extends
+    MutationResponseKey<TMutationData> = MutationResponseKey<TMutationData>,
 > = MutationOptions<TMutationData, TVariables> &
-  SharedOptions & {
+  MutationFieldOption<TMutationData, TField> & {
     /** Complete current data for every field selected by the mutation fragment. */
-    readonly current: MutationFragmentData<TMutationData>;
+    readonly current: MutationFragmentDataAt<TMutationData, TField>;
     readonly optimistic: (
       variables: TVariables,
-      current: Readonly<MutationFragmentData<TMutationData>>
-    ) => Partial<MutationFragmentData<TMutationData>>;
+      current: Readonly<MutationFragmentDataAt<TMutationData, TField>>
+    ) => Partial<MutationFragmentDataAt<TMutationData, TField>>;
     /** Additional Apollo update callback. */
     readonly update?: MutationUpdate<TMutationData, TVariables>;
   };
@@ -125,11 +156,13 @@ export type OptimisticUpdateOptions<
 export type OptimisticDeleteOptions<
   TMutationData,
   TVariables extends OperationVariables,
+  TField extends
+    MutationResponseKey<TMutationData> = MutationResponseKey<TMutationData>,
 > = MutationOptions<TMutationData, TVariables> &
-  SharedOptions & {
+  MutationFieldOption<TMutationData, TField> & {
     readonly id: (variables: TVariables) => string;
-    /** Apollo cache key field. Defaults to `id`. */
-    readonly keyField?: string;
+    /** Stable list-key tracker shared with the matching optimistic create. */
+    readonly identity?: OptimisticListIdentity;
     /** Additional Apollo update callback, invoked after the built-in behavior. */
     readonly update?: MutationUpdate<TMutationData, TVariables>;
   };
@@ -165,14 +198,14 @@ const addConventionalFields = (
   return { ...conventionalFields, ...entity };
 };
 
-const getCanonicalCollection = (
+const getCrudMutation = (
   cache: ApolloCache,
   operationName: string,
   responseKey: string,
   expectedKind: "create" | "delete",
   expectedEntityType?: string
 ): {
-  readonly collection: CanonicalCollectionDefinition;
+  readonly collection?: CanonicalCollectionDefinition;
   readonly entityType: string;
   readonly mutation: CrudMutationDefinition;
 } => {
@@ -194,17 +227,27 @@ const getCanonicalCollection = (
     );
   }
 
-  const collection = registry.collections[mutation.entityType];
-  if (collection === undefined) {
-    throw new Error(
-      `No canonical collection is registered for GraphQL type "${mutation.entityType}".`
-    );
-  }
-
   return {
-    collection,
+    collection: registry.collections[mutation.entityType],
     entityType: mutation.entityType,
     mutation,
+  };
+};
+
+const requireCanonicalCollection = (
+  definition: ReturnType<typeof getCrudMutation>,
+  operationName: string
+): ReturnType<typeof getCrudMutation> & {
+  readonly collection: CanonicalCollectionDefinition;
+} => {
+  if (definition.collection === undefined) {
+    throw new Error(
+      `Create mutation "${operationName}" has no canonical collection for GraphQL type "${definition.entityType}".`
+    );
+  }
+  return {
+    ...definition,
+    collection: definition.collection,
   };
 };
 
@@ -213,13 +256,16 @@ export const useOptimisticCreate = <
   TVariables extends OperationVariables,
   TCollectionData = unknown,
   TCollectionVariables extends OperationVariables = OperationVariables,
+  TField extends
+    MutationResponseKey<TMutationData> = MutationResponseKey<TMutationData>,
 >(
   mutation: MutationDocument<TMutationData, TVariables>,
   options: OptimisticCreateOptions<
     TMutationData,
     TVariables,
     TCollectionData,
-    TCollectionVariables
+    TCollectionVariables,
+    TField
   >
 ) => {
   const apolloClient = useApolloClient(options.client);
@@ -227,23 +273,27 @@ export const useOptimisticCreate = <
     collection: collectionOverride,
     field,
     identity,
-    keyField,
     optimistic,
     optimisticId,
+    placement = "prepend",
     update,
     ...apolloOptions
   } = options;
   const operationName = getOperationName(mutation, "mutation");
-  const responseKey = getRootResponseKey(mutation, "mutation", field);
-  const entitySelection = getMutationEntitySelection(mutation, field);
-  const canonical = getCanonicalCollection(
-    apolloClient.cache,
-    operationName,
-    responseKey,
-    "create",
-    entitySelection.typename
+  const selectedField = field as string | undefined;
+  const responseKey = getRootResponseKey(mutation, "mutation", selectedField);
+  const entitySelection = getMutationEntitySelection(mutation, selectedField);
+  const canonical = requireCanonicalCollection(
+    getCrudMutation(
+      apolloClient.cache,
+      operationName,
+      responseKey,
+      "create",
+      entitySelection.typename
+    ),
+    operationName
   );
-  const resolvedKeyField = keyField ?? canonical.mutation.keyField;
+  const resolvedKeyField = canonical.mutation.keyField;
 
   const {
     onCompleted: configuredOnCompleted,
@@ -269,14 +319,15 @@ export const useOptimisticCreate = <
       canonical.mutation.collectionVariablePaths ?? {},
       mutationVariables ?? {}
     );
-    prependToList(
+    insertIntoList(
       cache,
       {
         query: canonical.collection.query,
         responseKey: canonical.collection.responseKey,
         variables: collectionVariables,
       },
-      createdEntity
+      createdEntity,
+      placement
     );
 
     if (collectionOverride === undefined) {
@@ -289,8 +340,9 @@ export const useOptimisticCreate = <
         : collectionOverride;
 
     if (resolvedOverride !== undefined) {
-      prependToCollectionVariant(cache, {
+      insertIntoCollectionVariant(cache, {
         entity: createdEntity,
+        placement,
         query: resolvedOverride.query,
         variables: resolvedOverride.variables,
       });
@@ -372,7 +424,7 @@ export const useOptimisticCreate = <
       },
       variables: mutationVariables,
     });
-  }) as typeof mutate;
+  }) as ControlledMutationFunction<TMutationData, TVariables>;
 
   return [execute, mutationResult] as const;
 };
@@ -380,13 +432,15 @@ export const useOptimisticCreate = <
 export const useOptimisticUpdate = <
   TMutationData,
   TVariables extends OperationVariables,
+  TField extends MutationResponseKey<TMutationData>,
 >(
   mutation: MutationDocument<TMutationData, TVariables>,
-  options: OptimisticUpdateOptions<TMutationData, TVariables>
+  options: OptimisticUpdateOptions<TMutationData, TVariables, TField>
 ) => {
   const { current, field, optimistic, update, ...apolloOptions } = options;
-  const responseKey = getRootResponseKey(mutation, "mutation", field);
-  const entitySelection = getMutationEntitySelection(mutation, field);
+  const selectedField = field as string | undefined;
+  const responseKey = getRootResponseKey(mutation, "mutation", selectedField);
+  const entitySelection = getMutationEntitySelection(mutation, selectedField);
   const currentRecord = asRecord(current) ?? {};
   const mutationOptions: useMutation.Options<
     TMutationData,
@@ -395,18 +449,32 @@ export const useOptimisticUpdate = <
     NoConfiguredVariables
   > = {
     ...apolloOptions,
-    optimisticResponse: (variables) =>
-      ({
+  };
+
+  const [mutate, mutationResult] = useMutation(mutation, mutationOptions);
+  const execute = ((...args: Parameters<typeof mutate>) => {
+    const [executeOptions] = args;
+    const mutationVariables = {
+      ...apolloOptions.variables,
+      ...executeOptions?.variables,
+    } as unknown as TVariables;
+    const applicationUpdate = executeOptions?.update ?? update;
+
+    return mutate({
+      ...executeOptions,
+      optimisticResponse: {
         [responseKey]: {
           __typename: entitySelection.typename,
           ...currentRecord,
-          ...optimistic(variables, current),
+          ...optimistic(mutationVariables, current),
         },
-      }) as never,
-    update,
-  };
+      } as never,
+      update: applicationUpdate,
+      variables: mutationVariables,
+    });
+  }) as ControlledMutationFunction<TMutationData, TVariables>;
 
-  return useMutation(mutation, mutationOptions);
+  return [execute, mutationResult] as const;
 };
 
 const identifyEntity = (
@@ -427,7 +495,10 @@ const identifyEntity = (
 
 const evictEntity = (cache: ApolloCache, normalizedId?: string): void => {
   if (normalizedId !== undefined) {
-    cache.evict({ id: normalizedId });
+    cache.modify({
+      fields: (_value, { DELETE }) => DELETE,
+      id: normalizedId,
+    });
     cache.gc();
   }
 };
@@ -435,21 +506,26 @@ const evictEntity = (cache: ApolloCache, normalizedId?: string): void => {
 export const useOptimisticDelete = <
   TMutationData,
   TVariables extends OperationVariables,
+  TField extends MutationResponseKey<TMutationData>,
 >(
   mutation: MutationDocument<TMutationData, TVariables>,
-  options: OptimisticDeleteOptions<TMutationData, TVariables>
+  options: OptimisticDeleteOptions<TMutationData, TVariables, TField>
 ) => {
   const apolloClient = useApolloClient(options.client);
-  const { field, id, keyField, update, ...apolloOptions } = options;
-  const responseKey = getRootResponseKey(mutation, "mutation", field);
+  const { field, id, identity, update, ...apolloOptions } = options;
+  const responseKey = getRootResponseKey(
+    mutation,
+    "mutation",
+    field as string | undefined
+  );
   const operationName = getOperationName(mutation, "mutation");
-  const canonical = getCanonicalCollection(
+  const canonical = getCrudMutation(
     apolloClient.cache,
     operationName,
     responseKey,
     "delete"
   );
-  const resolvedKeyField = keyField ?? canonical.mutation.keyField;
+  const resolvedKeyField = canonical.mutation.keyField;
 
   const mutationOptions: useMutation.Options<
     TMutationData,
@@ -458,38 +534,53 @@ export const useOptimisticDelete = <
     NoConfiguredVariables
   > = {
     ...apolloOptions,
-    optimisticResponse: (variables) =>
-      ({
-        [responseKey]: id(variables),
-      }) as never,
-    update: (cache, result, context) => {
-      const { variables } = context;
-      if (variables === undefined) {
-        update?.(cache, result, context);
-        return;
-      }
-
-      const deletedId = id(variables);
-      const normalizedId = identifyEntity(
-        cache,
-        canonical.entityType,
-        resolvedKeyField,
-        deletedId
-      );
-
-      removeFromAllListVariants(
-        cache,
-        canonical.collection.storeFieldName,
-        resolvedKeyField,
-        deletedId
-      );
-      evictEntity(cache, normalizedId);
-
-      update?.(cache, result, context);
-    },
   };
 
-  return useMutation(mutation, mutationOptions);
+  const [mutate, mutationResult] = useMutation(mutation, mutationOptions);
+  const execute = ((...args: Parameters<typeof mutate>) => {
+    const [executeOptions] = args;
+    const mutationVariables = {
+      ...apolloOptions.variables,
+      ...executeOptions?.variables,
+    } as unknown as TVariables;
+    const deletedId = id(mutationVariables);
+    const applicationUpdate = executeOptions?.update ?? update;
+    const applicationOnCompleted =
+      executeOptions?.onCompleted ?? apolloOptions.onCompleted;
+
+    return mutate({
+      ...executeOptions,
+      onCompleted: (data, clientOptions) => {
+        identity?.release(deletedId);
+        applicationOnCompleted?.(data, clientOptions);
+      },
+      optimisticResponse: {
+        [responseKey]: deletedId,
+      } as never,
+      update: (cache, result, context) => {
+        const normalizedId = identifyEntity(
+          cache,
+          canonical.entityType,
+          resolvedKeyField,
+          deletedId
+        );
+
+        if (canonical.collection !== undefined) {
+          removeFromAllListVariants(
+            cache,
+            canonical.collection.storeFieldName,
+            resolvedKeyField,
+            deletedId
+          );
+        }
+        evictEntity(cache, normalizedId);
+        applicationUpdate?.(cache, result, context);
+      },
+      variables: mutationVariables,
+    });
+  }) as ControlledMutationFunction<TMutationData, TVariables>;
+
+  return [execute, mutationResult] as const;
 };
 
 export type MutationDataOf<TDocument> = DataOf<TDocument>;

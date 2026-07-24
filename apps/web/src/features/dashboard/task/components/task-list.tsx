@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/empty";
 import { DeleteTaskDialog } from "@/features/dashboard/task/components/delete-task-dialog";
 import { EditTaskDialog } from "@/features/dashboard/task/components/edit-task-dialog";
+import { useTaskListScope } from "@/features/dashboard/task/context/task-list-scope";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
-import { taskListIdentity } from "@/features/dashboard/task/lib/task-list-identity";
 import { formatMediumDate } from "@/lib/format-date";
 
 const WHITESPACE_PATTERN = /\s+/;
@@ -91,6 +91,8 @@ export function TaskList({
   onClearFilters,
   tasks,
 }: TaskListProps) {
+  const { identity } = useTaskListScope();
+
   if (tasks.length === 0) {
     if (hasActiveFilters) {
       return (
@@ -143,7 +145,7 @@ export function TaskList({
       {tasks.map((task) => {
         const item = readFragment(TaskListItemFragment, task);
 
-        return <TaskCard key={taskListIdentity.getKey(item.id)} task={task} />;
+        return <TaskCard key={identity.getKey(item.id)} task={task} />;
       })}
     </div>
   );

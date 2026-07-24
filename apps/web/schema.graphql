@@ -122,6 +122,7 @@ type User {
   createdAt: DateTime!
   email: String!
   emailVerified: Boolean!
+  id: ID!
   imageFull: String
   imagePlaceholder: String
   imageThumb: String

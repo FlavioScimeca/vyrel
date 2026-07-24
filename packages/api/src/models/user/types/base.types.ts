@@ -11,7 +11,6 @@ export const authUserProfileSchema = userSelectSchema.extend({
 });
 
 export const userQuerySchema = userSelectSchema.omit({
-  id: true,
   imageAssetId: true,
   imageFull: true,
   imageThumb: true,

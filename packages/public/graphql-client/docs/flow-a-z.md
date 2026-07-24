@@ -229,7 +229,8 @@ const config: CodegenConfig = {
       plugins: [
         {
           "@vyrel/graphql-client/codegen-plugin": {
-            keyFields: { Organization: "slug" },
+            // Solo chiavi singole e immutabili.
+            keyFields: { Article: "uuid" },
             scalars: { DateTime: "string" },
           },
         },
@@ -571,9 +572,10 @@ Apollo scrive l'entity nel proprio layer optimistic. Il package poi:
 3. trova la collection canonica di `Task`;
 4. risolve `organizationId` da `input.organizationId`;
 5. aggiorna `ListTasksDocument` sulla variante canonica;
-6. inserisce la task all'inizio della lista;
+6. inserisce la task all'inizio della lista, oppure alla fine con
+   `placement: "append"`;
 7. evita duplicati usando l'ID normalizzato Apollo;
-8. se l'app passa `collection`, esegue un secondo prepend sulla variante
+8. se l'app passa `collection`, applica lo stesso placement alla variante
    esplicita (dual-write), senza sostituire la write canonica.
 
 Quando arriva la risposta reale, Apollo rimuove il layer optimistic. Il package
@@ -633,7 +635,7 @@ useOptimisticCreate(CreateTaskDocument, {
 
 Regole:
 
-- senza `collection` → solo write canonica (comportamento V1 precedente);
+- senza `collection` → solo write canonica;
 - con `collection` → write canonica **e** write sulla variante esplicita;
 - `collection` può essere un oggetto oppure una funzione delle variabili della
   mutation (per decidere membership al momento del create);
@@ -770,8 +772,8 @@ automaticamente:
 - operation: `DeleteTask`;
 - response field: `deleteTask`;
 - entity type: `Task`;
-- collection field: `tasks`;
-- query canonica: `ListTasksDocument`.
+- cache key: `id`;
+- collection field e query canonica, quando esistono.
 
 Il package costruisce la risposta optimistic:
 
@@ -783,11 +785,18 @@ Il package costruisce la risposta optimistic:
 
 Poi:
 
-1. rimuove la task da tutte le varianti cached del campo `tasks`;
+1. se esiste una collection canonica, rimuove la task da tutte le sue varianti
+   cached;
 2. costruisce l'ID normalizzato Apollo usando typename e key field;
-3. esegue `cache.evict`;
+3. elimina il record nello strato corrente della cache, così Apollo può fare
+   rollback in caso di errore;
 4. esegue `cache.gc`;
 5. esegue l'eventuale callback `update` dell'applicazione.
+
+Una delete scalare senza query lista resta quindi valida: salta il primo punto
+ma rimuove comunque l'entità normalizzata. Se viene condivisa una `identity`
+con la create, il mapping stabile viene rilasciato soltanto dopo il successo
+server; un errore conserva la React key della riga ripristinata.
 
 Rimuovere da tutte le varianti significa considerare cache come:
 
@@ -815,10 +824,11 @@ useOptimisticCreate(CreateTaskDocument, {
 });
 ```
 
-Il package prende il controllo della costruzione di `optimisticResponse` e
-compone il proprio aggiornamento con `update`. Il callback dell'applicazione
-viene eseguito dopo il comportamento built-in, quindi i casi eccezionali non
-richiedono un fork del package.
+Il package prende il controllo della costruzione di `optimisticResponse`, anche
+nelle opzioni per-call. Il callback `update` dell'applicazione viene eseguito
+dopo il comportamento built-in. Un `update` per-call sostituisce quello
+configurato sull'hook secondo la semantica Apollo, senza mai disabilitare la
+logica built-in.
 
 Internamente `useMutation` riceve il `TypedDocumentNode` prodotto da gql.tada.
 Non vengono specificati manualmente i generic deprecati di Apollo.
@@ -931,7 +941,7 @@ schema. Il registry CRUD può però conoscere soltanto le operazioni realmente
 presenti nei documenti del client: il package non genera query o mutation che
 l'applicazione non ha definito.
 
-## 15. Convenzioni e regole di inferenza V1
+## 15. Convenzioni e regole di inferenza 0.2
 
 L'automazione si basa su convenzioni intenzionali:
 
@@ -941,20 +951,23 @@ L'automazione si basa su convenzioni intenzionali:
 - collection rappresentata da un array top-level;
 - cache key lette dalla configurazione codegen, con `id` come default;
 - operation nominate;
-- mutation con più root field registrate per response key e selezionabili con
-  `field`;
+- mutation con più root field registrate per response key: `field` è
+  obbligatorio e tipizzato; su una mutation single-root resta opzionale;
 - collection query con una singola lista top-level;
 - fragment multipli ammessi se descrivono lo stesso entity type;
+- cache key presente nello schema e selezionata senza alias nelle collection
+  canoniche e nelle response create/update, anche via fragment annidati;
 - `createdAt` e `updatedAt` popolati automaticamente durante una create se
   selezionati e non forniti.
 
 Le escape hatch disponibili sono:
 
-- `field` per mutation con più campi top-level;
-- `keyField` per cache key diversa da `id`;
+- `field` tipizzato per mutation con più campi top-level;
+- `keyFields` nel codegen per una cache key singola, custom e immutabile;
+- `placement` per scegliere prepend o append nelle create;
 - `optimisticId` per una strategia custom di ID temporaneo;
 - `identity` per correlare list key optimistic e reali anche con create
-  concorrenti;
+  concorrenti e rilasciarle dopo delete/teardown;
 - `update` per comportamento cache aggiuntivo.
 
 Quando un'inferenza non è sicura, codegen o runtime producono un errore

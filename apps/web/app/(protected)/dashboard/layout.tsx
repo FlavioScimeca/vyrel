@@ -7,8 +7,6 @@ import { ListOrganizationsDocument } from "@/features/dashboard/organization/gra
 import { PreloadQuery } from "@/graphql/apollo/client";
 import { getServerAuthState } from "@/lib/server-session";
 
-export const dynamic = "force-dynamic";
-
 export default async function DashboardLayout({
   children,
 }: {

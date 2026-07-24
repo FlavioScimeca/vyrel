@@ -104,6 +104,23 @@ interface UpdateOrganizationVariables {
   };
 }
 
+interface User {
+  readonly __typename: "User";
+  readonly email: string;
+  readonly id: string;
+  readonly name: string;
+}
+
+interface DeleteUserData {
+  readonly deleteUser: boolean;
+}
+
+interface DeleteUserVariables {
+  readonly input: {
+    readonly userId: string;
+  };
+}
+
 const tasksDocument = parse(`
   query ListTasks($organizationId: ID!, $search: String) {
     tasks(organizationId: $organizationId, search: $search) {
@@ -183,6 +200,20 @@ const updateOrganizationDocument = parse(`
   }
 `) as TypedDocumentNode<UpdateOrganizationData, UpdateOrganizationVariables>;
 
+const deleteUserDocument = parse(`
+  mutation DeleteUser($input: DeleteUser!) {
+    deleteUser(input: $input)
+  }
+`) as TypedDocumentNode<DeleteUserData, DeleteUserVariables>;
+
+const userCacheFragment = parse(`
+  fragment UserCacheIdentity on User {
+    email
+    id
+    name
+  }
+`) as TypedDocumentNode<User, Record<never, never>>;
+
 const registry = defineGraphqlClientRegistry({
   collections: {
     Task: {
@@ -259,6 +290,19 @@ const organizationIdRegistry = defineGraphqlClientRegistry({
         entityType: "Organization",
         keyField: "id",
         kind: "update",
+      },
+    },
+  },
+});
+
+const userRegistry = defineGraphqlClientRegistry({
+  collections: {},
+  mutations: {
+    DeleteUser: {
+      deleteUser: {
+        entityType: "User",
+        keyField: "id",
+        kind: "delete",
       },
     },
   },
@@ -427,6 +471,45 @@ const createOrganizationIdNetwork = (): PendingNetwork => {
       },
     }),
     organizationIdRegistry
+  );
+  const link = new ApolloLink(
+    () =>
+      new Observable((observer) => {
+        completeRequest = () => observer.complete();
+        failRequest = (error) => observer.error(error);
+        sendResult = (result) => observer.next(result as never);
+      })
+  );
+
+  return {
+    client: new ApolloClient({ cache, link }),
+    reject: (error) => {
+      if (failRequest === undefined) {
+        throw new Error("No pending GraphQL request to reject.");
+      }
+      failRequest(error);
+    },
+    resolve: (data) => {
+      if (sendResult === undefined || completeRequest === undefined) {
+        throw new Error("No pending GraphQL request to resolve.");
+      }
+      sendResult({ data });
+      completeRequest();
+    },
+  };
+};
+
+const createUserDeleteNetwork = (): PendingNetwork => {
+  let completeRequest: (() => void) | undefined;
+  let failRequest: ((error: Error) => void) | undefined;
+  let sendResult: ((result: { readonly data: unknown }) => void) | undefined;
+  const cache = configureGraphqlClientCache(
+    new InMemoryCache({
+      typePolicies: {
+        User: { keyFields: ["id"] },
+      },
+    }),
+    userRegistry
   );
   const link = new ApolloLink(
     () =>
@@ -743,6 +826,55 @@ describe("optimistic mutation hooks", () => {
     expect(readTaskIds(network.client, filteredVariables)).toEqual([]);
   });
 
+  it("appends and deduplicates in canonical and override collections", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const baseVariables = { organizationId: "org-1" };
+    const filteredVariables = { organizationId: "org-1", search: "test" };
+    const existingTask = {
+      __typename: "Task",
+      id: "task-existing",
+      title: "Existing",
+    } as const;
+    for (const variables of [baseVariables, filteredVariables]) {
+      network.client.cache.writeQuery({
+        data: { tasks: [existingTask] },
+        query: tasksDocument,
+        variables,
+      });
+    }
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          collection: {
+            query: tasksDocument,
+            variables: filteredVariables,
+          },
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+          placement: "append",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    act(() => {
+      result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Appended" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, baseVariables)).toEqual([
+      "task-existing",
+      "temporary-task",
+    ]);
+    expect(readTaskIds(network.client, filteredVariables)).toEqual([
+      "task-existing",
+      "temporary-task",
+    ]);
+  });
+
   it("dual-writes canonical and filtered collection variants", () => {
     const network = createPendingNetwork();
     activeClient = network.client;
@@ -907,6 +1039,57 @@ describe("optimistic mutation hooks", () => {
     ).toEqual([]);
   });
 
+  it("rolls an appended optimistic create back without reordering existing items", async () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    const variables = { organizationId: "org-1" };
+    network.client.cache.writeQuery({
+      data: {
+        tasks: [
+          {
+            __typename: "Task",
+            id: "task-existing",
+            title: "Existing",
+          },
+        ],
+      },
+      query: tasksDocument,
+      variables,
+    });
+    const { result } = renderHook(
+      () =>
+        useOptimisticCreate(createTaskDocument, {
+          optimistic: ({ input }) => ({ title: input.title }),
+          optimisticId: () => "temporary-task",
+          placement: "append",
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: {
+          input: { organizationId: "org-1", title: "Optimistic" },
+        },
+      });
+    });
+
+    expect(readTaskIds(network.client, variables)).toEqual([
+      "task-existing",
+      "temporary-task",
+    ]);
+
+    await act(async () => {
+      network.reject(new Error("Request failed"));
+      await expect(mutationPromise).rejects.toThrow("Request failed");
+    });
+
+    expect(readTaskIds(network.client, variables, false)).toEqual([
+      "task-existing",
+    ]);
+  });
+
   it("updates the normalized entity optimistically", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
@@ -962,6 +1145,81 @@ describe("optimistic mutation hooks", () => {
     ).toBe("After");
   });
 
+  it("protects update optimistic data and applies a per-call update afterward", () => {
+    const network = createPendingNetwork();
+    activeClient = network.client;
+    network.client.cache.writeQuery({
+      data: {
+        tasks: [{ __typename: "Task", id: "task-1", title: "Before" }],
+      },
+      query: tasksDocument,
+      variables: { organizationId: "org-1" },
+    });
+    let configuredUpdateCalls = 0;
+    let titleObservedByPerCallUpdate: string | undefined;
+    const current = { id: "task-1", title: "Before" };
+    const { result } = renderHook(
+      () =>
+        useOptimisticUpdate(updateTaskDocument, {
+          current,
+          optimistic: ({ input }) => ({ title: input.title }),
+          update: () => {
+            configuredUpdateCalls += 1;
+          },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+    type UnsafeUpdateOptions = {
+      readonly optimisticResponse: UpdateTaskData;
+      readonly update: typeof result.current extends readonly [
+        infer TMutation,
+        unknown,
+      ]
+        ? TMutation extends (options: infer TOptions) => Promise<unknown>
+          ? NonNullable<
+              TOptions extends { readonly update?: infer TUpdate }
+                ? TUpdate
+                : never
+            >
+          : never
+        : never;
+      readonly variables: UpdateTaskVariables;
+    };
+    const executeWithUnsafeOverride = result.current[0] as unknown as (
+      options: UnsafeUpdateOptions
+    ) => Promise<unknown>;
+
+    act(() => {
+      executeWithUnsafeOverride({
+        optimisticResponse: {
+          updateTask: {
+            __typename: "Task",
+            id: "task-1",
+            title: "Hacked",
+          },
+        },
+        update: (cache) => {
+          titleObservedByPerCallUpdate = cache.readQuery({
+            optimistic: true,
+            query: tasksDocument,
+            variables: { organizationId: "org-1" },
+          })?.tasks[0]?.title;
+        },
+        variables: { input: { taskId: "task-1", title: "Protected" } },
+      });
+    });
+
+    expect(titleObservedByPerCallUpdate).toBe("Protected");
+    expect(configuredUpdateCalls).toBe(0);
+    expect(
+      network.client.cache.readQuery({
+        optimistic: true,
+        query: tasksDocument,
+        variables: { organizationId: "org-1" },
+      })?.tasks[0]?.title
+    ).toBe("Protected");
+  });
+
   it("deletes optimistically from every cached collection variant", async () => {
     const network = createPendingNetwork();
     activeClient = network.client;
@@ -1007,6 +1265,144 @@ describe("optimistic mutation hooks", () => {
     expect(
       readTaskIds(network.client, { organizationId: "org-2" }, false)
     ).toEqual([]);
+  });
+
+  it("evicts an entity without a canonical collection and preserves built-in ordering", async () => {
+    const network = createUserDeleteNetwork();
+    const identity = createOptimisticListIdentity();
+    activeClient = network.client;
+    const user = {
+      __typename: "User",
+      email: "user@example.com",
+      id: "user-1",
+      name: "User",
+    } as const;
+    const normalizedId = network.client.cache.identify(user);
+    if (normalizedId === undefined) {
+      throw new Error("Expected User to have a normalized cache id.");
+    }
+    network.client.cache.writeFragment({
+      data: user,
+      fragment: userCacheFragment,
+      id: normalizedId,
+    });
+    identity.begin("optimistic-user");
+    identity.commit("optimistic-user", user.id);
+    let configuredUpdateCalls = 0;
+    const observedAfterBuiltIn: boolean[] = [];
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteUserDocument, {
+          id: ({ input }) => input.userId,
+          identity,
+          update: () => {
+            configuredUpdateCalls += 1;
+          },
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        update: (cache) => {
+          observedAfterBuiltIn.push(
+            cache.readFragment({
+              fragment: userCacheFragment,
+              id: normalizedId,
+            }) === null
+          );
+        },
+        variables: { input: { userId: user.id } },
+      });
+    });
+
+    expect(observedAfterBuiltIn).toEqual([true]);
+    expect(
+      network.client.cache.readFragment({
+        fragment: userCacheFragment,
+        id: normalizedId,
+        optimistic: true,
+      })
+    ).toBeNull();
+    expect(identity.getKey(user.id)).toBe("optimistic-user");
+
+    await act(async () => {
+      network.resolve({ deleteUser: true });
+      await mutationPromise;
+    });
+
+    expect(observedAfterBuiltIn).toEqual([true, true]);
+    expect(configuredUpdateCalls).toBe(0);
+    expect(identity.getKey(user.id)).toBe(user.id);
+    expect(
+      network.client.cache.readFragment({
+        fragment: userCacheFragment,
+        id: normalizedId,
+        optimistic: false,
+      })
+    ).toBeNull();
+  });
+
+  it("rolls back entity-only eviction and retains stable identity on error", async () => {
+    const network = createUserDeleteNetwork();
+    const identity = createOptimisticListIdentity();
+    activeClient = network.client;
+    const user = {
+      __typename: "User",
+      email: "user@example.com",
+      id: "user-1",
+      name: "User",
+    } as const;
+    const normalizedId = network.client.cache.identify(user);
+    if (normalizedId === undefined) {
+      throw new Error("Expected User to have a normalized cache id.");
+    }
+    network.client.cache.writeFragment({
+      data: user,
+      fragment: userCacheFragment,
+      id: normalizedId,
+    });
+    identity.begin("optimistic-user");
+    identity.commit("optimistic-user", user.id);
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteUserDocument, {
+          id: ({ input }) => input.userId,
+          identity,
+          onError: () => undefined,
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { userId: user.id } },
+      });
+    });
+
+    expect(
+      network.client.cache.readFragment({
+        fragment: userCacheFragment,
+        id: normalizedId,
+        optimistic: true,
+      })
+    ).toBeNull();
+
+    await act(async () => {
+      network.reject(new Error("Delete failed"));
+      await expect(mutationPromise).rejects.toThrow("Delete failed");
+    });
+
+    expect(identity.getKey(user.id)).toBe("optimistic-user");
+    expect(
+      network.client.cache.readFragment({
+        fragment: userCacheFragment,
+        id: normalizedId,
+        optimistic: false,
+      })
+    ).toEqual(user);
   });
 
   it("keeps a custom-key delete removed when the server returns a different id", async () => {

@@ -33,6 +33,7 @@ const schema = `
     createTask(input: CreateTask!): Task
     createTaskDirect(organizationId: ID!, title: String!): Task
     deleteTask(id: ID!): ID
+    deleteUser(id: ID!): Boolean!
     updateTask(id: ID!, title: String): Task
   }
 
@@ -42,6 +43,11 @@ const schema = `
     description: String
     status: TaskStatus!
     updatedAt: DateTime!
+  }
+
+  type User {
+    id: ID!
+    email: String!
   }
 `;
 
@@ -235,6 +241,134 @@ describe("GraphQL Codegen plugin", () => {
     expect(source).toContain('readonly "DateTime": string;');
     expect(source).toContain('"keyField":"title"');
     expect(source).toContain('"Task": { keyFields: ["title"] }');
+  });
+
+  it("finds an unaliased key through nested fragments with a cycle guard", () => {
+    const sources = collectGraphqlSources([
+      {
+        document: parse(`
+          fragment TaskOuter on Task {
+            ...TaskInner
+          }
+          fragment TaskInner on Task {
+            id
+            ...TaskOuter
+          }
+        `),
+        location: "/app/src/task/nested-fragments.ts",
+      },
+      {
+        document: parse(`
+          query ListTasks($organizationId: ID!) {
+            tasks(organizationId: $organizationId) {
+              ...TaskOuter
+            }
+          }
+        `),
+        location: "/app/src/task/nested-query.ts",
+      },
+      {
+        document: parse(`
+          mutation CreateTask($input: CreateTask!) {
+            createTask(input: $input) {
+              ...TaskOuter
+            }
+          }
+        `),
+        location: "/app/src/task/nested-mutation.ts",
+      },
+    ]);
+
+    expect(() =>
+      createGeneratedCrudRegistry(schema, sources.operations, {
+        scalars: { DateTime: "string" },
+      })
+    ).not.toThrow();
+  });
+
+  it("rejects a missing cache key in a canonical collection", () => {
+    const sources = collectGraphqlSources([
+      {
+        document: parse(`
+          query ListTasks($organizationId: ID!) {
+            tasks(organizationId: $organizationId) {
+              title
+            }
+          }
+        `),
+        location: "/app/src/task/missing-key-query.ts",
+      },
+    ]);
+
+    expect(() =>
+      createGeneratedCrudRegistry(schema, sources.operations, {
+        scalars: { DateTime: "string" },
+      })
+    ).toThrow(
+      'Cache key "Task.id" is not selected in canonical collection "ListTasks.tasks".'
+    );
+  });
+
+  it("rejects an aliased cache key in a mutation response", () => {
+    const sources = collectGraphqlSources([
+      {
+        document: parse(`
+          query ListTasks($organizationId: ID!) {
+            tasks(organizationId: $organizationId) {
+              id
+              title
+            }
+          }
+        `),
+        location: "/app/src/task/query.ts",
+      },
+      {
+        document: parse(`
+          mutation UpdateTask($id: ID!, $title: String) {
+            updateTask(id: $id, title: $title) {
+              cacheId: id
+              title
+            }
+          }
+        `),
+        location: "/app/src/task/aliased-key-mutation.ts",
+      },
+    ]);
+
+    expect(() =>
+      createGeneratedCrudRegistry(schema, sources.operations, {
+        scalars: { DateTime: "string" },
+      })
+    ).toThrow(
+      'Cache key "Task.id" is selected with an alias; cache keys must be selected without aliases in mutation response "UpdateTask.updateTask".'
+    );
+  });
+
+  it("registers a scalar delete without a canonical collection", () => {
+    const sources = collectGraphqlSources([
+      {
+        document: parse(`
+          mutation DeleteUser($id: ID!) {
+            deleteUser(id: $id)
+          }
+        `),
+        location: "/app/src/user/delete-mutation.ts",
+      },
+    ]);
+    const registry = createGeneratedCrudRegistry(schema, sources.operations, {
+      scalars: { DateTime: "string" },
+    });
+
+    expect(registry.collections).toEqual([]);
+    expect(registry.mutations).toEqual([
+      {
+        entityType: "User",
+        keyField: "id",
+        kind: "delete",
+        operationName: "DeleteUser",
+        responseKey: "deleteUser",
+      },
+    ]);
   });
 
   it("rejects document exports that do not follow the gql.tada convention", () => {

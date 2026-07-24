@@ -14,6 +14,10 @@ export type OptimisticListIdentity = {
   readonly commit: (optimisticId: string, realId: string) => void;
   /** Drop a pending optimistic id (mutation error / abort). */
   readonly abandon: (optimisticId: string) => void;
+  /** Remove a completed real entity mapping after a successful delete. */
+  readonly release: (entityId: string) => void;
+  /** Remove every mapping when the owning feature/list is unmounted. */
+  readonly clear: () => void;
   /**
    * Stable React list key across the optimistic → real id swap.
    * Falls back to `entityId` when no binding exists.
@@ -53,6 +57,11 @@ export const createOptimisticListIdentity = (
   const identityByEntityId = new Map<string, string>();
 
   const begin = (optimisticId = createId()): string => {
+    if (identityByEntityId.has(optimisticId)) {
+      throw new Error(
+        `Optimistic list identity "${optimisticId}" is already registered.`
+      );
+    }
     identityByEntityId.set(optimisticId, optimisticId);
     return optimisticId;
   };
@@ -73,11 +82,19 @@ export const createOptimisticListIdentity = (
     identityByEntityId.delete(optimisticId);
   };
 
+  const release = (entityId: string): void => {
+    identityByEntityId.delete(entityId);
+  };
+
+  const clear = (): void => {
+    identityByEntityId.clear();
+  };
+
   const getKey = (entityId: string): string =>
     identityByEntityId.get(entityId) ?? entityId;
 
   const isOptimisticId = (entityId: string): boolean =>
     entityId.startsWith(prefix);
 
-  return { abandon, begin, commit, getKey, isOptimisticId };
+  return { abandon, begin, clear, commit, getKey, isOptimisticId, release };
 };

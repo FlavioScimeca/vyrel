@@ -1,4 +1,4 @@
-# V1 contract and architecture
+# 0.2 contract and architecture
 
 Status: accepted and implemented.
 
@@ -15,8 +15,9 @@ The public runtime consists of three explicit hooks:
 - `useOptimisticUpdate`
 - `useOptimisticDelete`
 
-The generated registry describes the canonical query-backed array for
-create/delete membership changes. Reads keep using Apollo `useQuery`.
+The generated registry describes canonical query-backed arrays and entity cache
+keys. Create requires a canonical collection; delete can also operate on an
+entity with no list query. Reads keep using Apollo `useQuery`.
 
 ## Type sources
 
@@ -35,8 +36,9 @@ fallbacks for other document generators.
 
 ## Inference rules
 
-- One or more mutation root fields: register every CRUD field by response key,
-  including aliases; `field` selects one at the call site.
+- One mutation root field: `field` is optional. Multiple mutation root fields:
+  `field` is a required, autocompleted response key, and fragment data is
+  inferred only from that field.
 - Exactly one collection-query root field: preserve both its response key and
   underlying Apollo store field name.
 - One or more mutation fragments: combine their fields and infer `__typename`
@@ -46,16 +48,18 @@ fallbacks for other document generators.
 - Create query variables: bind each mutation field independently from equal
   variable names or nested input fields, with `ID` and `String` treated as
   compatible string identities.
-- Cache key: read the generated plugin configuration, default to `id`, and allow
-  a call-site override.
+- Cache key: read the generated plugin configuration and default to `id`.
+  Create/delete do not accept a call-site override.
 - Create ID: default to `optimistic-${randomUUID}`.
 - Delete typename: obtain it from the generated CRUD mutation registry.
 - Selected `createdAt` and `updatedAt`: default to the current ISO timestamp on
   create when the optimistic patch does not provide them.
 
-Document export convention violations and inference ambiguity produce early
-descriptive codegen errors. `field`, `keyField` and `optimisticId` remain
-explicit operation/cache controls.
+Document export convention violations, inference ambiguity, missing cache keys
+and aliased cache-key selections produce early descriptive codegen errors. Cache
+keys must exist in the schema and be selected without aliases in canonical
+collections and create/update responses. Nested fragment spreads are traversed
+with cycle protection.
 
 ## Cache flow
 
@@ -66,11 +70,12 @@ explicit operation/cache controls.
 3. Wrap the entity under the mutation response key.
 4. Let Apollo normalize it.
 5. Resolve the canonical query variables from mutation variables.
-6. Prepend it to the canonical list and deduplicate by normalized cache ID.
+6. Insert it into the canonical list and deduplicate by normalized cache ID.
+   `placement` defaults to `prepend` and also supports `append`.
 7. If the call site passes optional `collection` (object or function of mutation
-   variables returning `{ query, variables } | undefined`), also prepend to that
-   exact list variant (dual-write; never replaces the canonical write). When both
-   target the same slot, dedupe keeps a single entry.
+   variables returning `{ query, variables } | undefined`), also apply the same
+   placement to that exact list variant (dual-write; never replaces the
+   canonical write). When both target the same slot, dedupe keeps one entry.
 8. Repeat the same list behavior for the server result when Apollo removes the
    optimistic layer.
 
@@ -98,7 +103,8 @@ membership stays in the application.
 
 1. Derive the ID from typed mutation variables.
 2. Build the scalar optimistic mutation response.
-3. Remove the entity from every cached argument variant of its canonical list.
+3. When a canonical list exists, remove the entity from every cached argument
+   variant. Entity-only delete skips this step.
 4. Evict and garbage-collect its normalized record.
 
 The ID callback remains the source of the normalized cache key for both the
@@ -107,6 +113,13 @@ the same identity domain as the configured Apollo key field.
 
 Apollo's `update` callback is composed after the built-in behavior, so consumers
 can extend any exceptional cache workflow without forking the package.
+`optimisticResponse` is package-controlled at hook and per-call level. A
+per-call `update` replaces the configured application callback but never the
+built-in update.
+
+When create and delete share an `OptimisticListIdentity`, successful delete
+releases the real-ID mapping. Errors retain it for the optimistic rollback.
+`clear()` owns feature/list teardown.
 
 ## Package boundaries
 
@@ -137,7 +150,7 @@ can extend any exceptional cache workflow without forking the package.
 The hook bundle starts with `"use client"`. Cache configuration is isomorphic;
 the codegen bundles are separate Node entry points.
 
-## V1 non-goals
+## 0.2 non-goals
 
 - replacing Apollo cache policies;
 - generating GraphQL operations;
@@ -150,6 +163,6 @@ the codegen bundles are separate Node entry points.
 - offline persistence, mutation queues, undo or conflict resolution;
 - nested/Relay connection pagination adapters.
 
-These boundaries keep V1 small while leaving explicit extension points. A
+These boundaries keep 0.2 focused while leaving explicit extension points. A
 future connection adapter can reuse the hook lifecycle without changing the
 operation-driven API.

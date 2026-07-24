@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
-import { type ReactNode, useTransition } from "react";
+import { type ReactNode, useMemo, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -87,8 +87,17 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
     setSearch,
   } = useTaskFilters();
   const [, startTransition] = useTransition();
+  const { createdFrom, createdTo, search: querySearch } = queryVariables;
 
-  const listVariables = { organizationId, ...queryVariables };
+  const listVariables = useMemo(
+    () => ({
+      ...(createdFrom === undefined ? {} : { createdFrom }),
+      ...(createdTo === undefined ? {} : { createdTo }),
+      organizationId,
+      ...(querySearch === undefined ? {} : { search: querySearch }),
+    }),
+    [createdFrom, createdTo, organizationId, querySearch]
+  );
 
   const { data, error, refetch } = useSuspenseQuery(ListTasksDocument, {
     fetchPolicy: hasActiveFilters ? "cache-and-network" : "cache-first",

@@ -89,4 +89,38 @@ describe("createOptimisticListIdentity", () => {
     const identity = createOptimisticListIdentity();
     expect(identity.getKey("unknown")).toBe("unknown");
   });
+
+  it("rejects an optimistic id that is already registered", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-duplicate");
+
+    expect(() => identity.begin("optimistic-duplicate")).toThrow(
+      'Optimistic list identity "optimistic-duplicate" is already registered.'
+    );
+  });
+
+  it("releases one completed mapping without changing the others", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-a");
+    identity.begin("optimistic-b");
+    identity.commit("optimistic-a", "server-a");
+    identity.commit("optimistic-b", "server-b");
+
+    identity.release("server-a");
+
+    expect(identity.getKey("server-a")).toBe("server-a");
+    expect(identity.getKey("server-b")).toBe("optimistic-b");
+  });
+
+  it("clears every pending and completed mapping", () => {
+    const identity = createOptimisticListIdentity();
+    identity.begin("optimistic-pending");
+    identity.begin("optimistic-complete");
+    identity.commit("optimistic-complete", "server-complete");
+
+    identity.clear();
+
+    expect(identity.getKey("optimistic-pending")).toBe("optimistic-pending");
+    expect(identity.getKey("server-complete")).toBe("server-complete");
+  });
 });
