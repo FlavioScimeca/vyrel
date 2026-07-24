@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.2.0
+
+### Minor Changes
+
+- 498f123: better api
+
 ## 0.1.6
 
 ### Patch Changes
