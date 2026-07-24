@@ -12,10 +12,9 @@ import { TaskListScopeProvider } from "@/features/dashboard/task/context/task-li
 import { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useTaskFilters } from "@/features/dashboard/task/hooks/use-task-filters";
-import { authClient } from "@/lib/auth-client";
 
 type TasksScreenProps = {
-  initialOrganizationId: string | null;
+  organizationId: string;
 };
 
 function TasksListErrorFallback({
@@ -135,27 +134,6 @@ function TasksWithOrganization({ organizationId }: { organizationId: string }) {
   );
 }
 
-export default function TasksScreen({
-  initialOrganizationId,
-}: TasksScreenProps) {
-  const { data: sessionData } = authClient.useSession();
-  const sessionOrgId = sessionData?.session.activeOrganizationId ?? null;
-  // Prefer live session org (e.g. after sidebar switch); fall back to server prop.
-  const organizationId = sessionOrgId ?? initialOrganizationId;
-  const hasOrganization = organizationId !== null && organizationId.length > 0;
-
-  if (hasOrganization) {
-    return <TasksWithOrganization organizationId={organizationId} />;
-  }
-
-  return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <TasksHeader />
-      <Alert>
-        <AlertDescription>
-          Select an active organization to view and create tasks.
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
+export default function TasksScreen({ organizationId }: TasksScreenProps) {
+  return <TasksWithOrganization organizationId={organizationId} />;
 }

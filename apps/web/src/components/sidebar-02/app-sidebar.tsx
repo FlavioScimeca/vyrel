@@ -68,7 +68,11 @@ const dashboardRoutes: Route[] = [
   },
 ];
 
-export function DashboardSidebar() {
+export function DashboardSidebar({
+  activeOrganizationId,
+}: {
+  activeOrganizationId: string;
+}) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -82,7 +86,7 @@ export function DashboardSidebar() {
             : "flex-row items-center justify-between"
         )}
       >
-        <OrganizationSwitcher />
+        <OrganizationSwitcher activeOrganizationId={activeOrganizationId} />
 
         <LazyMotion features={loadMotionDomAnimation} strict>
           <m.div

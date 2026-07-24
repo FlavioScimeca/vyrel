@@ -1,4 +1,4 @@
-import { resolveActorUserId } from "@vyrel/graphql/context";
+import { requireActorUserId } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
 
 import { deleteTask } from "../../services/delete.service";
@@ -19,8 +19,7 @@ builder.mutationFields((t) => ({
       runTaskGraphqlEffect(
         deleteTask(
           taskDeleteSchema.parse(args.input),
-          context.headers,
-          resolveActorUserId(context)
+          requireActorUserId(context)
         )
       ),
     type: "String",

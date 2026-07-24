@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { parseAuthMode } from "@/features/auth/form.schema";
 import { isSafeRedirectPath } from "@/features/auth/resolve-post-auth-redirect";
 import { AuthScreen } from "@/features/auth/screen";
+import { getServerAuthState } from "@/lib/server-session";
 
 type AuthSearchParams = Promise<{
   mode?: string | string[];
@@ -23,7 +25,15 @@ export default async function AuthPage({
 }: {
   searchParams: AuthSearchParams;
 }) {
-  const params = await searchParams;
+  const [params, authState] = await Promise.all([
+    searchParams,
+    getServerAuthState(),
+  ]);
+
+  if (authState !== null) {
+    redirect(authState.hasOrganizationAccess ? "/dashboard" : "/onboarding");
+  }
+
   const mode = parseAuthMode(firstParam(params.mode));
   const next = firstParam(params.next);
   const safeNext = next !== null && isSafeRedirectPath(next) ? next : null;

@@ -1,14 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { hasSessionCookie, resolveOrganizationAccess } from "@/lib/proxy-auth";
-import {
-  defaultRouteForOrganization,
-  isBackendApiRoute,
-  isOnboardingRoute,
-  isPublicRoute,
-  shouldBypassAuthGuard,
-} from "@/lib/proxy-routes";
+import { hasSessionCookie } from "@/lib/proxy-auth";
+import { isBackendApiRoute, shouldBypassAuthGuard } from "@/lib/proxy-routes";
 
 function redirect(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone();
@@ -20,6 +14,7 @@ function redirect(request: NextRequest, pathname: string) {
 function redirectToAuth(request: NextRequest) {
   const url = request.nextUrl.clone();
   url.pathname = "/auth";
+  url.search = "";
   url.searchParams.set(
     "next",
     `${request.nextUrl.pathname}${request.nextUrl.search}`
@@ -27,8 +22,12 @@ function redirectToAuth(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isBackendApiRoute(pathname)) {
+    return NextResponse.next();
+  }
 
   if (!hasSessionCookie(request)) {
     if (shouldBypassAuthGuard(pathname)) {
@@ -38,38 +37,8 @@ export async function proxy(request: NextRequest) {
     return redirectToAuth(request);
   }
 
-  if (isBackendApiRoute(pathname)) {
-    return NextResponse.next();
-  }
-
-  const { hasOrganizationAccess, isAuthenticated } =
-    await resolveOrganizationAccess(request);
-
-  if (!isAuthenticated) {
-    if (shouldBypassAuthGuard(pathname)) {
-      return NextResponse.next();
-    }
-
-    return redirectToAuth(request);
-  }
-
-  if (isPublicRoute(pathname)) {
-    return redirect(
-      request,
-      defaultRouteForOrganization(hasOrganizationAccess)
-    );
-  }
-
-  if (isOnboardingRoute(pathname)) {
-    if (hasOrganizationAccess) {
-      return redirect(request, "/dashboard");
-    }
-
-    return NextResponse.next();
-  }
-
-  if (!hasOrganizationAccess) {
-    return redirect(request, "/onboarding");
+  if (pathname === "/") {
+    return redirect(request, "/dashboard");
   }
 
   return NextResponse.next();

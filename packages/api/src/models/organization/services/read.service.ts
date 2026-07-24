@@ -6,9 +6,8 @@ import {
 
 export const getOrganization = (
   input: OrganizationTypeById,
-  headers: Headers,
-  jwtUserId?: string
-) => fetchOrganization(input.id, headers, jwtUserId);
+  actorUserId: string
+) => fetchOrganization(input.id, actorUserId);
 
-export const listOrganizations = (headers: Headers, jwtUserId?: string) =>
-  fetchOrganizationsForUser(headers, jwtUserId);
+export const listOrganizations = (actorUserId: string) =>
+  fetchOrganizationsForUser(actorUserId);

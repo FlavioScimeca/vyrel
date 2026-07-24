@@ -4,6 +4,7 @@ import { verifyBearer } from "@vyrel/auth/lib/verify-bearer";
 import { type AuditableLogger, createLogger } from "@vyrel/logging";
 import { useLogger } from "@vyrel/logging/elysia";
 import type { Session, User } from "better-auth";
+import { GraphQLError } from "graphql";
 
 export type GraphQLSession = { user: User; session: Session } | null;
 
@@ -12,6 +13,7 @@ export const graphqlRequestLoggers = new WeakMap<Request, AuditableLogger>();
 
 /** Yoga / Pothos request context. */
 export interface GraphQLContext {
+  actorUserId: string | null;
   headers: Headers;
   isAuthenticated: boolean;
   /** Request-scoped wide-event logger (Elysia ALS when available). */
@@ -20,11 +22,18 @@ export interface GraphQLContext {
   user?: AuthClaims;
 }
 
-/** Authenticated user id from session cookie or Bearer JWT. */
-export function resolveActorUserId(
-  context: GraphQLContext
-): string | undefined {
-  return context.session?.user.id ?? context.user?.id;
+/** Defense-in-depth guard for resolvers executed outside the Yoga auth plugin. */
+export function requireActorUserId(context: GraphQLContext): string {
+  if (context.actorUserId !== null) {
+    return context.actorUserId;
+  }
+
+  throw new GraphQLError("UNAUTHENTICATED", {
+    extensions: {
+      code: "UNAUTHENTICATED",
+      http: { status: 401 },
+    },
+  });
 }
 
 function resolveRequestLogger(): AuditableLogger {
@@ -44,17 +53,17 @@ export const createGraphqlContext = (
     auth.api.getSession({ headers: request.headers }),
     verifyBearer(request.headers),
   ]).then(([session, user]) => {
-    const isAuthenticated = session !== null || user !== undefined;
+    const actorUserId = session?.user.id ?? user?.id ?? null;
+    const isAuthenticated = actorUserId !== null;
     const requestLog = resolveRequestLogger();
     graphqlRequestLoggers.set(request, requestLog);
 
-    if (user !== undefined) {
-      requestLog.set({ user: { id: user.id } });
-    } else if (session?.user.id !== undefined) {
-      requestLog.set({ user: { id: session.user.id } });
+    if (actorUserId !== null) {
+      requestLog.set({ user: { id: actorUserId } });
     }
 
     return {
+      actorUserId,
       headers: request.headers,
       isAuthenticated,
       log: requestLog,

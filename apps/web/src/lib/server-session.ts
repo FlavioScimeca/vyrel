@@ -1,52 +1,50 @@
+import { env } from "@vyrel/env/web";
+import { getSessionCookie } from "better-auth/cookies";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
-import { createEdenClient } from "@/lib/eden-client";
-
-const noStoreFetch = { cache: "no-store" } as const;
-
-export type SessionResponse = {
-  session: { activeOrganizationId: string | null; id: string } | null;
-  user: { id: string } | null;
+export type ServerAuthState = {
+  activeOrganizationId: string | null;
+  hasOrganizationAccess: boolean;
+  session: { id: string };
+  user: { id: string };
 };
 
-/** Fetch the Better Auth session from RSC using request cookies. */
-export async function getServerSession(): Promise<SessionResponse | null> {
+async function fetchServerAuthState(): Promise<ServerAuthState | null> {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
 
-  if (cookieHeader.length === 0) {
+  if (
+    cookieHeader.length === 0 ||
+    getSessionCookie(new Headers({ cookie: cookieHeader })) === null
+  ) {
     return null;
   }
 
-  return fetchSessionWithCookie(cookieHeader);
-}
-
-/** Fetch session using an explicit Cookie header (e.g. from middleware / proxy). */
-export async function fetchSessionWithCookie(
-  cookie: string,
-  baseURL?: string
-): Promise<SessionResponse | null> {
-  const client = createEdenClient({ cookie }, baseURL);
-
-  try {
-    const { data, error, status } = await client.api.auth["get-session"].get({
-      fetch: noStoreFetch,
-    });
-
-    if (error !== null || status >= 400) {
-      return null;
+  const response = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/api/auth/bootstrap`,
+    {
+      cache: "no-store",
+      headers: { cookie: cookieHeader },
+      method: "POST",
     }
+  );
 
-    if (data?.session === null || data?.session === undefined) {
-      return null;
-    }
-
-    if (data.user === null || data.user === undefined) {
-      return null;
-    }
-
-    return data as SessionResponse;
-  } catch {
+  if (response.status === 401) {
     return null;
   }
+
+  if (!response.ok) {
+    throw new Error(
+      `Authentication bootstrap failed with status ${response.status}`
+    );
+  }
+
+  return (await response.json()) as ServerAuthState;
 }
+
+/**
+ * A single request-scoped auth/bootstrap promise shared by layouts and pages.
+ * Infrastructure failures intentionally reject instead of masquerading as logout.
+ */
+export const getServerAuthState = cache(fetchServerAuthState);

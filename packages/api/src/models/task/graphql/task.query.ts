@@ -1,4 +1,4 @@
-import { resolveActorUserId } from "@vyrel/graphql/context";
+import { requireActorUserId } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
 import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
@@ -72,8 +72,7 @@ builder.queryFields((t) => ({
       runTaskGraphqlEffect(
         getTask(
           taskByIdSchema.parse({ id: String(args.id) }),
-          context.headers,
-          resolveActorUserId(context)
+          requireActorUserId(context)
         )
       ),
     type: TaskObject,
@@ -94,8 +93,7 @@ builder.queryFields((t) => ({
             organizationId: String(args.organizationId),
             search: args.search ?? undefined,
           }),
-          context.headers,
-          resolveActorUserId(context)
+          requireActorUserId(context)
         )
       ),
     type: [TaskObject],

@@ -4,15 +4,11 @@ import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import { type TaskTypeUpdate, taskUpdateSchema } from "../types/base.types";
-import { assertTaskAccess, resolveActorUserId } from "../utils/auth-api";
+import { assertTaskAccess } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
 
-export const updateTask = (
-  input: TaskTypeUpdate,
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
   Effect.gen(function* () {
     const safeValues = taskUpdateSchema.safeParse(input);
     if (!safeValues.success) {
@@ -23,9 +19,7 @@ export const updateTask = (
     }
 
     const { description, image, taskId, title } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
-
-    yield* assertTaskAccess(taskId, userId);
+    yield* assertTaskAccess(taskId, actorUserId);
 
     const updates: {
       description?: string | null;

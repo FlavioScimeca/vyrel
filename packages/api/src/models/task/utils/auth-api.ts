@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
 import { assertOrganizationMember } from "../../organization/utils/auth-api";
-import { fetchSessionUserId } from "../../user/utils/auth-api";
 import {
   TaskForbiddenError,
   TaskNotFoundError,
@@ -14,20 +13,6 @@ import {
 class TaskInaccessibleError extends Data.TaggedError("TaskInaccessibleError")<{
   readonly id: string;
 }> {}
-
-export const resolveActorUserId = (headers: Headers, jwtUserId?: string) =>
-  Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
-
-    if (userId === null) {
-      return yield* new TaskForbiddenError({
-        message: "Authentication required.",
-      });
-    }
-
-    return userId;
-  });
 
 export const assertOrgMembership = (organizationId: string, userId: string) =>
   assertOrganizationMember(organizationId, userId).pipe(
@@ -73,20 +58,15 @@ export const assertTaskAccess = (taskId: string, userId: string) =>
     return record;
   });
 
-export const fetchTaskForUser = (
-  id: string,
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const fetchTaskForUser = (id: string, actorUserId: string) =>
   Effect.gen(function* () {
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
     const record = yield* fetchTaskById(id);
 
     if (record === undefined) {
       return yield* new TaskInaccessibleError({ id });
     }
 
-    yield* assertOrgMembership(record.organizationId, userId);
+    yield* assertOrgMembership(record.organizationId, actorUserId);
 
     return record;
   }).pipe(

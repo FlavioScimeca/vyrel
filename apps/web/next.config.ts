@@ -1,5 +1,6 @@
 import "@vyrel/env/web";
 import type { NextConfig } from "next";
+import { createBackendRewrites } from "./src/lib/backend-rewrites";
 
 const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
 
@@ -19,24 +20,7 @@ const nextConfig: NextConfig = {
     useTypeScriptCli: true,
   },
   async rewrites() {
-    return [
-      {
-        destination: `${serverUrl}/api/auth/:path*`,
-        source: "/api/auth/:path*",
-      },
-      {
-        destination: `${serverUrl}/api/users`,
-        source: "/api/users",
-      },
-      {
-        destination: `${serverUrl}/api/organizations`,
-        source: "/api/organizations",
-      },
-      {
-        destination: `${serverUrl}/api/graphql`,
-        source: "/api/graphql",
-      },
-    ];
+    return createBackendRewrites(serverUrl);
   },
 };
 

@@ -7,18 +7,11 @@ import type {
   TasksTypeByOrganization,
   TaskTypeById,
 } from "../types/extra.types";
-import {
-  assertOrgMembership,
-  fetchTaskForUser,
-  resolveActorUserId,
-} from "../utils/auth-api";
+import { assertOrgMembership, fetchTaskForUser } from "../utils/auth-api";
 import { TaskRepositoryError } from "../utils/errors";
 
-export const getTask = (
-  input: TaskTypeById,
-  headers: Headers,
-  jwtUserId?: string
-) => fetchTaskForUser(input.id, headers, jwtUserId);
+export const getTask = (input: TaskTypeById, actorUserId: string) =>
+  fetchTaskForUser(input.id, actorUserId);
 
 /** Local calendar-day bounds as absolute instants (matches former setHours behavior). */
 const startOfDay = (date: Date): Date =>
@@ -65,13 +58,10 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
 
 export const listTasksByOrganization = (
   input: TasksTypeByOrganization,
-  headers: Headers,
-  jwtUserId?: string
+  actorUserId: string
 ) =>
   Effect.gen(function* () {
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
-
-    yield* assertOrgMembership(input.organizationId, userId);
+    yield* assertOrgMembership(input.organizationId, actorUserId);
 
     const conditions = buildTaskListConditions(input);
 

@@ -4,7 +4,6 @@ import { APIError } from "better-auth/api";
 import { and, eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
-import { fetchSessionUserId } from "../../user/utils/auth-api";
 import {
   OrganizationForbiddenError,
   OrganizationRepositoryError,
@@ -73,17 +72,8 @@ export const assertOrganizationMember = (
     })
   );
 
-export const fetchOrganizationsForUser = (
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const fetchOrganizationsForUser = (actorUserId: string) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
-    if (userId === null) {
-      return [];
-    }
-
     const records = yield* Effect.tryPromise({
       catch: (cause) =>
         new OrganizationRepositoryError({
@@ -95,26 +85,16 @@ export const fetchOrganizationsForUser = (
           .select({ organization })
           .from(organization)
           .innerJoin(member, eq(member.organizationId, organization.id))
-          .where(eq(member.userId, userId))
+          .where(eq(member.userId, actorUserId))
           .all(),
     });
 
     return records.map((row) => row.organization);
   });
 
-export const fetchOrganization = (
-  id: string,
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const fetchOrganization = (id: string, actorUserId: string) =>
   Effect.gen(function* () {
-    const sessionUserId = yield* fetchSessionUserId(headers);
-    const userId = sessionUserId ?? jwtUserId ?? null;
-    if (userId === null) {
-      return null;
-    }
-
-    yield* assertOrganizationMember(id, userId);
+    yield* assertOrganizationMember(id, actorUserId);
 
     const record = yield* Effect.tryPromise({
       catch: (cause) =>

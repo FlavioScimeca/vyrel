@@ -1,5 +1,7 @@
 import { JWT_EXPIRATION_TIME } from "@vyrel/consts/server";
 import { db } from "@vyrel/db";
+import { selectActiveOrganizationId } from "@vyrel/db/membership-selection";
+import { listOrganizationMembershipIdentities } from "@vyrel/db/organization-memberships";
 import {
   account,
   invitation,
@@ -41,6 +43,27 @@ export const auth = betterAuth({
       verification,
     },
   }),
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (sessionRecord) => {
+          const memberships = await listOrganizationMembershipIdentities(
+            sessionRecord.userId
+          );
+
+          return {
+            data: {
+              ...sessionRecord,
+              activeOrganizationId: selectActiveOrganizationId(
+                memberships,
+                null
+              ),
+            },
+          };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     resetPasswordTokenExpiresIn: 60 * 60,

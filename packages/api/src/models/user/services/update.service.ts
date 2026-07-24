@@ -8,7 +8,7 @@ import { type UpdateAuthUserBody, updateAuthUser } from "./auth.service";
 export const updateUser = (
   input: UserTypeUpdate,
   headers: Headers,
-  jwtUserId?: string
+  actorUserId: string
 ) =>
   Effect.gen(function* () {
     const safeValues = userUpdateSchema.safeParse(input);
@@ -28,7 +28,7 @@ export const updateUser = (
 
     yield* updateAuthUser(body, headers);
 
-    const record = yield* fetchCurrentUser(headers, jwtUserId);
+    const record = yield* fetchCurrentUser(actorUserId);
     if (record === null) {
       return yield* new UserRepositoryError({
         cause: null,

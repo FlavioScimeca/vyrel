@@ -3,15 +3,11 @@ import { task } from "@vyrel/db/schema";
 import { Effect } from "effect";
 
 import { type TaskTypeCreate, taskCreateSchema } from "../types/base.types";
-import { assertOrgMembership, resolveActorUserId } from "../utils/auth-api";
+import { assertOrgMembership } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
 
-export const createTask = (
-  input: TaskTypeCreate,
-  headers: Headers,
-  jwtUserId?: string
-) =>
+export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
   Effect.gen(function* () {
     const safeValues = taskCreateSchema.safeParse(input);
     if (!safeValues.success) {
@@ -22,9 +18,7 @@ export const createTask = (
     }
 
     const { description, image, organizationId, title } = safeValues.data;
-    const userId = yield* resolveActorUserId(headers, jwtUserId);
-
-    yield* assertOrgMembership(organizationId, userId);
+    yield* assertOrgMembership(organizationId, actorUserId);
 
     const taskId = yield* Effect.sync(() => Bun.randomUUIDv7());
 
@@ -48,7 +42,7 @@ export const createTask = (
         db
           .insert(task)
           .values({
-            createdById: userId,
+            createdById: actorUserId,
             description: description ?? null,
             id: taskId,
             organizationId,
