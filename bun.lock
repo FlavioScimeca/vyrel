@@ -5,6 +5,7 @@
     "": {
       "name": "vyrel",
       "dependencies": {
+        "@apollo/client": "catalog:",
         "@better-auth/drizzle-adapter": "^1.6.25",
         "@better-auth/expo": "^1.6.25",
         "@effect/platform": "catalog:",
@@ -474,7 +475,7 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@apollo/client": "^4.2.6",
+        "@apollo/client": "catalog:",
         "graphql": "^16.0.0",
         "react": "^18.2.0 || ^19.0.0",
       },
@@ -528,7 +529,7 @@
     "kysely": "0.28.17",
   },
   "catalog": {
-    "@apollo/client": "^4.2.6",
+    "@apollo/client": "^4.2.8",
     "@effect/language-service": "^0.86.4",
     "@effect/platform": "^0.96.2",
     "@effect/platform-bun": "^0.90.0",

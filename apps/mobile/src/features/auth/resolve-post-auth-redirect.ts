@@ -1,10 +1,12 @@
+import type { Href } from "expo-router";
+
 import { getApiBaseURL } from "@/lib/api-base-url";
 import { defaultRouteForOrganization } from "@/lib/routes";
 import { getSessionCookieHeaders } from "@/lib/session-cookie-headers";
 
 type OrganizationListItem = { id: string };
 
-export async function resolvePostAuthRedirect(): Promise<string> {
+export async function resolvePostAuthRedirect(): Promise<Href> {
   let response: Response;
 
   try {

@@ -1,8 +1,4 @@
-import type { authClient } from "@/lib/auth-client";
-
-type SessionData = NonNullable<
-  ReturnType<typeof authClient.useSession>["data"]
->;
+import type { SessionData } from "@/lib/auth-client";
 
 /** Active org id from Better Auth organization plugin session fields. */
 export function getActiveOrganizationId(
