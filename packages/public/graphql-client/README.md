@@ -94,7 +94,10 @@ const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
 
 The package builds the scalar optimistic response, finds `Task` through the
 generated mutation registry, removes the item from every cached argument variant
-of the canonical `tasks` collection and evicts its normalized entity.
+of the canonical `tasks` collection and evicts its normalized entity. The
+application-provided `id` callback is the sole source of the Apollo cache key;
+the server response remains available to callbacks but is not interpreted as a
+cache identity.
 
 ## Server freshness
 

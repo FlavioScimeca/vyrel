@@ -392,9 +392,7 @@ export const useOptimisticDelete = <
         return;
       }
 
-      const fallbackId = id(variables);
-      const resultId = readRootValue(result.data, responseKey);
-      const deletedId = typeof resultId === "string" ? resultId : fallbackId;
+      const deletedId = id(variables);
       const normalizedId = identifyEntity(
         cache,
         canonical.entityType,

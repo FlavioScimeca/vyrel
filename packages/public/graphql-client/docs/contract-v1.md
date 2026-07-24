@@ -101,6 +101,10 @@ membership stays in the application.
 3. Remove the entity from every cached argument variant of its canonical list.
 4. Evict and garbage-collect its normalized record.
 
+The ID callback remains the source of the normalized cache key for both the
+optimistic and server-result updates. The response scalar is not assumed to use
+the same identity domain as the configured Apollo key field.
+
 Apollo's `update` callback is composed after the built-in behavior, so consumers
 can extend any exceptional cache workflow without forking the package.
 

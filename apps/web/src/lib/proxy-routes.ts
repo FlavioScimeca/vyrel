@@ -1,5 +1,6 @@
 const AUTH_ROUTE_PREFIX = "/auth";
 const AUTH_API_ROUTE_PREFIX = "/api/auth";
+const GRAPHQL_API_ROUTE = "/api/graphql";
 const USER_CREATE_API_ROUTE = "/api/users";
 const ORGANIZATION_CREATE_API_ROUTE = "/api/organizations";
 const ONBOARDING_ROUTE = "/onboarding";
@@ -19,6 +20,10 @@ function isAuthApiRoute(pathname: string): boolean {
   );
 }
 
+function isGraphqlApiRoute(pathname: string): boolean {
+  return pathname === GRAPHQL_API_ROUTE;
+}
+
 function isUserCreateApiRoute(pathname: string): boolean {
   return pathname === USER_CREATE_API_ROUTE;
 }
@@ -31,6 +36,7 @@ function isOrganizationCreateApiRoute(pathname: string): boolean {
 export function isBackendApiRoute(pathname: string): boolean {
   return (
     isAuthApiRoute(pathname) ||
+    isGraphqlApiRoute(pathname) ||
     isUserCreateApiRoute(pathname) ||
     isOrganizationCreateApiRoute(pathname)
   );

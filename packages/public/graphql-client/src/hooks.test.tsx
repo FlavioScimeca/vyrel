@@ -70,6 +70,27 @@ interface DeleteTaskVariables {
   };
 }
 
+interface Organization {
+  readonly __typename: "Organization";
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+}
+
+interface OrganizationsData {
+  readonly organizations: readonly Organization[];
+}
+
+interface DeleteOrganizationData {
+  readonly deleteOrganization: string;
+}
+
+interface DeleteOrganizationVariables {
+  readonly input: {
+    readonly organizationId: string;
+  };
+}
+
 const tasksDocument = parse(`
   query ListTasks($organizationId: ID!, $search: String) {
     tasks(organizationId: $organizationId, search: $search) {
@@ -111,6 +132,30 @@ const deleteTaskDocument = parse(`
   }
 `) as TypedDocumentNode<DeleteTaskData, DeleteTaskVariables>;
 
+const organizationsDocument = parse(`
+  query ListOrganizations {
+    organizations {
+      id
+      name
+      slug
+    }
+  }
+`) as TypedDocumentNode<OrganizationsData, Record<never, never>>;
+
+const organizationCacheFragment = parse(`
+  fragment OrganizationCacheIdentity on Organization {
+    id
+    name
+    slug
+  }
+`) as TypedDocumentNode<Organization, Record<never, never>>;
+
+const deleteOrganizationDocument = parse(`
+  mutation DeleteOrganization($input: DeleteOrganization!) {
+    deleteOrganization(input: $input)
+  }
+`) as TypedDocumentNode<DeleteOrganizationData, DeleteOrganizationVariables>;
+
 const registry = defineGraphqlClientRegistry({
   collections: {
     Task: {
@@ -147,6 +192,25 @@ const registry = defineGraphqlClientRegistry({
   },
 });
 
+const organizationRegistry = defineGraphqlClientRegistry({
+  collections: {
+    Organization: {
+      query: organizationsDocument,
+      responseKey: "organizations",
+      storeFieldName: "organizations",
+    },
+  },
+  mutations: {
+    DeleteOrganization: {
+      deleteOrganization: {
+        entityType: "Organization",
+        keyField: "slug",
+        kind: "delete",
+      },
+    },
+  },
+});
+
 interface PendingNetwork {
   readonly client: ApolloClient;
   readonly reject: (error: Error) => void;
@@ -169,6 +233,45 @@ const createPendingNetwork = (): PendingNetwork => {
       },
     }),
     registry
+  );
+  const link = new ApolloLink(
+    () =>
+      new Observable((observer) => {
+        completeRequest = () => observer.complete();
+        failRequest = (error) => observer.error(error);
+        sendResult = (result) => observer.next(result as never);
+      })
+  );
+
+  return {
+    client: new ApolloClient({ cache, link }),
+    reject: (error) => {
+      if (failRequest === undefined) {
+        throw new Error("No pending GraphQL request to reject.");
+      }
+      failRequest(error);
+    },
+    resolve: (data) => {
+      if (sendResult === undefined || completeRequest === undefined) {
+        throw new Error("No pending GraphQL request to resolve.");
+      }
+      sendResult({ data });
+      completeRequest();
+    },
+  };
+};
+
+const createOrganizationDeleteNetwork = (): PendingNetwork => {
+  let completeRequest: (() => void) | undefined;
+  let failRequest: ((error: Error) => void) | undefined;
+  let sendResult: ((result: { readonly data: unknown }) => void) | undefined;
+  const cache = configureGraphqlClientCache(
+    new InMemoryCache({
+      typePolicies: {
+        Organization: { keyFields: ["slug"] },
+      },
+    }),
+    organizationRegistry
   );
   const link = new ApolloLink(
     () =>
@@ -569,5 +672,64 @@ describe("optimistic mutation hooks", () => {
     expect(
       readTaskIds(network.client, { organizationId: "org-2" }, false)
     ).toEqual([]);
+  });
+
+  it("keeps a custom-key delete removed when the server returns a different id", async () => {
+    const network = createOrganizationDeleteNetwork();
+    activeClient = network.client;
+    const organization = {
+      __typename: "Organization",
+      id: "org-database-id",
+      name: "Acme",
+      slug: "acme",
+    } as const;
+    network.client.cache.writeQuery({
+      data: { organizations: [organization] },
+      query: organizationsDocument,
+    });
+    const normalizedId = network.client.cache.identify(organization);
+    if (normalizedId === undefined) {
+      throw new Error("Expected Organization to have a normalized cache id.");
+    }
+    const { result } = renderHook(
+      () =>
+        useOptimisticDelete(deleteOrganizationDocument, {
+          id: () => organization.slug,
+        }),
+      { wrapper: ApolloTestProvider }
+    );
+
+    let mutationPromise: ReturnType<(typeof result.current)[0]>;
+    act(() => {
+      mutationPromise = result.current[0]({
+        variables: { input: { organizationId: organization.id } },
+      });
+    });
+
+    expect(
+      network.client.cache.readQuery({
+        optimistic: true,
+        query: organizationsDocument,
+      })?.organizations
+    ).toEqual([]);
+
+    await act(async () => {
+      network.resolve({ deleteOrganization: organization.id });
+      await mutationPromise;
+    });
+
+    expect(
+      network.client.cache.readQuery({
+        optimistic: false,
+        query: organizationsDocument,
+      })?.organizations
+    ).toEqual([]);
+    expect(
+      network.client.cache.readFragment({
+        fragment: organizationCacheFragment,
+        id: normalizedId,
+        optimistic: false,
+      })
+    ).toBeNull();
   });
 });
