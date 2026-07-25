@@ -1,0 +1,170 @@
+---
+title: Local APK Publish
+description: Build Android development APKs on a local Mac and publish them to a multi-app GitHub Releases bucket without waiting on the EAS cloud queue.
+---
+
+This guide covers the `publish:apk` workflow in `apps/mobile`: build a development
+APK on your machine, upload it to a public GitHub Releases “bucket” repo under a
+**per-app rolling slot**, then print a stable download URL and terminal QR code.
+
+## Problems we set out to solve
+
+Two practical constraints drove this pipeline.
+
+### 1. EAS cloud queue time
+
+On the Expo free plan, cloud builds enter a **low-priority queue**. On quiet
+weekends that wait can be short. On weekdays it can stretch toward **an hour**
+before the build even starts—before compile time. That is too slow for a tight
+native iteration loop (install APK → open app → fix → repeat).
+
+### 2. Unused local hardware
+
+A **MacBook Pro with Apple Silicon (M4 Pro)** is a capable Android build machine.
+Leaving native compilation to a shared cloud worker wastes that CPU/GPU while you
+sit in a queue. Local EAS builds (`eas build --local`) run Gradle on your Mac and
+skip the queue entirely.
+
+Together: **no queue + full use of local silicon** for development APKs.
+
+<Callout title="Free-plan note" type="info">
+  Large EAS workers (`resourceClass: "large"`) are not available on the free
+  plan. Local builds do not need them. Keep cloud EAS for occasional previews or
+  production submissions if you want; use local builds for day-to-day Android
+  installers.
+</Callout>
+
+## Multi-app bucket layout
+
+GitHub only has one repository-wide “latest” release. A shared bucket that will
+host **Vyrel**, and later **Kalyra**, **Kovyra**, etc., therefore uses **one
+rolling release tag per app** instead of dumping everything into `/releases/latest`.
+
+| Field | Example (Vyrel) |
+| --- | --- |
+| `APP_SLUG` | `vyrel` |
+| Release tag (rolling slot) | `vyrel` |
+| APK asset name | `vyrel-dev-app.apk` (`{APP_SLUG}-dev-app.apk`) |
+| Stable download URL | `https://github.com/FlavioScimeca/my-bucket/releases/download/vyrel/vyrel-dev-app.apk` |
+
+Publishing Vyrel replaces only the `vyrel` slot. Other apps’ tags are left alone.
+
+## What the pipeline does
+
+```text
+publish:apk
+  → eas:dev-android-local   (clear dist/*.apk, build development APK)
+  → delete+recreate tag APP_SLUG on the bucket repo
+  → upload {APP_SLUG}-dev-app.apk
+  → clipboard + QR          (stable /releases/download/<APP_SLUG>/… URL)
+```
+
+| Step | Detail |
+| --- | --- |
+| Build | `eas build --profile development --platform android --local` |
+| Output | `apps/mobile/dist/{APP_SLUG}-dev-app.apk` |
+| Upload | Recreate rolling release `APP_SLUG`; stream APK with progress |
+| Share | `https://github.com/<BUCKET_REPO>/releases/download/<APP_SLUG>/<APP_SLUG>-dev-app.apk` |
+
+The TypeScript entrypoint is `apps/mobile/scripts/publish-dev-apk.ts`.
+
+## Why a separate public GitHub repo?
+
+The main Vyrel git remote can stay **private**. Release assets on a private repo
+are awkward to open from a phone (auth). A small **public** repo used only as an
+APK bucket gives a normal HTTPS download link and a scannable QR code, without
+exposing source.
+
+Vyrel uses this public bucket:
+
+- Repository: [FlavioScimeca/my-bucket](https://github.com/FlavioScimeca/my-bucket)
+- Clone it if you want the workflow YAML locally, or open **Actions** on GitHub
+  to run the helpers below without cloning.
+
+Do **not** commit APKs into git history; attach them to **GitHub Releases**.
+
+### Bucket Actions (manual)
+
+The helper workflow is `workflow_dispatch` only (run from the Actions tab).
+
+| Workflow | Purpose |
+| --- | --- |
+| [Latest APK link + QR](https://github.com/FlavioScimeca/my-bucket/actions/workflows/latest-apk-qr.yml) | Select `app_slug` (must be listed in `.github/app-slugs.txt`). Re-prints that app’s stable download URL and regenerates a QR (job summary + PNG artifact). |
+
+Publish itself replaces the rolling release tag on each upload, so there is no
+separate cleanup workflow.
+
+Set in `apps/mobile/.env`:
+
+```bash
+BUCKET_REPO=FlavioScimeca/my-bucket
+APP_SLUG=vyrel
+```
+
+## Configuration
+
+### Environment (`@vyrel/env/native`)
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `BUCKET_REPO` | Yes (for publish) | `owner/repo` of the public APK bucket |
+| `APP_SLUG` | No (default `vyrel`) | Rolling release tag and APK name prefix |
+
+APK filename is **derived**: `{APP_SLUG}-dev-app.apk` (not a separate env var).
+
+### EAS development profile
+
+In `eas.json`, the `development` profile:
+
+- Builds an **APK** (`android.buildType: "apk"`)
+- Sets `ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a` so the APK targets
+  modern physical devices (for example Xiaomi / Pixel) instead of shipping four
+  ABIs (arm32 + arm64 + x86 + x86_64). That cuts APK size and upload time.
+
+`buildArchs` is **not** a valid `eas.json` key; architecture filtering is done
+via the Gradle project property above.
+
+### Prerequisites on the Mac
+
+- Android SDK / local EAS build toolchain (same as any local EAS Android build)
+- [GitHub CLI](https://cli.github.com/) authenticated: `gh auth login`
+- `curl` (macOS default) for upload progress
+- Public bucket repository already created on GitHub
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `bun run --cwd apps/mobile publish:apk` | Full path: local build → rolling release → QR |
+| `bun run --cwd apps/mobile publish:apk:upload` | Skip build; upload existing `dist/` APK |
+| `bun run --cwd apps/mobile eas:dev-android-local` | Local build only (clears prior `dist/*.apk`) |
+
+`publish:apk` reports total wall-clock time from script start through QR (build +
+upload included). `publish:apk:upload` times upload-only.
+`eas:dev-android-local` also prints its own build duration.
+
+## Development vs preview vs production
+
+| Profile | Use when |
+| --- | --- |
+| `development` | Daily installers with the Expo **dev client** (this publish flow) |
+| `preview` | Standalone internal APK without relying on Metro on your Mac |
+| `production` | Store submission (typically AAB) |
+
+A development APK expects the usual dev-client workflow (Metro / updates channel
+as configured). Prefer `preview` when you need a self-contained APK for someone
+who will not run Metro.
+
+## Size and upload speed
+
+Upload speed is mostly **your uplink** and **APK size**. Restricting to
+`arm64-v8a` is the highest-leverage free optimization for a single physical test
+phone. The publish script already streams the file with progress; there is little
+left to gain in the HTTP client itself.
+
+## Related
+
+- [Mobile overview](/docs/apps/mobile) — commands and env summary
+- [Environment](/docs/getting-started/environment) — how Vyrel validates env vars
+- Bucket repo: [FlavioScimeca/my-bucket](https://github.com/FlavioScimeca/my-bucket)
+- Expo: [EAS Build](https://docs.expo.dev/build/introduction/), [eas.json](https://docs.expo.dev/eas/json/), [Local builds](https://docs.expo.dev/build-reference/local-builds/)

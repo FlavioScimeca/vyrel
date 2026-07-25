@@ -1,0 +1,6 @@
+{
+  "title": "Mobile",
+  "pages": ["index", "local-apk-publish"],
+  "pagesIndex": "index",
+  "defaultOpen": true
+}

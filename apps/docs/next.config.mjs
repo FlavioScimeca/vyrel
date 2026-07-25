@@ -13,6 +13,9 @@ const config = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    useTypeScriptCli: true,
+  },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.alias = {
       ...webpackConfig.resolve.alias,

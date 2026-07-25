@@ -1,3 +1,4 @@
+/** @type {import('expo/config').ExpoConfig} */
 const config = {
   name: "Vyrel",
   slug: "vyrel-mobile",
@@ -52,6 +53,7 @@ const config = {
         imageWidth: 76,
       },
     ],
+    "@rnrepo/expo-config-plugin",
   ],
   experiments: {
     typedRoutes: true,

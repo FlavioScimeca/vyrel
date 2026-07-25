@@ -1,0 +1,61 @@
+---
+title: Mobile
+description: Expo React Native app with HeroUI Native, Better Auth, and GraphQL.
+---
+
+`apps/mobile` is the Expo React Native client. It uses Expo Router, HeroUI Native
+(Uniwind), Apollo / gql.tada, and Better Auth via `@better-auth/expo`.
+
+## Stack highlights
+
+| Area | Choice |
+| --- | --- |
+| Runtime / tooling | Expo SDK 57, Bun workspace scripts |
+| UI | HeroUI Native + Uniwind |
+| Auth | Better Auth Expo client |
+| Data | GraphQL (shared `@vyrel/graphql-client` patterns) |
+| Native builds | EAS Build profiles in `eas.json` |
+
+## Environment
+
+Validated through `@vyrel/env/native`. Copy `apps/mobile/.env.example` to
+`apps/mobile/.env`.
+
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_SERVER_URL` | API base URL (emulator, LAN, or Tailscale Funnel) |
+| `BUCKET_REPO` | GitHub `owner/repo` used by the local APK publish script |
+| `APP_SLUG` | App slot in the bucket (default `vyrel`; APK = `{APP_SLUG}-dev-app.apk`) |
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `bun run --cwd apps/mobile start` | Start Expo / Metro |
+| `bun run --cwd apps/mobile dev` | Start with the development client |
+| `bun run --cwd apps/mobile android` | Native Android run via Expo |
+| `bun run --cwd apps/mobile ios` | Native iOS run via Expo |
+| `bun run --cwd apps/mobile eas:dev-android` | Cloud EAS development build |
+| `bun run --cwd apps/mobile eas:dev-android-local` | Local EAS development APK |
+| `bun run --cwd apps/mobile publish:apk` | Local build + upload to GitHub Releases + QR |
+| `bun run --cwd apps/mobile publish:apk:upload` | Upload an existing `dist/` APK only |
+| `bun run --cwd apps/mobile test` | Jest unit / component tests |
+| `bun run --cwd apps/mobile test:e2e` | Maestro E2E flows |
+
+## EAS profiles
+
+Defined in `apps/mobile/eas.json`:
+
+| Profile | Role |
+| --- | --- |
+| `development` | Dev client APK; local publish path; ARM64-only for physical devices |
+| `preview` | Internal APK for standalone previews |
+| `production` | Store-oriented builds (AAB / auto-increment) |
+
+For why we prefer **local** development builds over the EAS cloud queue, see
+[Local APK publish](/docs/apps/mobile/local-apk-publish).
+
+APKs are published to the public bucket
+[FlavioScimeca/my-bucket](https://github.com/FlavioScimeca/my-bucket) under a
+per-app rolling tag (Vyrel → `vyrel` / `vyrel-dev-app.apk`). Clone the repo or
+use its Actions to regenerate a download QR.

@@ -32,6 +32,17 @@ cache behavior.
 The web workspace runs the generation sequence automatically in `predev` and
 `prebuild`.
 
+## Mobile
+
+| Command | Purpose |
+| --- | --- |
+| `bun run --cwd apps/mobile start` | Start Expo / Metro. |
+| `bun run --cwd apps/mobile publish:apk` | Local development APK build, GitHub Release upload, and QR. |
+| `bun run --cwd apps/mobile publish:apk:upload` | Upload an existing `dist/` APK without rebuilding. |
+
+See [Local APK publish](/docs/apps/mobile/local-apk-publish) for why this path
+exists (EAS queue vs local M-series builds).
+
 ## Database
 
 | Command | Purpose |
