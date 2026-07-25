@@ -1,12 +1,12 @@
 import { Toast as ToastPrimitive } from "@base-ui/react/toast";
 import {
-  CheckCircleIcon,
-  InfoIcon,
-  SpinnerIcon,
-  WarningIcon,
-  XCircleIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+  IconCircleCheck,
+  IconInfoCircle,
+  IconLoader2,
+  IconAlertTriangle,
+  IconCircleX,
+  IconX,
+} from "@tabler/icons-react";
 import type * as React from "react";
 import { Button } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
@@ -129,7 +129,7 @@ function ToastClose({
       render={render}
       {...props}
     >
-      {children ?? <XIcon aria-hidden="true" />}
+      {children ?? <IconX aria-hidden="true" />}
     </ToastPrimitive.Close>
   );
 }
@@ -138,23 +138,23 @@ function ToastIcon({ type }: { type: string | undefined }) {
   let icon: React.ReactNode = null;
 
   if (type === "success") {
-    icon = <CheckCircleIcon aria-hidden="true" />;
+    icon = <IconCircleCheck aria-hidden="true" />;
   }
 
   if (type === "info") {
-    icon = <InfoIcon aria-hidden="true" />;
+    icon = <IconInfoCircle aria-hidden="true" />;
   }
 
   if (type === "warning") {
-    icon = <WarningIcon aria-hidden="true" />;
+    icon = <IconAlertTriangle aria-hidden="true" />;
   }
 
   if (type === "error") {
-    icon = <XCircleIcon aria-hidden="true" className="text-destructive" />;
+    icon = <IconCircleX aria-hidden="true" className="text-destructive" />;
   }
 
   if (type === "loading") {
-    icon = <SpinnerIcon aria-hidden="true" className="animate-spin" />;
+    icon = <IconLoader2 aria-hidden="true" className="animate-spin" />;
   }
 
   if (!icon) {

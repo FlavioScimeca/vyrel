@@ -1,5 +1,3 @@
-import type { FragmentOf } from "gql.tada";
-
 import { graphql } from "@/src/graphql/gql";
 
 export const OrganizationListItemFragment = graphql(`
@@ -13,7 +11,3 @@ export const OrganizationListItemFragment = graphql(`
     slug
   }
 `);
-
-export type OrganizationListItemRef = FragmentOf<
-  typeof OrganizationListItemFragment
->;

@@ -11,7 +11,3 @@ export const authClient = createAuthClient({
   },
   plugins: [organizationClient()],
 });
-
-export type ExtensionSession = NonNullable<
-  Awaited<ReturnType<typeof authClient.getSession>>["data"]
->;

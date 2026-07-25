@@ -1,13 +1,13 @@
-import type { VariablesOf } from "gql.tada";
+import type { ResultOf, VariablesOf } from "gql.tada";
 
+import type { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { ListTasksDocument } from "@/features/dashboard/task/graphql/queries";
-import type { OptimisticTaskExisting } from "@/features/dashboard/task/graphql/types";
 import { hasAnyDefined } from "@/utils/has-any-defined";
 
 export type ListTasksVariables = VariablesOf<typeof ListTasksDocument>;
 
 type OptimisticTaskFields = Pick<
-  OptimisticTaskExisting,
+  ResultOf<typeof TaskListItemFragment>,
   "description" | "title"
 >;
 

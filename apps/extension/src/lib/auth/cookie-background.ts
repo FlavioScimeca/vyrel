@@ -11,7 +11,7 @@ import {
 } from "@/src/lib/auth/cookie-messages";
 
 /** Better Auth session cookie base name (without the `__Secure-` production prefix). */
-export const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
+const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
 const SECURE_SESSION_COOKIE = `__Secure-${BETTER_AUTH_SESSION_COOKIE}`;
 
 function getCookiesApi(): typeof browser.cookies {
@@ -46,7 +46,7 @@ export async function readWebSessionCookieHeader(
   ]);
 
   const cookie = secureCookie ?? sessionCookie;
-  if (cookie != null && cookie.value.length > 0) {
+  if (cookie !== null && cookie !== undefined && cookie.value.length > 0) {
     return `${cookie.name}=${cookie.value}`;
   }
 
@@ -118,7 +118,7 @@ export async function removeWebSessionCookies(url: string): Promise<void> {
  * Background fetch with session forwarded via `X-Vyrel-Session-Cookie`
  * (server maps it onto Cookie for Better Auth).
  */
-export async function privilegedFetch(
+async function privilegedFetch(
   message: ExtensionPrivilegedFetchMessage
 ): Promise<ExtensionPrivilegedFetchResponse> {
   const webOrigin = getWebBaseURL();

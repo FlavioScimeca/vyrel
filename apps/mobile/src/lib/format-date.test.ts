@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-
 import { formatMediumDate } from "./format-date";
 
 describe("formatMediumDate", () => {

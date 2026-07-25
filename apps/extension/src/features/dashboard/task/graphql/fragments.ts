@@ -1,5 +1,3 @@
-import type { FragmentOf } from "gql.tada";
-
 import { graphql } from "@/src/graphql/gql";
 
 export const TaskListItemFragment = graphql(`
@@ -13,5 +11,3 @@ export const TaskListItemFragment = graphql(`
     updatedAt
   }
 `);
-
-export type TaskListItemRef = FragmentOf<typeof TaskListItemFragment>;

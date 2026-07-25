@@ -74,7 +74,7 @@ export function useExtensionSession() {
   }, []);
 
   useEffect(() => {
-    void checkSession();
+    checkSession().catch(() => undefined);
   }, [checkSession]);
 
   const openWebSignIn = useCallback(async () => {
@@ -95,7 +95,7 @@ export function useExtensionSession() {
 
     setState({ error: null, status: "signed-out" });
 
-    void withTimeout(authClient.signOut(), 5000)
+    withTimeout(authClient.signOut(), 5000)
       .then(() => {
         authDebug("signOut:api-ok");
       })

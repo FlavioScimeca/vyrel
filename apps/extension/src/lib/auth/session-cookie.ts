@@ -78,18 +78,6 @@ export async function getWebSessionCookieHeader(): Promise<string | null> {
   return response.cookieHeader;
 }
 
-/** Cookie header map for authenticated fetches (mobile-style explicit Cookie). */
-export async function getSessionCookieHeaders(): Promise<
-  Record<string, string>
-> {
-  const cookie = await getWebSessionCookieHeader();
-  if (cookie === null) {
-    return {};
-  }
-
-  return { Cookie: cookie };
-}
-
 /** Remove the web-origin session cookie after local sign-out. */
 export async function clearWebSessionCookie(): Promise<void> {
   const url = getWebBaseURL();

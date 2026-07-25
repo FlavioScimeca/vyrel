@@ -1,6 +1,5 @@
-import { SymbolView } from "expo-symbols";
-import { Button, Typography, useThemeColor } from "heroui-native";
-import type { ComponentProps, ReactNode } from "react";
+import { Typography } from "heroui-native";
+import type { ReactNode } from "react";
 import { View } from "react-native";
 
 type AppHeaderProps = {
@@ -33,28 +32,5 @@ export function AppHeader({
         {action}
       </View>
     </View>
-  );
-}
-
-export function HeaderIconButton({
-  accessibilityLabel,
-  name,
-  onPress,
-}: {
-  accessibilityLabel: string;
-  name: ComponentProps<typeof SymbolView>["name"];
-  onPress: () => void;
-}) {
-  const foreground = useThemeColor("foreground");
-  return (
-    <Button
-      accessibilityLabel={accessibilityLabel}
-      className="size-12 rounded-2xl"
-      isIconOnly
-      onPress={onPress}
-      variant="secondary"
-    >
-      <SymbolView name={name} size={21} tintColor={foreground} />
-    </Button>
   );
 }

@@ -47,14 +47,14 @@ export function isOnboardingRoute(pathname: string): boolean {
   return pathname === ONBOARDING_ROUTE;
 }
 
-export function isAuthSucceededRoute(pathname: string): boolean {
-  return pathname === AUTH_SUCCEEDED_ROUTE;
-}
-
 export function isPublicRoute(pathname: string): boolean {
   return (
     pathname === "/" || isAuthRoute(pathname) || isAuthSucceededRoute(pathname)
   );
+}
+
+function isAuthSucceededRoute(pathname: string): boolean {
+  return pathname === AUTH_SUCCEEDED_ROUTE;
 }
 
 export function shouldBypassAuthGuard(pathname: string): boolean {

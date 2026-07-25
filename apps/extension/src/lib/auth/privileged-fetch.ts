@@ -35,10 +35,10 @@ function resolveRequestMethod(
   return "GET";
 }
 
-async function resolveRequestBody(
+function resolveRequestBody(
   input: RequestInfo | URL,
   init?: RequestInit
-): Promise<BodyInit | null | undefined> {
+): BodyInit | null | undefined {
   if (init?.body !== undefined) {
     return init.body;
   }

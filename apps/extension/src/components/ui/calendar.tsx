@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  CaretDownIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
-} from "@phosphor-icons/react";
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
 import * as React from "react";
 import {
   type DayButton,
@@ -141,18 +141,18 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <CaretLeftIcon className={cn("size-4", className)} {...props} />
+              <IconChevronLeft className={cn("size-4", className)} {...props} />
             );
           }
 
           if (orientation === "right") {
             return (
-              <CaretRightIcon className={cn("size-4", className)} {...props} />
+              <IconChevronRight className={cn("size-4", className)} {...props} />
             );
           }
 
           return (
-            <CaretDownIcon className={cn("size-4", className)} {...props} />
+            <IconChevronDown className={cn("size-4", className)} {...props} />
           );
         },
         DayButton: ({ ...props }) => (

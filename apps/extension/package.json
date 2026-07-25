@@ -24,6 +24,7 @@
     "@base-ui/react": "^1.6.0",
     "@hookform/resolvers": "^5.4.0",
     "@shadcn/react": "^0.2.1",
+    "@tabler/icons-react": "^3.44.0",
     "@vyrel/api": "workspace:*",
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql-client": "workspace:*",

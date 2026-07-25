@@ -9,7 +9,7 @@ import { withTimeout } from "@/src/lib/auth/with-timeout";
 
 const LOAD_TIMEOUT_MS = 10_000;
 
-export type ExtensionSessionPayload = {
+type ExtensionSessionPayload = {
   session: {
     activeOrganizationId?: string | null;
     id: string;
