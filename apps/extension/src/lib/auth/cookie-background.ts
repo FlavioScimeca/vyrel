@@ -1,9 +1,10 @@
-import { getWebBaseURL } from "@/src/lib/api-base-url";
+import { getApiBaseURL, getWebBaseURL } from "@/src/lib/api-base-url";
 import { authDebug, redactCookieHeader } from "@/src/lib/auth/auth-debug";
 import {
   EXTENSION_COOKIE_CLEAR,
   EXTENSION_COOKIE_GET,
   EXTENSION_PRIVILEGED_FETCH,
+  EXTENSION_SESSION_COOKIE_HEADER,
   type ExtensionCookieMessage,
   type ExtensionPrivilegedFetchMessage,
   type ExtensionPrivilegedFetchResponse,
@@ -81,7 +82,6 @@ export async function removeWebSessionCookies(url: string): Promise<void> {
   const cookiesApi = getCookiesApi();
   const names = sessionCookieNames();
 
-  // Prefer remove-by-discovered cookies (correct path/domain), not only base URL.
   const discovered = await cookiesApi.getAll({ url });
   const targets = discovered.filter((cookie) => names.has(cookie.name));
 
@@ -115,24 +115,28 @@ export async function removeWebSessionCookies(url: string): Promise<void> {
 }
 
 /**
- * Popup fetch strips the Cookie header (forbidden). Background SW can attach
- * the web-origin session cookie when calling the API.
+ * Background fetch with session forwarded via `X-Vyrel-Session-Cookie`
+ * (server maps it onto Cookie for Better Auth).
  */
 export async function privilegedFetch(
   message: ExtensionPrivilegedFetchMessage
 ): Promise<ExtensionPrivilegedFetchResponse> {
-  const cookieHeader = await readWebSessionCookieHeader(getWebBaseURL());
+  const webOrigin = getWebBaseURL();
+  const cookieHeader = await readWebSessionCookieHeader(webOrigin);
   const headers = new Headers(message.headers);
 
   if (cookieHeader !== null) {
-    headers.set("Cookie", cookieHeader);
+    headers.set(EXTENSION_SESSION_COOKIE_HEADER, cookieHeader);
   }
 
   authDebug("privilegedFetch:request", {
+    apiBaseURL: getApiBaseURL(),
     cookie: redactCookieHeader(cookieHeader),
-    hasCookieHeader: cookieHeader !== null,
+    cookiePresent: cookieHeader !== null,
+    extensionCookieHeader: cookieHeader !== null,
     method: message.method ?? "GET",
     url: message.url,
+    webOrigin,
   });
 
   const response = await fetch(message.url, {
@@ -149,7 +153,8 @@ export async function privilegedFetch(
   });
 
   authDebug("privilegedFetch:response", {
-    bodyPreview: body.slice(0, 300),
+    bodyLength: body.length,
+    bodyPreview: body.slice(0, 400),
     ok: response.ok,
     status: response.status,
     url: response.url,

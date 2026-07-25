@@ -57,6 +57,7 @@ export const app = new Elysia()
         "Cookie",
         "expo-origin",
         "x-skip-oauth-proxy",
+        "x-vyrel-session-cookie",
       ],
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

@@ -2,7 +2,7 @@ import { env } from "@vyrel/env/extension";
 
 const TRAILING_SLASH = /\/$/;
 
-/** Direct API origin for the extension (no Next rewrite proxy). */
+/** Direct API origin — auth + GraphQL for the extension (cookie via custom header). */
 export function getApiBaseURL(): string {
   return env.WXT_PUBLIC_SERVER_URL.replace(TRAILING_SLASH, "");
 }
@@ -12,10 +12,19 @@ export function getWebBaseURL(): string {
   return env.WXT_PUBLIC_WEB_URL.replace(TRAILING_SLASH, "");
 }
 
+/** Auth client talks to the API; session cookie is forwarded as X-Vyrel-Session-Cookie. */
+export function getAuthBaseURL(): string {
+  return getApiBaseURL();
+}
+
 export function getGraphqlUri(): string {
   return `${getApiBaseURL()}/api/graphql`;
 }
 
 export function getWebSignInUrl(): string {
   return `${getWebBaseURL()}/auth?next=/auth-succeeded`;
+}
+
+export function getWebTasksUrl(): string {
+  return `${getWebBaseURL()}/dashboard/tasks`;
 }

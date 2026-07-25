@@ -1,4 +1,5 @@
 import { auth } from "@vyrel/auth";
+import { headersWithExtensionSessionCookie } from "@vyrel/auth/lib/extension-session-cookie";
 import { onlyVerifiedSession } from "@vyrel/auth/lib/verified-session";
 import type { AuthClaims } from "@vyrel/auth/lib/verify-bearer";
 import { verifyBearer } from "@vyrel/auth/lib/verify-bearer";
@@ -49,10 +50,12 @@ function resolveRequestLogger(): AuditableLogger {
 /** Yoga context factory must return a Promise; keep the boundary Promise-based. */
 export const createGraphqlContext = (
   request: Request
-): Promise<GraphQLContext> =>
-  Promise.all([
-    auth.api.getSession({ headers: request.headers }),
-    verifyBearer(request.headers),
+): Promise<GraphQLContext> => {
+  const headers = headersWithExtensionSessionCookie(request.headers);
+
+  return Promise.all([
+    auth.api.getSession({ headers }),
+    verifyBearer(headers),
   ]).then(([rawSession, user]) => {
     const session = onlyVerifiedSession(rawSession);
     const actorUserId = session?.user.id ?? user?.id ?? null;
@@ -66,10 +69,11 @@ export const createGraphqlContext = (
 
     return {
       actorUserId,
-      headers: request.headers,
+      headers,
       isAuthenticated,
       log: requestLog,
       session,
       user,
     };
   });
+};

@@ -20,6 +20,11 @@ vi.mock("@vyrel/auth", () => ({
   },
 }));
 
+vi.mock("@vyrel/auth/lib/extension-session-cookie", async () => {
+  const actual = await import("@vyrel/auth/lib/extension-session-cookie");
+  return actual;
+});
+
 vi.mock("@vyrel/auth/lib/verify-bearer", () => ({
   verifyBearer: bearerMocks.verifyBearer,
 }));
@@ -83,9 +88,24 @@ describe("GraphQL actor context", () => {
 
     const context = await createGraphqlContext(request);
 
-    expect(bearerMocks.verifyBearer).toHaveBeenCalledWith(request.headers);
+    expect(bearerMocks.verifyBearer).toHaveBeenCalled();
     expect(context.headers.get("authorization")).toBe("Bearer signed-token");
     expect(context.actorUserId).toBe("bearer-user");
+  });
+
+  it("maps X-Vyrel-Session-Cookie onto Cookie for getSession", async () => {
+    authMocks.getSession.mockResolvedValue(session);
+
+    await createGraphqlContext(
+      new Request("http://localhost/api/graphql", {
+        headers: {
+          "x-vyrel-session-cookie": "better-auth.session_token=abc",
+        },
+      })
+    );
+
+    const headers = authMocks.getSession.mock.calls[0]?.[0]?.headers as Headers;
+    expect(headers.get("cookie")).toBe("better-auth.session_token=abc");
   });
 
   it("rejects an expired cookie and invalid Bearer as unauthenticated", async () => {

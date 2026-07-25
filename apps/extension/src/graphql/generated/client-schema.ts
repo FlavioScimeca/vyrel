@@ -3,11 +3,16 @@ import type { GraphqlClientSchemaMetadata, ModelOf } from "@vyrel/graphql-client
 import type {} from "@vyrel/graphql-client";
 import type { ResultOf } from "gql.tada";
 import type { ExtensionHealthFragment as FragmentDocument0 } from "../queries";
-
+import type { OrganizationListItemFragment as FragmentDocument1 } from "../../features/dashboard/organization/graphql/fragments";
+import type { TaskListItemFragment as FragmentDocument2 } from "../../features/dashboard/task/graphql/fragments";
+import { ListOrganizationsDocument as CollectionDocument0 } from "../../features/dashboard/organization/graphql/queries";
+import { ListTasksDocument as CollectionDocument1 } from "../../features/dashboard/task/graphql/queries";
 
 declare module "@vyrel/graphql-client" {
   interface FragmentTypeRegistry {
     readonly "ExtensionHealth": ResultOf<typeof FragmentDocument0>;
+    readonly "OrganizationListItem": ResultOf<typeof FragmentDocument1>;
+    readonly "TaskListItem": ResultOf<typeof FragmentDocument2>;
   }
 }
 
@@ -640,9 +645,12 @@ export const graphqlClientTypePolicies = {
 
 export const graphqlClientRegistry = defineGraphqlClientRegistry({
   collections: {
-
+    "Organization": { query: CollectionDocument0, responseKey: "organizations", storeFieldName: "organizations" },
+    "Task": { query: CollectionDocument1, responseKey: "tasks", storeFieldName: "tasks" },
   },
   mutations: {
-
+    "CreateTask": {
+      "createTask": {"collectionVariablePaths":{"organizationId":["input","organizationId"]},"entityType":"Task","keyField":"id","kind":"create"},
+    },
   },
 });

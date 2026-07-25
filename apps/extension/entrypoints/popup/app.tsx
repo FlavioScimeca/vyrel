@@ -26,6 +26,13 @@ function App() {
     }
   }
 
+  async function openDashboard() {
+    await browser.tabs.create({
+      url: browser.runtime.getURL("/dashboard.html"),
+    });
+    window.close();
+  }
+
   let body: ReactNode;
 
   if (state.status === "checking") {
@@ -49,7 +56,7 @@ function App() {
         <Button
           className="w-full"
           onClick={() => {
-            void openWebSignIn();
+            openWebSignIn().catch(() => undefined);
           }}
           type="button"
         >
@@ -59,7 +66,7 @@ function App() {
         <Button
           className="w-full"
           onClick={() => {
-            void checkSession();
+            checkSession().catch(() => undefined);
           }}
           type="button"
           variant="outline"
@@ -85,11 +92,22 @@ function App() {
 
         <Button
           className="w-full"
-          disabled={isCapturing}
           onClick={() => {
-            void handleCapture();
+            openDashboard().catch(() => undefined);
           }}
           type="button"
+        >
+          Dashboard
+        </Button>
+
+        <Button
+          className="w-full"
+          disabled={isCapturing}
+          onClick={() => {
+            handleCapture().catch(() => undefined);
+          }}
+          type="button"
+          variant="outline"
         >
           {isCapturing ? "Capturing…" : "Screenshot page"}
         </Button>
@@ -97,10 +115,10 @@ function App() {
         <Button
           className="w-full"
           onClick={() => {
-            void signOut();
+            signOut().catch(() => undefined);
           }}
           type="button"
-          variant="outline"
+          variant="ghost"
         >
           Sign out
         </Button>
@@ -115,7 +133,7 @@ function App() {
   return (
     <ApolloProvider
       onUnauthenticated={() => {
-        void checkSession();
+        checkSession().catch(() => undefined);
       }}
     >
       {body}

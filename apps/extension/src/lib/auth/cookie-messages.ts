@@ -3,6 +3,9 @@ export const EXTENSION_COOKIE_GET = "vyrel:cookie-get" as const;
 export const EXTENSION_COOKIE_CLEAR = "vyrel:cookie-clear" as const;
 export const EXTENSION_PRIVILEGED_FETCH = "vyrel:privileged-fetch" as const;
 
+/** Custom header: extension forwards web session cookie (Chrome forbids Cookie). */
+export const EXTENSION_SESSION_COOKIE_HEADER = "X-Vyrel-Session-Cookie";
+
 export type ExtensionCookieGetMessage = {
   type: typeof EXTENSION_COOKIE_GET;
   url: string;
