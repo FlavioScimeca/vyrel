@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { $ } from "bun";
 import { config as loadEnvFile } from "dotenv";
@@ -24,11 +24,19 @@ const formatDuration = (milliseconds: number): string => {
   return `${minutes}m ${seconds}s`;
 };
 
+const clearExistingApks = (directory: string): void => {
+  for (const entry of readdirSync(directory)) {
+    if (entry.endsWith(".apk")) {
+      unlinkSync(join(directory, entry));
+    }
+  }
+};
+
 const startedAt = Date.now();
-const apkName = env.APK_NAME;
+const apkName = `${env.APP_SLUG}-dev-app.apk`;
 
 mkdirSync(DIST_DIR, { recursive: true });
-await $`rm -f dist/*.apk`.cwd(MOBILE_ROOT);
+clearExistingApks(DIST_DIR);
 
 console.log(`Building Android development APK locally → dist/${apkName}\n`);
 

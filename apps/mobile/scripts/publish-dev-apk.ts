@@ -17,29 +17,24 @@ const fail = (message: string): never => {
   process.exit(1);
 };
 
-const { APK_NAME, BUCKET_REPO } = env;
+const { APP_SLUG, BUCKET_REPO } = env;
 if (!BUCKET_REPO) {
   fail(
     "Missing BUCKET_REPO. Add it to apps/mobile/.env (format: owner/repo).\nSee apps/mobile/.env.example."
   );
 }
 
+/** Rolling release tag / slot for this app in the shared bucket. */
+const RELEASE_TAG = APP_SLUG;
+/** Derived APK asset name: `{APP_SLUG}-dev-app.apk`. */
+const APK_NAME = `${APP_SLUG}-dev-app.apk`;
 const APK_PATH = join(MOBILE_ROOT, "dist", APK_NAME);
+const DOWNLOAD_URL = `https://github.com/${BUCKET_REPO}/releases/download/${RELEASE_TAG}/${APK_NAME}`;
+
 const UPLOAD_URL_TEMPLATE_SUFFIX = /\{[^}]*\}$/;
 const CURL_PROGRESS_LINE =
   /^\s*(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s+/;
 const CURL_PROGRESS_CHUNK_SEPARATOR = /\r|\n/;
-
-const timestampTag = (): string => {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
-
-  return [
-    "dev",
-    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`,
-    `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`,
-  ].join("-");
-};
 
 const formatBytes = (bytes: number): string => {
   const megabytes = bytes / (1024 * 1024);
@@ -202,24 +197,41 @@ const postFileWithProgress = async (
   bar.stop();
 };
 
-const uploadApkWithProgress = async (
-  tag: string,
+const recreateRollingRelease = async (
   title: string,
-  notes: string,
+  notes: string
+): Promise<void> => {
+  const existing = await $`gh release view ${RELEASE_TAG} --repo ${BUCKET_REPO}`
+    .quiet()
+    .nothrow();
+
+  if (existing.exitCode === 0) {
+    console.log(`Replacing existing rolling release '${RELEASE_TAG}'...`);
+    await $`gh release delete ${RELEASE_TAG} --repo ${BUCKET_REPO} --yes --cleanup-tag`;
+  }
+
+  console.log(`Creating rolling release '${RELEASE_TAG}'...`);
+  await $`gh release create ${RELEASE_TAG} --repo ${BUCKET_REPO} --title ${title} --notes ${notes}`;
+};
+
+const uploadApkWithProgress = async (
   apkPath: string,
   sizeBytes: number
 ): Promise<void> => {
-  console.log(`Creating GitHub release ${tag}...`);
-  await $`gh release create ${tag} --repo ${BUCKET_REPO} --title ${title} --notes ${notes} --latest`;
+  const stamped = new Date().toISOString();
+  const title = `${APP_SLUG} development APK`;
+  const notes = `Rolling development APK for \`${APP_SLUG}\`.\nPublished: ${stamped}`;
+
+  await recreateRollingRelease(title, notes);
 
   const uploadUrlTemplate = (
-    await $`gh api repos/${BUCKET_REPO}/releases/tags/${tag} --jq .upload_url`.text()
+    await $`gh api repos/${BUCKET_REPO}/releases/tags/${RELEASE_TAG} --jq .upload_url`.text()
   ).trim();
   const uploadUrl = `${uploadUrlTemplate.replace(UPLOAD_URL_TEMPLATE_SUFFIX, "")}?name=${encodeURIComponent(APK_NAME)}`;
   const token = (await $`gh auth token`.text()).trim();
 
   console.log(
-    `\nUploading ${APK_NAME} (${formatBytes(sizeBytes)}) to ${BUCKET_REPO}...\n`
+    `\nUploading ${APK_NAME} (${formatBytes(sizeBytes)}) to ${BUCKET_REPO}@${RELEASE_TAG}...\n`
   );
 
   try {
@@ -262,24 +274,18 @@ const main = async (): Promise<void> => {
   }
 
   const sizeBytes = statSync(APK_PATH).size;
-  const tag = timestampTag();
-  const title = `Android Dev ${tag}`;
-  const notes = "Local development Android APK.";
-
-  await uploadApkWithProgress(tag, title, notes, APK_PATH, sizeBytes);
-
-  const downloadUrl = `https://github.com/${BUCKET_REPO}/releases/latest/download/${APK_NAME}`;
+  await uploadApkWithProgress(APK_PATH, sizeBytes);
 
   console.log("\nAPK published:");
-  console.log(downloadUrl);
+  console.log(DOWNLOAD_URL);
 
-  await copyToClipboard(downloadUrl);
+  await copyToClipboard(DOWNLOAD_URL);
   if (Bun.which("pbcopy")) {
     console.log("Download link copied to clipboard.");
   }
 
   console.log("\nQR code (scan with your phone):\n");
-  await $`bunx qrcode --small ${downloadUrl}`;
+  await $`bunx qrcode --small ${DOWNLOAD_URL}`;
 
   console.log(`\nDone in ${formatDuration(Date.now() - startedAt)}.`);
 };
