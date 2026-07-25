@@ -6,6 +6,22 @@ import {
   IconCheck,
   IconChevronLeft,
 } from "@tabler/icons-react";
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  Spinner,
+} from "@vyrel/shared/ui";
 import Link from "next/link";
 import { type FormEventHandler, type ReactNode, useState } from "react";
 import {
@@ -15,19 +31,7 @@ import {
   useForm,
   useFormState,
 } from "react-hook-form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+
 import {
   type ResetPasswordRequestValues,
   type ResetPasswordValues,

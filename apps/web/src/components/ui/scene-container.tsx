@@ -1,23 +1,26 @@
-"use client"
+// biome-ignore-all lint: third-party / generated vortex effect
+// biome-ignore-all format: third-party / generated vortex effect
+"use client";
 
-import * as React from "react"
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
 
-import { cn } from "@/lib/utils"
-import {
-  useShadcnTheme,
-  type ThemeMode,
-} from "@/hooks/use-shadcn-theme"
+import { OrbitControls } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import * as React from "react";
+import { type ThemeMode, useShadcnTheme } from "@/hooks/use-shadcn-theme";
+import { cn } from "@/lib/utils";
 
-type EnvironmentPreset = "studio" | "city" | "dawn" | "night"
+type EnvironmentPreset = "studio" | "city" | "dawn" | "night";
 
 type LightRig = {
-  ambient: { color: string; intensity: number }
-  key: { color: string; intensity: number; position: [number, number, number] }
-  fill: { color: string; intensity: number; position: [number, number, number] }
-  rim: { color: string; intensity: number; position: [number, number, number] }
-}
+  ambient: { color: string; intensity: number };
+  key: { color: string; intensity: number; position: [number, number, number] };
+  fill: {
+    color: string;
+    intensity: number;
+    position: [number, number, number];
+  };
+  rim: { color: string; intensity: number; position: [number, number, number] };
+};
 
 /**
  * Offline lighting rigs. We avoid drei's <Environment preset> because it
@@ -48,24 +51,27 @@ const RIGS: Record<EnvironmentPreset, LightRig> = {
     fill: { color: "#4338ca", intensity: 0.6, position: [-5, 1, 4] },
     rim: { color: "#7c3aed", intensity: 1.6, position: [-2, 3, -6] },
   },
-}
+};
 
 function Rig({
   preset,
   fog,
   theme,
 }: {
-  preset: EnvironmentPreset
-  fog: boolean
-  theme: ThemeMode
+  preset: EnvironmentPreset;
+  fog: boolean;
+  theme: ThemeMode;
 }) {
-  const { bgColor } = useShadcnTheme(theme)
-  const rig = RIGS[preset]
+  const { bgColor } = useShadcnTheme(theme);
+  const rig = RIGS[preset];
 
   return (
     <>
-      {fog ? <fog attach="fog" args={[bgColor.getHex(), 8, 24]} /> : null}
-      <ambientLight color={rig.ambient.color} intensity={rig.ambient.intensity} />
+      {fog ? <fog args={[bgColor.getHex(), 8, 24]} attach="fog" /> : null}
+      <ambientLight
+        color={rig.ambient.color}
+        intensity={rig.ambient.intensity}
+      />
       <directionalLight
         color={rig.key.color}
         intensity={rig.key.intensity}
@@ -78,12 +84,12 @@ function Rig({
       />
       <pointLight
         color={rig.rim.color}
+        distance={30}
         intensity={rig.rim.intensity * 12}
         position={rig.rim.position}
-        distance={30}
       />
     </>
-  )
+  );
 }
 
 /**
@@ -96,44 +102,46 @@ function useInView(
   ref: React.RefObject<HTMLElement | null>,
   rootMargin: string
 ): boolean {
-  const [inView, setInView] = React.useState(false)
+  const [inView, setInView] = React.useState(false);
 
   React.useEffect(() => {
-    const el = ref.current
-    if (!el) return
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
     if (typeof IntersectionObserver === "undefined") {
       // No observer available: render eagerly rather than never mounting.
-      setInView(true)
-      return
+      setInView(true);
+      return;
     }
     const observer = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
       { rootMargin }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [ref, rootMargin])
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, rootMargin]);
 
-  return inView
+  return inView;
 }
 
 export type SceneContainerProps = {
-  className?: string
-  theme?: ThemeMode
-  environment?: EnvironmentPreset
-  fog?: boolean
+  className?: string;
+  theme?: ThemeMode;
+  environment?: EnvironmentPreset;
+  fog?: boolean;
   /** Camera position, defaults to a gentle 3/4 view. */
-  camera?: [number, number, number]
+  camera?: [number, number, number];
   /** Vertical field of view. */
-  fov?: number
-  children?: React.ReactNode
+  fov?: number;
+  children?: React.ReactNode;
   /** Rendered as an HTML overlay above the canvas (not inside the 3D scene). */
-  overlay?: React.ReactNode
+  overlay?: React.ReactNode;
   /**
    * Drag to orbit the camera (rotate only — zoom and pan disabled). Defaults to
    * true. Set false if the scene provides its own controls.
    */
-  orbit?: boolean
+  orbit?: boolean;
   /**
    * Mount the WebGL canvas only while it is near the viewport, and tear it down
    * once it scrolls away. Keeps a grid of many scenes from exhausting the
@@ -141,8 +149,8 @@ export type SceneContainerProps = {
    * Defaults to true. Set false for a scene that must always render (e.g. a
    * persistent hero background).
    */
-  lazy?: boolean
-}
+  lazy?: boolean;
+};
 
 /**
  * The canvas wrapper every threecn scene builds on. Sets up a transparent
@@ -161,32 +169,38 @@ export function SceneContainer({
   orbit = true,
   lazy = true,
 }: SceneContainerProps) {
-  const wrapRef = React.useRef<HTMLDivElement>(null)
-  const inView = useInView(wrapRef, "300px")
-  const active = lazy ? inView : true
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const inView = useInView(wrapRef, "300px");
+  const active = lazy ? inView : true;
 
   return (
-    <div ref={wrapRef} className={cn("relative h-full w-full", className)}>
+    <div className={cn("relative h-full w-full", className)} ref={wrapRef}>
       {active ? (
         <Canvas
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           camera={{ position: camera, fov, near: 0.1, far: 100 }}
+          dpr={[1, 2]}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+          }}
         >
-          <Rig preset={environment} fog={fog} theme={theme} />
+          <Rig fog={fog} preset={environment} theme={theme} />
           <React.Suspense fallback={null}>{children}</React.Suspense>
           {orbit ? (
             <OrbitControls
-              makeDefault
+              dampingFactor={0.1}
+              enableDamping
               enablePan={false}
               enableZoom={false}
-              enableDamping
-              dampingFactor={0.1}
+              makeDefault
             />
           ) : null}
         </Canvas>
       ) : null}
-      {overlay ? <div className="pointer-events-none absolute inset-0">{overlay}</div> : null}
+      {overlay ? (
+        <div className="pointer-events-none absolute inset-0">{overlay}</div>
+      ) : null}
     </div>
-  )
+  );
 }

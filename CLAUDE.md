@@ -63,6 +63,7 @@ vyrel/
 │   └── public/
 │       ├── graphql-client/ # Apollo optimistic CRUD and schema metadata codegen
 │       └── morph/          # Drizzle/Zod/Pothos model bridge
+└── shared/          # App-only shared utilities (`@vyrel/shared`)
 ```
 
 ## Common Commands

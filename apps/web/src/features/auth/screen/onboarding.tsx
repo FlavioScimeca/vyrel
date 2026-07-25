@@ -1,25 +1,24 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
+  Alert,
+  AlertDescription,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+  Input,
+  Spinner,
+} from "@vyrel/shared/ui";
+import { useForm } from "react-hook-form";
+
 import { OrganizationLogoField } from "@/features/auth/components/organization-logo-field";
 import { createOrganization } from "@/features/auth/create-organization";
 import {

@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@vyrel/shared/ui";
+import Link from "next/link";
 
 export function AuthSucceededScreen() {
   return (

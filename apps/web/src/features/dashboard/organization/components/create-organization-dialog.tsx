@@ -4,13 +4,10 @@ import { useApolloClient } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { organizationCreateSchema } from "@vyrel/api/models/organization/types/base.types";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import type z from "zod/v4";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
+  Alert,
+  AlertDescription,
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,15 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+  Input,
+  Spinner,
+} from "@vyrel/shared/ui";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type z from "zod/v4";
+
 import { OrganizationLogoField } from "@/features/auth/components/organization-logo-field";
 import { createOrganization } from "@/features/auth/create-organization";
 import {

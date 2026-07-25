@@ -1,0 +1,36 @@
+{
+  "name": "@vyrel/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/components/index.ts",
+    "./lib/*": "./src/lib/*",
+    "./hooks/*": "./src/hooks/*",
+    "./styles/*": "./src/styles/*"
+  },
+  "scripts": {
+    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
+    "check-types": "tsc --noEmit",
+    "ui:add": "bunx --bun shadcn@latest add"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@shadcn/react": "^0.2.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.4.0",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.4.2",
+    "react-day-picker": "^10.0.1",
+    "react-resizable-panels": "^4.12.2",
+    "recharts": "3.8.0",
+    "tailwind-merge": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@vyrel/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 
-import "./index.css";
+import "@vyrel/shared/styles/index.css";
+
+import { Toaster, TooltipProvider } from "@vyrel/shared/ui";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const jetbrainsMono = JetBrains_Mono({
