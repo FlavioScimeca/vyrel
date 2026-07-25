@@ -1,0 +1,9 @@
+# Include everything from .gitignore first
+
+/docs
+/coverage
+/screenshots
+/mockups
+/test-results
+/playwright-report
+*.log

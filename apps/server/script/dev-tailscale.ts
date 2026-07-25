@@ -176,7 +176,31 @@ const server = Bun.spawn({
   stdout: "inherit",
 });
 
+let shuttingDown = false;
+
+const disableFunnel = () => {
+  try {
+    runTailscale(["funnel", "--https=443", "off"]);
+    log.info(SCRIPT, "Funnel turned off");
+    log.info(
+      SCRIPT,
+      "To confirm funnel is stopped, run: tailscale funnel status"
+    );
+  } catch (error) {
+    log.warn(
+      SCRIPT,
+      `Failed to turn funnel off: ${error instanceof Error ? error.message : String(error)}`
+    );
+    log.info(SCRIPT, "To check funnel status, run: tailscale funnel status");
+  }
+};
+
 const shutdown = () => {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  disableFunnel();
   server.kill();
 };
 
@@ -186,9 +210,13 @@ process.on("SIGTERM", shutdown);
 try {
   await runtime.runPromise(waitForFunnelOk(funnelUrl));
 } catch (error) {
+  disableFunnel();
   server.kill();
   throw error;
 }
 
 const exitCode = await server.exited;
+if (!shuttingDown) {
+  disableFunnel();
+}
 process.exit(exitCode ?? 0);

@@ -13,10 +13,14 @@ The package exposes separate entry points:
 | --- | --- | --- |
 | `@vyrel/env/server` | Bun/server only | Authentication, database, R2, email, logging, profiling, runtime variables |
 | `@vyrel/env/web` | Next.js/browser-safe | `NEXT_PUBLIC_SERVER_URL` only |
+| `@vyrel/env/native` | Expo / mobile scripts | `EXPO_PUBLIC_SERVER_URL`, plus publish helpers `BUCKET_REPO` and `APK_NAME` |
 
 The server entry loads dotenv and validates `process.env`. The web entry passes
 an explicit runtime object to `@t3-oss/env-nextjs`, preventing accidental
-exposure of server values. See the complete [environment reference](/docs/getting-started/environment).
+exposure of server values. The native entry uses `@t3-oss/env-core` with explicit
+`runtimeEnv` members so Metro can inline `EXPO_PUBLIC_*` values. See the
+complete [environment reference](/docs/getting-started/environment) and
+[Local APK publish](/docs/apps/mobile/local-apk-publish).
 
 `envBoolean` normalizes actual booleans and common string forms. Only `1`,
 `true`, `yes`, and `on` are true; other strings are false.
