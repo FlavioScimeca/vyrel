@@ -3,8 +3,8 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "@phosphor-icons/react";
 import type * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;

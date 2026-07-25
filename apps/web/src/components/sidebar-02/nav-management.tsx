@@ -7,9 +7,6 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
-import type { Route as NextRoute } from "next";
-import Link from "next/link";
-import { ThemeModeSwitch } from "@/components/sidebar-02/theme-mode-switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,13 +15,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@vyrel/shared/ui";
+import type { Route as NextRoute } from "next";
+import Link from "next/link";
+import { ThemeModeSwitch } from "@/components/sidebar-02/theme-mode-switch";
 import { authClient } from "@/lib/auth-client";
 
 const managementLinks = [

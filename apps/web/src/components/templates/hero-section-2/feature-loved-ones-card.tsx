@@ -1,5 +1,5 @@
 import { IconUser, IconUsers } from "@tabler/icons-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@vyrel/shared/ui";
 
 export function FeatureLovedOnesCard() {
   return (

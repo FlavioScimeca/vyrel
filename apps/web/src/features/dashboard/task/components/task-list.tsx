@@ -1,23 +1,22 @@
 "use client";
 
 import { IconChecklist } from "@tabler/icons-react";
-import { readFragment } from "gql.tada";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from "@vyrel/shared/ui";
+import { readFragment } from "gql.tada";
 import { DeleteTaskDialog } from "@/features/dashboard/task/components/delete-task-dialog";
 import { EditTaskDialog } from "@/features/dashboard/task/components/edit-task-dialog";
 import { useTaskListScope } from "@/features/dashboard/task/context/task-list-scope";

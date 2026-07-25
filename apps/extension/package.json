@@ -29,6 +29,7 @@
     "@vyrel/env": "workspace:*",
     "@vyrel/graphql-client": "workspace:*",
     "@vyrel/logging": "workspace:*",
+    "@vyrel/shared": "workspace:*",
     "better-auth": "catalog:",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -16,8 +16,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
-import { cn } from "@/src/lib/utils";
+} from "@vyrel/shared/components/ui/dropdown-menu";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function Menubar({ className, ...props }: MenubarPrimitive.Props) {
   return (

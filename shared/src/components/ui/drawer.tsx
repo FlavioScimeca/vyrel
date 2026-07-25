@@ -3,7 +3,7 @@
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import * as React from "react";
 
-import { cn } from "@/src/lib/utils";
+import { cn } from "@vyrel/shared/lib/utils";
 
 type DrawerContextProps = {
   hasSnapPoints: boolean;

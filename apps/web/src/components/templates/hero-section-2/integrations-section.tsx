@@ -1,6 +1,6 @@
 import { IconHammer } from "@tabler/icons-react";
+import { Button } from "@vyrel/shared/ui";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export function HeroIntegrationsSection() {
   return (

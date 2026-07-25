@@ -15,11 +15,11 @@
   "menuColor": "default",
   "menuAccent": "subtle",
   "aliases": {
-    "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
-    "lib": "@/lib",
-    "hooks": "@/hooks"
+    "components": "@vyrel/shared/components",
+    "utils": "@vyrel/shared/lib/utils",
+    "ui": "@vyrel/shared/components/ui",
+    "lib": "@vyrel/shared/lib",
+    "hooks": "@vyrel/shared/hooks"
   },
   "registries": {
     "@threecn": "https://threecn.dev/r/{name}.json",

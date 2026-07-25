@@ -1,8 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@vyrel/shared/ui";
 import { UserProfile } from "@/features/dashboard/user/components/user-profile";
 import { GetUserDocument } from "@/features/dashboard/user/graphql/queries";
 

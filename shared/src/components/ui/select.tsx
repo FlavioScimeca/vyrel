@@ -3,7 +3,7 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { CaretDownIcon, CaretUpIcon, CheckIcon } from "@phosphor-icons/react";
 import type * as React from "react";
-import { cn } from "@/src/lib/utils";
+import { cn } from "@vyrel/shared/lib/utils";
 
 const Select = SelectPrimitive.Root;
 

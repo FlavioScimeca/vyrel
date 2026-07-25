@@ -3,24 +3,24 @@ import { useRender } from "@base-ui/react/use-render";
 import { SidebarIcon } from "@phosphor-icons/react";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
-import { Separator } from "@/src/components/ui/separator";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { Input } from "@vyrel/shared/components/ui/input";
+import { Separator } from "@vyrel/shared/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/src/components/ui/sheet";
-import { Skeleton } from "@/src/components/ui/skeleton";
+} from "@vyrel/shared/components/ui/sheet";
+import { Skeleton } from "@vyrel/shared/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/src/components/ui/tooltip";
-import { useIsMobile } from "@/src/hooks/use-mobile";
-import { cn } from "@/src/lib/utils";
+} from "@vyrel/shared/components/ui/tooltip";
+import { useIsMobile } from "@vyrel/shared/hooks/use-mobile";
+import { cn } from "@vyrel/shared/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

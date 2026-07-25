@@ -12,8 +12,8 @@ import {
   getDefaultClassNames,
   type Locale,
 } from "react-day-picker";
-import { Button, buttonVariants } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button, buttonVariants } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function Calendar({
   className,
@@ -128,44 +128,6 @@ function Calendar({
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
-      }}
-      components={{
-        Root: ({ className, rootRef, ...props }) => (
-          <div
-            className={cn(className)}
-            data-slot="calendar"
-            ref={rootRef}
-            {...props}
-          />
-        ),
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <CaretLeftIcon className={cn("size-4", className)} {...props} />
-            );
-          }
-
-          if (orientation === "right") {
-            return (
-              <CaretRightIcon className={cn("size-4", className)} {...props} />
-            );
-          }
-
-          return (
-            <CaretDownIcon className={cn("size-4", className)} {...props} />
-          );
-        },
-        DayButton: ({ ...props }) => (
-          <CalendarDayButton locale={locale} {...props} />
-        ),
-        WeekNumber: ({ children, ...props }) => (
-          <td {...props}>
-            <div className="flex size-(--cell-size) items-center justify-center text-center">
-              {children}
-            </div>
-          </td>
-        ),
-        ...components,
       }}
       components={{
         Root: ({ className, rootRef, ...props }) => (

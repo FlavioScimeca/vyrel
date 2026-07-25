@@ -1,10 +1,8 @@
 "use client";
 
 import { useSuspenseQuery } from "@apollo/client/react";
+import { Alert, AlertDescription, Button } from "@vyrel/shared/ui";
 import { type ReactNode, useMemo, useTransition } from "react";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { CreateTaskDialog } from "@/features/dashboard/task/components/create-task-dialog";
 import { TaskFilters } from "@/features/dashboard/task/components/task-filters";
 import { TaskList } from "@/features/dashboard/task/components/task-list";

@@ -1,15 +1,14 @@
 import { useQuery } from "@apollo/client/react";
-import { readFragment } from "gql.tada";
-import { useState } from "react";
-
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/src/components/ui/select";
-import { Spinner } from "@/src/components/ui/spinner";
+  Spinner,
+} from "@vyrel/shared/ui";
+import { readFragment } from "gql.tada";
+import { useState } from "react";
 import { OrganizationListItemFragment } from "@/src/features/dashboard/organization/graphql/fragments";
 import { ListOrganizationsDocument } from "@/src/features/dashboard/organization/graphql/queries";
 import { switchActiveOrganization } from "@/src/features/dashboard/organization/switch-active-organization";

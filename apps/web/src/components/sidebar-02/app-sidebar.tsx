@@ -1,12 +1,6 @@
 "use client";
 
 import { IconChecklist, IconHome, IconWallet } from "@tabler/icons-react";
-import { LazyMotion, m } from "motion/react";
-import type { Route } from "@/components/sidebar-02/nav-main";
-import DashboardNavigation from "@/components/sidebar-02/nav-main";
-import { NavManagement } from "@/components/sidebar-02/nav-management";
-import { NotificationsPopover } from "@/components/sidebar-02/nav-notifications";
-import { OrganizationSwitcher } from "@/components/sidebar-02/organization-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +8,13 @@ import {
   SidebarHeader,
   SidebarTrigger,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@vyrel/shared/ui";
+import { LazyMotion, m } from "motion/react";
+import type { Route } from "@/components/sidebar-02/nav-main";
+import DashboardNavigation from "@/components/sidebar-02/nav-main";
+import { NavManagement } from "@/components/sidebar-02/nav-management";
+import { NotificationsPopover } from "@/components/sidebar-02/nav-notifications";
+import { OrganizationSwitcher } from "@/components/sidebar-02/organization-switcher";
 import { loadMotionDomAnimation } from "@/lib/motion-features";
 import { cn } from "@/lib/utils";
 

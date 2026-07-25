@@ -3,8 +3,8 @@ import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
 import * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;

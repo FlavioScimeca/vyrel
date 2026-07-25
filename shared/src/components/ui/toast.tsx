@@ -8,8 +8,8 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import type * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 const toast = ToastPrimitive.createToastManager();
 

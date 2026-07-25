@@ -1,9 +1,11 @@
 "use client";
 
 import { IconBell } from "@tabler/icons-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -11,7 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@vyrel/shared/ui";
 
 type Notification = {
   id: string;

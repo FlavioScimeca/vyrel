@@ -1,7 +1,5 @@
+import { Button, Spinner } from "@vyrel/shared/ui";
 import { type ReactNode, useState } from "react";
-
-import { Button } from "@/src/components/ui/button";
-import { Spinner } from "@/src/components/ui/spinner";
 import { ApolloProvider } from "@/src/graphql/apollo/provider";
 import { useExtensionSession } from "@/src/lib/auth/use-extension-session";
 import { captureActiveTabAndOpenViewer } from "@/src/lib/capture-visible-tab";

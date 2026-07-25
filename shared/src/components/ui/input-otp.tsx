@@ -1,7 +1,7 @@
 import { MinusIcon } from "@phosphor-icons/react";
 import { OTPInput, OTPInputContext } from "input-otp";
 import * as React from "react";
-import { cn } from "@/src/lib/utils";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function InputOTP({
   className,

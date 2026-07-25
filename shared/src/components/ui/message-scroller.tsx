@@ -6,8 +6,8 @@ import {
   useMessageScrollerVisibility,
 } from "@shadcn/react/message-scroller";
 import type * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function MessageScrollerProvider(
   props: React.ComponentProps<typeof MessageScrollerPrimitive.Provider>

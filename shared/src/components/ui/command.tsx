@@ -7,9 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/src/components/ui/dialog";
-import { InputGroup, InputGroupAddon } from "@/src/components/ui/input-group";
-import { cn } from "@/src/lib/utils";
+} from "@vyrel/shared/components/ui/dialog";
+import { InputGroup, InputGroupAddon } from "@vyrel/shared/components/ui/input-group";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function Command({
   className,

@@ -1,7 +1,7 @@
 import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/navigation-menu";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { cva } from "class-variance-authority";
-import { cn } from "@/src/lib/utils";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function NavigationMenu({
   align = "start",

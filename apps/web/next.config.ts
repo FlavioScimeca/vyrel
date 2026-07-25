@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   experimental: {
     useTypeScriptCli: true,
   },
+  transpilePackages: ["@vyrel/shared"],
   async rewrites() {
     return createBackendRewrites(serverUrl);
   },

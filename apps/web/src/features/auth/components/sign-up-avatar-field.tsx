@@ -1,14 +1,6 @@
 "use client";
 
 import { IconUser, IconX } from "@tabler/icons-react";
-import Image from "next/image";
-import { useId, useRef } from "react";
-import {
-  type FieldError as RhfFieldError,
-  useController,
-  useFormContext,
-} from "react-hook-form";
-
 import {
   Attachment,
   AttachmentAction,
@@ -18,9 +10,18 @@ import {
   AttachmentMedia,
   AttachmentTitle,
   AttachmentTrigger,
-} from "@/components/ui/attachment";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
+  Field,
+  FieldError,
+  FieldLabel,
+  Spinner,
+} from "@vyrel/shared/ui";
+import Image from "next/image";
+import { useId, useRef } from "react";
+import {
+  type FieldError as RhfFieldError,
+  useController,
+  useFormContext,
+} from "react-hook-form";
 import type { SignUpFormValues } from "@/features/auth/form.schema";
 import { useObjectUrl } from "@/hooks/use-object-url";
 

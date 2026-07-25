@@ -1,6 +1,20 @@
 "use client";
 
 import { IconPhoto, IconX } from "@tabler/icons-react";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+  AttachmentTrigger,
+  Field,
+  FieldError,
+  FieldLabel,
+  Spinner,
+} from "@vyrel/shared/ui";
 import Image from "next/image";
 import { useId, useRef } from "react";
 import {
@@ -13,19 +27,6 @@ import {
   type UseFormSetError,
   useController,
 } from "react-hook-form";
-
-import {
-  Attachment,
-  AttachmentAction,
-  AttachmentActions,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-  AttachmentTrigger,
-} from "@/components/ui/attachment";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
 import { useObjectUrl } from "@/hooks/use-object-url";
 
 const ALLOWED_MIME_TYPES = new Set([

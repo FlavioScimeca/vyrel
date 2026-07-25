@@ -4,8 +4,8 @@ import {
   DotsThreeIcon,
 } from "@phosphor-icons/react";
 import type * as React from "react";
-import { Button } from "@/src/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@vyrel/shared/components/ui/button";
+import { cn } from "@vyrel/shared/lib/utils";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -59,14 +59,6 @@ function PaginationLink({
           {...props}
         />
       }
-      render={
-        <a
-          aria-current={isActive ? "page" : undefined}
-          data-active={isActive}
-          data-slot="pagination-link"
-          {...props}
-        />
-      }
       size={size}
     />
   );
@@ -81,8 +73,8 @@ function PaginationPrevious({
     <PaginationLink
       aria-label="Go to previous page"
       className={cn("pl-1.5!", className)}
-      size="default"
       {...props}
+      size="default"
     >
       <CaretLeftIcon data-icon="inline-start" />
       <span className="hidden sm:block">{text}</span>
@@ -99,8 +91,8 @@ function PaginationNext({
     <PaginationLink
       aria-label="Go to next page"
       className={cn("pr-1.5!", className)}
-      size="default"
       {...props}
+      size="default"
     >
       <span className="hidden sm:block">{text}</span>
       <CaretRightIcon data-icon="inline-end" />

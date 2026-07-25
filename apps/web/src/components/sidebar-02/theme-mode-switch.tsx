@@ -1,9 +1,9 @@
 "use client";
 
 import { IconMoon, IconSun } from "@tabler/icons-react";
+import { Switch } from "@vyrel/shared/ui";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
-import { Switch } from "@/components/ui/switch";
 
 function subscribe() {
   return () => {
