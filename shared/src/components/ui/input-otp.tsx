@@ -1,4 +1,4 @@
-import { MinusIcon } from "@phosphor-icons/react";
+import { IconMinus } from "@tabler/icons-react";
 import { OTPInput, OTPInputContext } from "input-otp";
 import * as React from "react";
 import { cn } from "@vyrel/shared/lib/utils";
@@ -75,7 +75,7 @@ function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
       role="separator"
       {...props}
     >
-      <MinusIcon />
+      <IconMinus />
     </div>
   );
 }

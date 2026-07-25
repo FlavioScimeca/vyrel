@@ -26,7 +26,7 @@
     "@vyrel/env": "workspace:*",
     "@vyrel/logging": "workspace:*",
     "dotenv": "catalog:",
-    "drizzle-orm": "1.0.0-rc.4",
+    "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "libsql": "catalog:",
     "zod": "catalog:"

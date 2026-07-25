@@ -1,8 +1,8 @@
 import {
-  CaretLeftIcon,
-  CaretRightIcon,
-  DotsThreeIcon,
-} from "@phosphor-icons/react";
+  IconChevronLeft,
+  IconChevronRight,
+  IconDots,
+} from "@tabler/icons-react";
 import type * as React from "react";
 import { Button } from "@vyrel/shared/components/ui/button";
 import { cn } from "@vyrel/shared/lib/utils";
@@ -76,7 +76,7 @@ function PaginationPrevious({
       {...props}
       size="default"
     >
-      <CaretLeftIcon data-icon="inline-start" />
+      <IconChevronLeft data-icon="inline-start" />
       <span className="hidden sm:block">{text}</span>
     </PaginationLink>
   );
@@ -95,7 +95,7 @@ function PaginationNext({
       size="default"
     >
       <span className="hidden sm:block">{text}</span>
-      <CaretRightIcon data-icon="inline-end" />
+      <IconChevronRight data-icon="inline-end" />
     </PaginationLink>
   );
 }
@@ -114,7 +114,7 @@ function PaginationEllipsis({
       data-slot="pagination-ellipsis"
       {...props}
     >
-      <DotsThreeIcon />
+      <IconDots />
       <span className="sr-only">More pages</span>
     </span>
   );

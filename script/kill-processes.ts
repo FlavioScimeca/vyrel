@@ -117,7 +117,9 @@ export const killProjectProcesses = (
     return { killedPatterns, killedPorts };
   });
 
-const printReport = (report: KillProcessesReport): Effect.Effect<void> =>
+export const printKillProcessesReport = (
+  report: KillProcessesReport
+): Effect.Effect<void> =>
   Effect.sync(() => {
     log.info("kill-processes", "Stopped project processes.");
 
@@ -150,7 +152,7 @@ const program = Effect.gen(function* () {
   const path = yield* Path.Path;
   const repoRoot = path.resolve(import.meta.dirname, "..");
   const report = yield* killProjectProcesses(repoRoot);
-  yield* printReport(report);
+  yield* printKillProcessesReport(report);
 });
 
 if (import.meta.main) {

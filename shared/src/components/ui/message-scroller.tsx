@@ -1,4 +1,4 @@
-import { ArrowDownIcon } from "@phosphor-icons/react";
+import { IconArrowDown } from "@tabler/icons-react";
 import {
   MessageScroller as MessageScrollerPrimitive,
   useMessageScroller,
@@ -104,7 +104,7 @@ function MessageScrollerButton({
     >
       {children ?? (
         <>
-          <ArrowDownIcon />
+          <IconArrowDown />
           <span className="sr-only">
             {direction === "end" ? "Scroll to end" : "Scroll to start"}
           </span>

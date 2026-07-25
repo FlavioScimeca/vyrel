@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { XIcon } from "@phosphor-icons/react";
+import { IconX } from "@tabler/icons-react";
 import type * as React from "react";
 import { Button } from "@vyrel/shared/components/ui/button";
 import { cn } from "@vyrel/shared/lib/utils";
@@ -69,7 +69,7 @@ function DialogContent({
               />
             }
           >
-            <XIcon />
+            <IconX />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

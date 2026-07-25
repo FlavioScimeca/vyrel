@@ -5,6 +5,7 @@ import { log } from "@vyrel/logging";
 import { initScriptLogging } from "@vyrel/logging/script";
 import chalk from "chalk";
 import { Console, Effect } from "effect";
+import { checkDoubleDeps, printDoubleDepReport } from "./check-double-dep";
 import { checkEffectProjects } from "./check-effect-ts";
 import { checkNodeModules, printNodeModulesReport } from "./check-nm";
 import {
@@ -12,9 +13,21 @@ import {
   collectCleanupTargets,
   printCleanupReport,
 } from "./clean-up";
+import { syncBranches } from "./fetch";
+import {
+  killProjectProcesses,
+  printKillProcessesReport,
+} from "./kill-processes";
 import { scriptRuntime } from "./runtime";
 
-type ScriptAction = "check" | "check-effect" | "cleanup" | "exit";
+type ScriptAction =
+  | "check"
+  | "check-double-dep"
+  | "check-effect"
+  | "cleanup"
+  | "exit"
+  | "fetch"
+  | "kill-processes";
 
 interface MenuOption {
   description: string;
@@ -29,6 +42,12 @@ const MENU_OPTIONS: MenuOption[] = [
     value: "check",
   },
   {
+    description:
+      "Find same-version deps duplicated across packages (catalog candidates)",
+    label: "Check duplicate deps",
+    value: "check-double-dep",
+  },
+  {
     description: "Run @effect/language-service diagnostics on Effect projects",
     label: "Check Effect diagnostics",
     value: "check-effect",
@@ -37,6 +56,16 @@ const MENU_OPTIONS: MenuOption[] = [
     description: "Remove nested dist, .turbo, and node_modules folders",
     label: "Clean up artifacts",
     value: "cleanup",
+  },
+  {
+    description: "Prune remotes and clean up merged/stale local branches",
+    label: "Sync git branches",
+    value: "fetch",
+  },
+  {
+    description: "Stop turbo/dev servers and free common project ports",
+    label: "Kill project processes",
+    value: "kill-processes",
   },
   {
     description: "Close the script menu",
@@ -79,6 +108,30 @@ const runCheck = (
       log.info("entry-point", chalk.green("  ✓ workspace looks healthy"));
     } else {
       log.info("entry-point", chalk.yellow("  ! nested node_modules detected"));
+    }
+  });
+
+const runDoubleDepCheck = (
+  repoRoot: string
+): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    log.info("entry-point", "");
+    log.info(
+      "entry-point",
+      chalk.bold("Running duplicate dependency check...")
+    );
+    printDivider();
+
+    const report = yield* checkDoubleDeps(repoRoot);
+    yield* printDoubleDepReport(report);
+
+    if (report.duplicates.length === 0) {
+      log.info("entry-point", chalk.green("  ✓ no catalog candidates found"));
+    } else {
+      log.info(
+        "entry-point",
+        chalk.yellow(`  ! ${report.duplicates.length} catalog candidates found`)
+      );
     }
   });
 
@@ -186,6 +239,34 @@ const runCleanup = (
     }
   });
 
+const runFetch = (): Effect.Effect<void, never, Path.Path> =>
+  Effect.gen(function* () {
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold("Syncing git branches..."));
+    printDivider();
+    yield* syncBranches();
+  });
+
+const runKillProcesses = (repoRoot: string): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    log.info("entry-point", "");
+    log.info("entry-point", chalk.bold("Killing project processes..."));
+    printDivider();
+
+    const report = yield* killProjectProcesses(repoRoot);
+    yield* printKillProcessesReport(report);
+
+    const total =
+      report.killedPatterns.length +
+      report.killedPorts.reduce((sum, entry) => sum + entry.pids, 0);
+
+    if (total === 0) {
+      log.info("entry-point", chalk.green("  ✓ nothing was running"));
+    } else {
+      log.info("entry-point", chalk.green("  ✓ project processes stopped"));
+    }
+  });
+
 const promptAction = Effect.promise(() =>
   select<ScriptAction>({
     choices: MENU_OPTIONS.map((option) => ({
@@ -194,7 +275,7 @@ const promptAction = Effect.promise(() =>
       value: option.value,
     })),
     message: chalk.bold("What would you like to run?"),
-    pageSize: 8,
+    pageSize: 10,
   })
 );
 
@@ -217,11 +298,20 @@ const runScriptMenuStep = (
       case "check":
         yield* runCheck(repoRoot);
         break;
+      case "check-double-dep":
+        yield* runDoubleDepCheck(repoRoot);
+        break;
       case "check-effect":
         yield* runEffectCheck(repoRoot);
         break;
       case "cleanup":
         yield* runCleanup(repoRoot);
+        break;
+      case "fetch":
+        yield* runFetch();
+        break;
+      case "kill-processes":
+        yield* runKillProcesses(repoRoot);
         break;
       case "exit":
         log.info("entry-point", "");
