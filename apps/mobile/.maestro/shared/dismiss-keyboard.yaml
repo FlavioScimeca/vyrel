@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+---
+# Dismiss the soft keyboard without Back (Back can exit the app on Android).
+# Tab bar is unmounted while the keyboard is open, so tabs won't exist until
+# this succeeds.
+- runFlow:
+    when:
+      visible: "Your workspace"
+    commands:
+      - tapOn: "Your workspace"
+- runFlow:
+    when:
+      visible: "Welcome back"
+    commands:
+      - tapOn: "Welcome back"
+- runFlow:
+    when:
+      visible: "Account"
+    commands:
+      - tapOn: "Account"

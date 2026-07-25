@@ -65,15 +65,16 @@ function ThemedApplication() {
 
   return (
     <ThemeProvider value={resolvedTheme === "dark" ? DarkTheme : DefaultTheme}>
-      <HeroUINativeProvider config={heroConfig}>
-        <ApolloProvider>
+      {/* Apollo above HeroUI so PortalHost (BottomSheets) inherits the client. */}
+      <ApolloProvider>
+        <HeroUINativeProvider config={heroConfig}>
           <AppLockProvider>
             <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
             <ConnectivityBanner />
             <Slot />
           </AppLockProvider>
-        </ApolloProvider>
-      </HeroUINativeProvider>
+        </HeroUINativeProvider>
+      </ApolloProvider>
     </ThemeProvider>
   );
 }

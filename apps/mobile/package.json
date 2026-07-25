@@ -6,6 +6,7 @@
   "scripts": {
     "android": "expo run:android",
     "check-types": "tsc --noEmit",
+    "dev": "npx expo start --dev-client",
     "eas:configure": "bunx eas-cli@latest build:configure",
     "eas:dev-android": "bunx eas-cli@latest build --profile development --platform android",
     "eas:preview-android": "bunx eas-cli@latest build --profile preview --platform android",

@@ -46,6 +46,16 @@ bun run test:e2e:mobile:ios
 bun run test:e2e:mobile:android
 ```
 
+Suite order (see `.maestro/config.yaml`):
+
+1. `sign-in` — clear state and authenticate
+2. `task-lifecycle` — sign in, then create / edit / delete a task
+3. `workspace-profile` — sign in, then workspaces / profile / appearance
+4. `deep-links` — reset-password and invite deep links
+
+Authenticated flows reuse `.maestro/shared/sign-in.yaml` via `runFlow`, so each
+is self-contained (sign in first, then the feature steps).
+
 `RESET_TOKEN` and `INVITATION_ID` are only required by `deep-links.yaml`. Run an
 individual flow with `maestro test -e APP_ID=<bundle-id> <flow-file>` when those
 values are unavailable.

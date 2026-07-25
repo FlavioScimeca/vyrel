@@ -1,0 +1,32 @@
+appId: ${APP_ID}
+---
+# Full auth path: if already signed in, sign out via More, then sign in.
+- launchApp
+- runFlow: dismiss-expo-dev-ui.yaml
+- runFlow: dismiss-keyboard.yaml
+- runFlow:
+    when:
+      visible: "Your workspace"
+    commands:
+      - extendedWaitUntil:
+          visible: "More tab"
+          timeout: 15000
+      - tapOn: "More tab"
+      - scrollUntilVisible:
+          element: "Sign out"
+          direction: DOWN
+      - tapOn: "Sign out"
+- extendedWaitUntil:
+    visible: "Welcome back"
+    timeout: 30000
+- tapOn: "you@example.com"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Welcome back"
+- tapOn: "Enter your password…"
+- inputText: ${TEST_PASSWORD}
+- tapOn: "Welcome back"
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Your workspace"
+    timeout: 30000
+- runFlow: dismiss-keyboard.yaml
