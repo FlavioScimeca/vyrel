@@ -5,10 +5,11 @@
     "devDependencies": "off",
     "files": "off"
   },
-  "ignoreBinaries": ["turso", "pkill"],
+  "ignoreBinaries": ["turso", "maestro"],
   "ignoreIssues": {
     "apps/docs/components/**": ["duplicates", "exports"],
-    "apps/web/src/components/ui/**": ["exports"]
+    "apps/web/src/components/ui/**": ["exports"],
+    "apps/extension/src/components/ui/**": ["exports"]
   },
   "ignoreWorkspaces": ["packages/config"],
   "workspaces": {

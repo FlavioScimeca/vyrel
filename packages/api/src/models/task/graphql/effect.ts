@@ -1,4 +1,5 @@
 import { toGraphQLError } from "@vyrel/graphql/utils/to-graphql-error";
+import { log } from "@vyrel/logging";
 import { Cause, Effect, Exit } from "effect";
 import type { GraphQLError } from "graphql";
 
@@ -35,13 +36,32 @@ const mapTaskErrorsToGraphQL = <A>(
   );
 
 export function runTaskGraphqlEffect<A>(
-  effect: Effect.Effect<A, TaskError | GraphQLError, TaskServices>
+  effect: Effect.Effect<A, TaskError | GraphQLError, TaskServices>,
+  options?: { mutation?: string }
 ): Promise<A> {
   return TaskRuntime.runPromiseExit(mapTaskErrorsToGraphQL(effect)).then(
     (exit) =>
       Exit.match(exit, {
         onFailure: (cause) => {
-          throw Cause.squash(cause);
+          const error = Cause.squash(cause);
+          const graphqlError = error as {
+            extensions?: { code?: string };
+            message?: string;
+          };
+          const code = graphqlError.extensions?.code;
+          if (options?.mutation !== undefined) {
+            log.error({
+              code,
+              error: graphqlError.message ?? "Unknown task mutation failure",
+              event: "task.mutation.failed",
+              operation: options.mutation,
+            });
+          } else if (code === "FORBIDDEN") {
+            log.warn({
+              event: "task.authorization.denied",
+            });
+          }
+          throw error;
         },
         onSuccess: (value) => value,
       })

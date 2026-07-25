@@ -24,12 +24,13 @@
       "!!**/.source",
       "!!**/.wxt",
       "!!**/graphql-env.d.ts",
-      "!!apps/web/schema.graphql",
+      "!!**/schema.graphql",
       "!!packages/graphql/gen/generated-imports.ts",
       "!!apps/web/src/components/ui",
       "!!apps/web/src/hooks/use-mobile.ts",
       "!!apps/mobile/assets",
-      "!!apps/mobile/src/uniwind-types.d.ts"
+      "!!apps/mobile/src/uniwind-types.d.ts",
+      "!!apps/extension/src/components/ui"
     ]
   },
   "javascript": {

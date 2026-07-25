@@ -1,0 +1,6 @@
+appId: ${APP_ID}
+---
+- openLink: "vyrel-mobile://reset-password?token=${RESET_TOKEN}"
+- assertVisible: "Choose a new password"
+- openLink: "vyrel-mobile://invite/${INVITATION_ID}"
+- assertVisible: "Workspace invitation"

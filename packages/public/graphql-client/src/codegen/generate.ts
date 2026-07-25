@@ -899,6 +899,7 @@ const renderGraphqlClientMetadata = (
 
   return `import { defineGraphqlClientRegistry } from "@vyrel/graphql-client/cache";
 import type { GraphqlClientSchemaMetadata, ModelOf } from "@vyrel/graphql-client/codegen";
+import type {} from "@vyrel/graphql-client";
 import type { ResultOf } from "gql.tada";
 ${fragmentImports}
 ${collectionImports}

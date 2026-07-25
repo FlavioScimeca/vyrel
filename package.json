@@ -95,6 +95,9 @@
     "release": "bun run script/release.ts",
     "rover": "bun run script/entry-point.ts",
     "test": "turbo test",
+    "test:e2e:mobile": "bun run --cwd apps/mobile test:e2e",
+    "test:e2e:mobile:android": "bun run --cwd apps/mobile test:e2e:android",
+    "test:e2e:mobile:ios": "bun run --cwd apps/mobile test:e2e:ios",
     "version-packages": "changeset version"
   },
   "overrides": {

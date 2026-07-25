@@ -20,7 +20,8 @@ builder.mutationFields((t) => ({
         deleteTask(
           taskDeleteSchema.parse(args.input),
           requireActorUserId(context)
-        )
+        ),
+        { mutation: "deleteTask" }
       ),
     type: "String",
     typeOptions: typeOptionsMetadata,

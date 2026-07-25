@@ -43,6 +43,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.organization.id,
       to: r.task.organizationId,
     }),
+    taskLabels: r.many.taskLabel({
+      from: r.organization.id,
+      to: r.taskLabel.organizationId,
+    }),
   },
   session: {
     user: r.one.user({
@@ -51,6 +55,10 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   task: {
+    assignee: r.one.user({
+      from: r.task.assigneeId,
+      to: r.user.id,
+    }),
     creator: r.one.user({
       from: r.task.createdById,
       to: r.user.id,
@@ -58,6 +66,30 @@ export const relations = defineRelations(schema, (r) => ({
     organization: r.one.organization({
       from: r.task.organizationId,
       to: r.organization.id,
+    }),
+    taskLabelAssignments: r.many.taskLabelAssignment({
+      from: r.task.id,
+      to: r.taskLabelAssignment.taskId,
+    }),
+  },
+  taskLabel: {
+    assignments: r.many.taskLabelAssignment({
+      from: r.taskLabel.id,
+      to: r.taskLabelAssignment.labelId,
+    }),
+    organization: r.one.organization({
+      from: r.taskLabel.organizationId,
+      to: r.organization.id,
+    }),
+  },
+  taskLabelAssignment: {
+    label: r.one.taskLabel({
+      from: r.taskLabelAssignment.labelId,
+      to: r.taskLabel.id,
+    }),
+    task: r.one.task({
+      from: r.taskLabelAssignment.taskId,
+      to: r.task.id,
     }),
   },
   user: {
@@ -68,6 +100,10 @@ export const relations = defineRelations(schema, (r) => ({
     createdTasks: r.many.task({
       from: r.user.id,
       to: r.task.createdById,
+    }),
+    assignedTasks: r.many.task({
+      from: r.user.id,
+      to: r.task.assigneeId,
     }),
     invitations: r.many.invitation({
       from: r.user.id,

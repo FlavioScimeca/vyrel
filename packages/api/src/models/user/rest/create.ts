@@ -17,6 +17,7 @@ export const userCreateRest = new Elysia({ name: "user-create-rest" })
         createUser(
           {
             avatar: body.avatar,
+            callbackURL: body.callbackURL,
             email: body.email,
             name: body.name,
             password: body.password,
@@ -32,6 +33,7 @@ export const userCreateRest = new Elysia({ name: "user-create-rest" })
             type: ["image/png", "image/jpeg", "image/webp", "image/gif"],
           })
         ),
+        callbackURL: t.Optional(t.String({ format: "uri" })),
         email: t.String({ format: "email" }),
         name: t.String({ minLength: 1 }),
         password: t.String({ minLength: 8 }),

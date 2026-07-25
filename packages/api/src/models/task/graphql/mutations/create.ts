@@ -15,7 +15,11 @@ const typeOptionsMetadata = {
 builder.mutationFields((t) => ({
   createTask: t.fieldWithInput({
     input: {
-      ...taskGraphql.inputsFrom(taskCreateSchema),
+      ...taskGraphql.inputsFrom(taskCreateSchema, {
+        fieldTypes: {
+          labelIds: ["String"],
+        },
+      }),
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
@@ -26,7 +30,8 @@ builder.mutationFields((t) => ({
           Effect.flatMap(({ actorUserId, input }) =>
             createTask(input, actorUserId)
           )
-        )
+        ),
+        { mutation: "createTask" }
       ),
     type: TaskObject,
     typeOptions: typeOptionsMetadata,

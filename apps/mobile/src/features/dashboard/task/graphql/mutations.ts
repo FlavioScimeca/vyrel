@@ -23,3 +23,13 @@ export const DeleteTaskDocument = graphql(`
     deleteTask(input: $input)
   }
 `);
+
+export const CreateTaskLabelDocument = graphql(`
+  mutation CreateTaskLabel($input: CreateTaskLabel!) {
+    createTaskLabel(input: $input) {
+      color
+      id
+      name
+    }
+  }
+`);

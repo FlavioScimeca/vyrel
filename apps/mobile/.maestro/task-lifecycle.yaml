@@ -1,0 +1,24 @@
+appId: ${APP_ID}
+---
+- runFlow: shared/ensure-signed-in.yaml
+- runFlow: shared/dismiss-keyboard.yaml
+- extendedWaitUntil:
+    visible: "Tasks tab"
+    timeout: 15000
+- tapOn: "Tasks tab"
+- tapOn: "New task"
+- tapOn: "What needs to happen?"
+- inputText: "Maestro premium task"
+- tapOn: "New task"
+- tapOn: "High"
+- tapOn: "Create task"
+- assertVisible: "Task created"
+- assertVisible: "Maestro premium task"
+- tapOn: "Maestro premium task"
+- assertVisible: "Task details"
+- tapOn: "Edit task"
+- tapOn: "Done"
+- tapOn: "Save changes"
+- assertVisible: "Done"
+- tapOn: "Delete task"
+- tapOn: "Delete task"

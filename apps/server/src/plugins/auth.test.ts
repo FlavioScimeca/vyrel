@@ -21,6 +21,12 @@ vi.mock("@vyrel/auth", () => ({
   },
 }));
 
+vi.mock("@vyrel/env/server", () => ({
+  env: {
+    NODE_ENV: "test",
+  },
+}));
+
 vi.mock("@vyrel/db/utils/organization-memberships", () => membershipMocks);
 
 import { authPlugin } from "./auth";
@@ -31,6 +37,7 @@ const authSession = (activeOrganizationId: string | null) => ({
     id: "session-1",
   },
   user: {
+    emailVerified: true,
     id: "user-1",
   },
 });
@@ -69,6 +76,23 @@ describe("POST /api/auth/bootstrap", () => {
       membershipMocks.listOrganizationMembershipIdentities
     ).not.toHaveBeenCalled();
     expect(authMocks.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 401 for an existing unverified session", async () => {
+    authMocks.getSession.mockResolvedValue({
+      ...authSession(null),
+      user: {
+        emailVerified: false,
+        id: "user-1",
+      },
+    });
+
+    const response = await authPlugin.handle(bootstrapRequest());
+
+    expect(response.status).toBe(401);
+    expect(
+      membershipMocks.listOrganizationMembershipIdentities
+    ).not.toHaveBeenCalled();
   });
 
   it("keeps a valid active organization without persisting again", async () => {

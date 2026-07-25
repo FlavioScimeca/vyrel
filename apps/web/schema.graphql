@@ -1,9 +1,21 @@
 """Create a task in an organization the caller belongs to."""
 input CreateTask {
+  assigneeId: String
   description: String
+  dueDate: LocalDate
   image: File
+  labelIds: [String!]
   organizationId: String!
+  priority: TaskPriority
+  status: TaskStatus
   title: String!
+}
+
+"""Create a reusable label in an organization."""
+input CreateTaskLabel {
+  color: String!
+  name: String!
+  organizationId: String!
 }
 
 """
@@ -21,6 +33,11 @@ input DeleteTask {
   taskId: String!
 }
 
+"""Delete an organization task label."""
+input DeleteTaskLabel {
+  labelId: String!
+}
+
 """Delete the current authenticated user account."""
 input DeleteUser {
   callbackURL: String
@@ -36,13 +53,19 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
+"""A calendar date without a time zone, serialized in YYYY-MM-DD format."""
+scalar LocalDate
+
 type Mutation {
   createTask(input: CreateTask!): Task
+  createTaskLabel(input: CreateTaskLabel!): TaskLabel
   deleteOrganization(input: DeleteOrganization!): String
   deleteTask(input: DeleteTask!): String
+  deleteTaskLabel(input: DeleteTaskLabel!): String
   deleteUser(input: DeleteUser!): String
   updateOrganization(input: UpdateOrganization!): Organization
   updateTask(input: UpdateTask!): Task
+  updateTaskLabel(input: UpdateTaskLabel!): TaskLabel
   updateUser(input: UpdateUser!): User
 }
 
@@ -70,8 +93,13 @@ type Query {
   """Get a task by id"""
   task(id: ID!): Task
 
+  """List tasks using an opaque cursor and deterministic ordering."""
+  taskConnection(after: String, assigneeId: String, createdFrom: DateTime, createdTo: DateTime, dueFrom: LocalDate, dueTo: LocalDate, first: Int, labelIds: [String!], organizationId: ID!, priorities: [TaskPriority!], search: String, sort: TaskSort, statuses: [TaskStatus!]): TaskConnection!
+  taskLabels(organizationId: ID!): [TaskLabel!]!
+  taskSummary(organizationId: ID!): TaskSummary!
+
   """List tasks for an organization the caller belongs to"""
-  tasks(createdFrom: DateTime, createdTo: DateTime, organizationId: ID!, search: String): [Task!]!
+  tasks(assigneeId: String, createdFrom: DateTime, createdTo: DateTime, dueFrom: LocalDate, dueTo: LocalDate, labelIds: [String!], organizationId: ID!, priorities: [TaskPriority!], search: String, sort: TaskSort, statuses: [TaskStatus!]): [Task!]!
 
   """Get a user by id"""
   user(id: ID!): User
@@ -79,15 +107,68 @@ type Query {
 
 """Task model"""
 type Task {
+  assignee: User
+  assigneeId: String
   createdAt: DateTime!
   createdById: String!
   description: String
+  dueDate: LocalDate
   id: ID!
   imageFull: String
   imageThumb: String
+  labels: [TaskLabel!]!
   organizationId: String!
+  priority: TaskPriority!
+  status: TaskStatus!
   title: String!
   updatedAt: DateTime!
+}
+
+type TaskConnection {
+  nodes: [Task!]!
+  pageInfo: TaskPageInfo!
+}
+
+"""A reusable organization-scoped task label."""
+type TaskLabel {
+  color: String!
+  createdAt: DateTime!
+  id: ID!
+  name: String!
+  organizationId: String!
+}
+
+type TaskPageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+enum TaskPriority {
+  HIGH
+  LOW
+  MEDIUM
+  NONE
+}
+
+enum TaskSort {
+  DUE_DATE
+  NEWEST
+  PRIORITY
+  RECENTLY_UPDATED
+}
+
+enum TaskStatus {
+  DONE
+  IN_PROGRESS
+  TODO
+}
+
+type TaskSummary {
+  done: Int!
+  inProgress: Int!
+  overdue: Int!
+  todo: Int!
+  total: Int!
 }
 
 """
@@ -105,10 +186,23 @@ input UpdateOrganization {
 
 """Update a task in an organization the caller belongs to."""
 input UpdateTask {
+  assigneeId: String
   description: String
+  dueDate: LocalDate
   image: File
+  labelIds: [String!]
+  priority: TaskPriority
+  removeImage: Boolean
+  status: TaskStatus
   taskId: String!
   title: String
+}
+
+"""Update an organization task label."""
+input UpdateTaskLabel {
+  color: String
+  labelId: String!
+  name: String
 }
 
 """Update the current authenticated user profile."""

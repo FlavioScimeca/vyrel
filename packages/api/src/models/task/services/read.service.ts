@@ -1,9 +1,23 @@
 import { db } from "@vyrel/db";
-import { task } from "@vyrel/db/schema";
-import { and, desc, eq, gte, lte, or, type SQL, sql } from "drizzle-orm";
+import { task, taskLabelAssignment } from "@vyrel/db/schema";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  lt,
+  lte,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { DateTime, Effect } from "effect";
 
 import type {
+  TaskConnectionInput,
   TasksTypeByOrganization,
   TaskTypeById,
 } from "../types/extra.types";
@@ -53,7 +67,61 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
     conditions.push(lte(task.createdAt, endOfDay(input.createdTo)));
   }
 
+  if (input.statuses !== undefined && input.statuses.length > 0) {
+    conditions.push(inArray(task.status, input.statuses));
+  }
+
+  if (input.priorities !== undefined && input.priorities.length > 0) {
+    conditions.push(inArray(task.priority, input.priorities));
+  }
+
+  if (input.dueFrom !== undefined) {
+    conditions.push(gte(task.dueDate, input.dueFrom));
+  }
+
+  if (input.dueTo !== undefined) {
+    conditions.push(lte(task.dueDate, input.dueTo));
+  }
+
+  if (input.assigneeId !== undefined) {
+    conditions.push(eq(task.assigneeId, input.assigneeId));
+  }
+
+  if (input.labelIds !== undefined && input.labelIds.length > 0) {
+    conditions.push(
+      inArray(
+        task.id,
+        db
+          .select({ taskId: taskLabelAssignment.taskId })
+          .from(taskLabelAssignment)
+          .where(inArray(taskLabelAssignment.labelId, input.labelIds))
+      )
+    );
+  }
+
   return conditions;
+};
+
+const taskOrderBy = (sort: TasksTypeByOrganization["sort"]) => {
+  switch (sort) {
+    case "DUE_DATE":
+      return [
+        sql`case when ${task.dueDate} is null then 1 else 0 end`,
+        asc(task.dueDate),
+        desc(task.createdAt),
+        desc(task.id),
+      ] as const;
+    case "PRIORITY":
+      return [
+        sql`case ${task.priority} when 'HIGH' then 0 when 'MEDIUM' then 1 when 'LOW' then 2 else 3 end`,
+        desc(task.createdAt),
+        desc(task.id),
+      ] as const;
+    case "RECENTLY_UPDATED":
+      return [desc(task.updatedAt), desc(task.id)] as const;
+    default:
+      return [desc(task.createdAt), desc(task.id)] as const;
+  }
 };
 
 export const listTasksByOrganization = (
@@ -76,7 +144,177 @@ export const listTasksByOrganization = (
           .select()
           .from(task)
           .where(and(...conditions))
-          .orderBy(desc(task.createdAt))
+          .orderBy(...taskOrderBy(input.sort))
           .all(),
     });
+  });
+
+type TaskCursor = {
+  createdAt: string;
+  dueDate: string | null;
+  id: string;
+  priority: "NONE" | "LOW" | "MEDIUM" | "HIGH";
+  updatedAt: string;
+};
+
+const encodeCursor = (cursor: TaskCursor): string =>
+  Buffer.from(JSON.stringify(cursor)).toString("base64url");
+
+const decodeCursor = (cursor: string | undefined): TaskCursor | null => {
+  if (cursor === undefined) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8")
+    ) as Partial<TaskCursor>;
+    if (
+      typeof parsed.id !== "string" ||
+      typeof parsed.createdAt !== "string" ||
+      typeof parsed.updatedAt !== "string" ||
+      (parsed.dueDate !== null && typeof parsed.dueDate !== "string") ||
+      !["NONE", "LOW", "MEDIUM", "HIGH"].includes(parsed.priority ?? "")
+    ) {
+      return null;
+    }
+    return parsed as TaskCursor;
+  } catch {
+    return null;
+  }
+};
+
+const descendingDateCursorCondition = (
+  column: typeof task.createdAt | typeof task.updatedAt,
+  cursorDate: Date,
+  cursorId: string
+): SQL =>
+  or(
+    lt(column, cursorDate),
+    and(eq(column, cursorDate), lt(task.id, cursorId))
+  ) as SQL;
+
+const priorityRank = sql<number>`case ${task.priority} when 'HIGH' then 0 when 'MEDIUM' then 1 when 'LOW' then 2 else 3 end`;
+
+const cursorCondition = (
+  cursor: TaskCursor,
+  sort: TasksTypeByOrganization["sort"]
+): SQL => {
+  const createdAt = new Date(cursor.createdAt);
+  const updatedAt = new Date(cursor.updatedAt);
+
+  if (sort === "RECENTLY_UPDATED") {
+    return descendingDateCursorCondition(task.updatedAt, updatedAt, cursor.id);
+  }
+
+  if (sort === "DUE_DATE") {
+    const tieBreaker = descendingDateCursorCondition(
+      task.createdAt,
+      createdAt,
+      cursor.id
+    );
+    if (cursor.dueDate === null) {
+      return and(sql`${task.dueDate} is null`, tieBreaker) as SQL;
+    }
+    return or(
+      sql`${task.dueDate} is null`,
+      gt(task.dueDate, cursor.dueDate),
+      and(eq(task.dueDate, cursor.dueDate), tieBreaker)
+    ) as SQL;
+  }
+
+  if (sort === "PRIORITY") {
+    const ranks = { HIGH: 0, MEDIUM: 1, LOW: 2, NONE: 3 } as const;
+    const cursorRank = ranks[cursor.priority];
+    return or(
+      gt(priorityRank, cursorRank),
+      and(
+        eq(priorityRank, cursorRank),
+        descendingDateCursorCondition(task.createdAt, createdAt, cursor.id)
+      )
+    ) as SQL;
+  }
+
+  return descendingDateCursorCondition(task.createdAt, createdAt, cursor.id);
+};
+
+export const listTaskConnection = (
+  input: TaskConnectionInput,
+  actorUserId: string
+) =>
+  Effect.gen(function* () {
+    yield* assertOrgMembership(input.organizationId, actorUserId);
+    const conditions = buildTaskListConditions(input);
+    const cursor = decodeCursor(input.after);
+    if (cursor !== null) {
+      conditions.push(cursorCondition(cursor, input.sort));
+    }
+    const records = yield* Effect.tryPromise({
+      catch: (cause) =>
+        new TaskRepositoryError({
+          cause,
+          message: "Unable to load tasks.",
+        }),
+      try: () =>
+        db
+          .select()
+          .from(task)
+          .where(and(...conditions))
+          .orderBy(...taskOrderBy(input.sort))
+          .limit(input.first + 1)
+          .all(),
+    });
+
+    const hasNextPage = records.length > input.first;
+    const nodes = hasNextPage ? records.slice(0, input.first) : records;
+
+    return {
+      nodes,
+      pageInfo: {
+        endCursor:
+          nodes.length === 0
+            ? null
+            : encodeCursor({
+                createdAt: nodes.at(-1)?.createdAt.toISOString() ?? "",
+                dueDate: nodes.at(-1)?.dueDate ?? null,
+                id: nodes.at(-1)?.id ?? "",
+                priority: nodes.at(-1)?.priority ?? "NONE",
+                updatedAt: nodes.at(-1)?.updatedAt.toISOString() ?? "",
+              }),
+        hasNextPage,
+      },
+    };
+  });
+
+export const getTaskSummary = (organizationId: string, actorUserId: string) =>
+  Effect.gen(function* () {
+    yield* assertOrgMembership(organizationId, actorUserId);
+    const today = new Date().toISOString().slice(0, 10);
+    const [summary] = yield* Effect.tryPromise({
+      catch: (cause) =>
+        new TaskRepositoryError({
+          cause,
+          message: "Unable to load task summary.",
+        }),
+      try: () =>
+        db
+          .select({
+            done: sql<number>`sum(case when ${task.status} = 'DONE' then 1 else 0 end)`,
+            inProgress: sql<number>`sum(case when ${task.status} = 'IN_PROGRESS' then 1 else 0 end)`,
+            overdue: sql<number>`sum(case when ${task.status} != 'DONE' and ${task.dueDate} < ${today} then 1 else 0 end)`,
+            todo: sql<number>`sum(case when ${task.status} = 'TODO' then 1 else 0 end)`,
+            total: sql<number>`count(*)`,
+          })
+          .from(task)
+          .where(eq(task.organizationId, organizationId))
+          .all(),
+    });
+
+    return {
+      done: Number(summary?.done ?? 0),
+      inProgress: Number(summary?.inProgress ?? 0),
+      overdue: Number(summary?.overdue ?? 0),
+      todo: Number(summary?.todo ?? 0),
+      total: Number(summary?.total ?? 0),
+    };
   });

@@ -7,7 +7,17 @@
     "plugins": [
       {
         "name": "@effect/language-service"
+      },
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "./schema.graphql",
+        "tadaOutputLocation": "./graphql-env.d.ts"
       }
-    ]
-  }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "~/*": ["./*"]
+    }
+  },
+  "exclude": [".output"]
 }

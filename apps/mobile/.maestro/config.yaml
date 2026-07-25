@@ -1,0 +1,12 @@
+flows:
+  - "sign-in.yaml"
+  - "task-lifecycle.yaml"
+  - "workspace-profile.yaml"
+  - "deep-links.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - sign-in
+    - task-lifecycle
+    - workspace-profile
+    - deep-links

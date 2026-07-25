@@ -86,6 +86,9 @@ vyrel/
 - `bun run --cwd apps/mobile start` - Start the Expo mobile app
 - `bun run --cwd apps/mobile gql:generate` - Generate gql.tada introspection for mobile
 - `bun run --cwd apps/mobile gql:client` - Generate GraphQL client registry for mobile
+- `bun run --cwd apps/mobile test` - Run mobile unit/component tests
+- `bun run test:e2e:mobile:ios` - Run Maestro mobile E2E flows against an installed iOS build
+- `bun run test:e2e:mobile:android` - Run Maestro mobile E2E flows against an installed Android build
 - `bun run --cwd packages/public/graphql-client validate` - Validate GraphQL client types, lint, exports and tests
 - `bun run --cwd packages/public/graphql-client size` - Report GraphQL client bundle and publish sizes
 

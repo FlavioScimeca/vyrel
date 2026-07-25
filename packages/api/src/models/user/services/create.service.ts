@@ -32,10 +32,10 @@ export const createUser = (
       });
     }
 
-    const { avatar, email, name, password } = safeValues.data;
+    const { avatar, callbackURL, email, name, password } = safeValues.data;
     const signUp = yield* signUpEmail(
       {
-        callbackURL: emailVerifiedCallbackURL,
+        callbackURL: callbackURL ?? emailVerifiedCallbackURL,
         email,
         name,
         password,

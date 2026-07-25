@@ -1,7 +1,8 @@
 import { Redirect, Tabs } from "expo-router";
-import { Spinner, Typography } from "heroui-native";
+import { Spinner } from "heroui-native";
 import { View } from "react-native";
 
+import { AppTabBar } from "@/components/app-tab-bar";
 import { getActiveOrganizationId } from "@/lib/active-organization";
 import { authClient } from "@/lib/auth-client";
 import { AUTH_SIGN_IN, ONBOARDING } from "@/lib/routes";
@@ -28,37 +29,31 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        tabBarActiveTintColor: "#111111",
-        tabBarInactiveTintColor: "#737373",
+        animation: "fade",
+        headerShown: false,
+        lazy: true,
       }}
+      tabBar={(props) => <AppTabBar {...props} />}
     >
       <Tabs.Screen
         name="home"
         options={{
+          tabBarAccessibilityLabel: "Home tab",
           title: "Home",
-          tabBarIcon: ({ color }) => (
-            <Typography style={{ color }}>⌂</Typography>
-          ),
         }}
       />
       <Tabs.Screen
         name="tasks"
         options={{
+          tabBarAccessibilityLabel: "Tasks tab",
           title: "Tasks",
-          tabBarIcon: ({ color }) => (
-            <Typography style={{ color }}>☰</Typography>
-          ),
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
-          headerShown: false,
+          tabBarAccessibilityLabel: "More tab",
           title: "More",
-          tabBarIcon: ({ color }) => (
-            <Typography style={{ color }}>•••</Typography>
-          ),
         }}
       />
     </Tabs>

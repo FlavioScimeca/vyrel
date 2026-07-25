@@ -1,0 +1,18 @@
+appId: ${APP_ID}
+---
+- runFlow: shared/ensure-signed-in.yaml
+- runFlow: shared/dismiss-keyboard.yaml
+- extendedWaitUntil:
+    visible: "More tab"
+    timeout: 15000
+- tapOn: "More tab"
+- tapOn: "Workspaces"
+- assertVisible: "Members"
+- back
+- tapOn: "Profile & security"
+- assertVisible: "App Lock"
+- assertVisible: "Account information"
+- back
+- tapOn: "Appearance"
+- tapOn: "Dark"
+- assertVisible: "Account"

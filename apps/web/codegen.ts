@@ -11,6 +11,7 @@ const config: CodegenConfig = {
               DateTime: "string",
               File: "File",
               JSON: "unknown",
+              LocalDate: "string",
               URL: "string",
             },
           },

@@ -5,31 +5,29 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
-import type { VariablesOf } from "gql.tada";
+import type { ResultOf, VariablesOf } from "gql.tada";
 import { useToast } from "heroui-native";
 
 import { useTaskListScope } from "@/features/dashboard/task/context/task-list-scope";
+import type { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import {
   CreateTaskDocument,
   DeleteTaskDocument,
   UpdateTaskDocument,
 } from "@/features/dashboard/task/graphql/mutations";
-import type { OptimisticTaskExisting } from "@/features/dashboard/task/graphql/types";
 import {
   shouldRemoveFromVisibleFilteredList,
   taskBelongsToVisibleList,
 } from "@/features/dashboard/task/lib/matches-visible-task-list";
 import { ListTasksDocument } from "../graphql/queries";
 
+type TaskListItemData = ResultOf<typeof TaskListItemFragment>;
 type UpdateTaskVariables = VariablesOf<typeof UpdateTaskDocument>;
-type OptimisticTaskPatch = Pick<
-  OptimisticTaskExisting,
-  "description" | "title"
->;
+type OptimisticTaskPatch = Pick<TaskListItemData, "description" | "title">;
 
 const buildOptimisticTaskPatch = (
   variables: UpdateTaskVariables,
-  existingTask: OptimisticTaskExisting
+  existingTask: TaskListItemData
 ): OptimisticTaskPatch => ({
   description:
     variables.input.description === undefined
@@ -74,7 +72,7 @@ export function useCreateTaskMutation() {
   });
 }
 
-export function useUpdateTaskMutation(existingTask: OptimisticTaskExisting) {
+export function useUpdateTaskMutation(existingTask: TaskListItemData) {
   const { listVariables } = useTaskListScope();
   const { toast } = useToast();
 

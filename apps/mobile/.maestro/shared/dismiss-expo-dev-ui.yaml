@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+# Expo Dev Client overlays that block the real app UI.
+# Do not swipe — on Android gesture nav that can leave the app.
+# Do not hideKeyboard here — when the keyboard is already hidden,
+# Maestro's hideKeyboard sends Back and can exit to the launcher.
+- runFlow:
+    when:
+      visible: "http://.*"
+    commands:
+      - tapOn: "http://.*"
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible: "Reload"
+    commands:
+      - tapOn:
+          text: "Close"

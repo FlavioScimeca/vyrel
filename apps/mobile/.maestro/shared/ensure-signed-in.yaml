@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+---
+# Sign-in only when needed.
+- launchApp
+- runFlow: dismiss-expo-dev-ui.yaml
+- runFlow:
+    when:
+      visible: "Welcome back"
+    commands:
+      - tapOn: "you@example.com"
+      - inputText: ${TEST_EMAIL}
+      - tapOn: "Welcome back"
+      - tapOn: "Enter your password…"
+      - inputText: ${TEST_PASSWORD}
+      - tapOn: "Welcome back"
+      - tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Your workspace"
+    timeout: 30000
+- runFlow: dismiss-keyboard.yaml

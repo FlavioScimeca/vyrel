@@ -29,6 +29,7 @@ export const userCreateSchema = userInsertSchema
       .optional()
       .meta({ pothosType: "File" }),
     email: z.email("Enter a valid email address"),
+    callbackURL: z.url().optional(),
     name: z.string().trim().min(1, "Name is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   });

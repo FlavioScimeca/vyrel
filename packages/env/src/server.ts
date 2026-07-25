@@ -12,6 +12,12 @@ export const env = createEnv({
     CORS_ORIGIN: z.url(),
     DATABASE_AUTH_TOKEN: z.string().min(1),
     DATABASE_URL: z.string().min(1),
+    /**
+     * Comma-separated extension origins for Better Auth / CORS
+     * (e.g. `chrome-extension://abc123`). Required in production when
+     * the browser extension is used; wildcards are used in development.
+     */
+    EXTENSION_ORIGINS: z.string().optional(),
     LOG_LEVEL: z.enum(["trace", "debug", "info", "warning", "error", "fatal"]),
     MEDIA_MAX_UPLOAD_BYTES: z.coerce
       .number()

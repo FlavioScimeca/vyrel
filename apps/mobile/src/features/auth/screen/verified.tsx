@@ -1,25 +1,29 @@
 import { router } from "expo-router";
-import { Button, Surface, Typography } from "heroui-native";
+import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
+import { AuthScaffold } from "@/features/auth/components/auth-scaffold";
 import { AUTH_SIGN_IN } from "@/lib/routes";
 
 export function VerifiedScreen() {
   return (
-    <View className="flex-1 justify-center bg-background px-6">
-      <Surface className="gap-6 rounded-3xl p-6" variant="secondary">
-        <View className="gap-2">
-          <Typography.Heading className="text-2xl">
-            Email verified
-          </Typography.Heading>
-          <Typography.Paragraph>
-            Your email is confirmed. You can continue to sign in.
-          </Typography.Paragraph>
+    <AuthScaffold
+      description="Your email is confirmed. You can safely continue to your account."
+      title="Email verified"
+    >
+      <View className="gap-5">
+        <View
+          accessibilityRole="alert"
+          className="rounded-3xl bg-success-soft p-5"
+        >
+          <Typography className="text-success-soft-foreground">
+            Verification complete. Welcome to Vyrel.
+          </Typography>
         </View>
-        <Button onPress={() => router.replace(AUTH_SIGN_IN)}>
-          <Button.Label>Continue</Button.Label>
+        <Button onPress={() => router.replace(AUTH_SIGN_IN)} size="lg">
+          <Button.Label>Continue to sign in</Button.Label>
         </Button>
-      </Surface>
-    </View>
+      </View>
+    </AuthScaffold>
   );
 }

@@ -11,6 +11,7 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { DateTimeResolver, JSONResolver } from "graphql-scalars";
 import type { GraphQLContext } from "./context";
 import { GraphQLFile } from "./scalars/file";
+import { GraphQLLocalDate } from "./scalars/local-date";
 import { GraphQLURL } from "./scalars/url";
 
 type DrizzleRelations = typeof relations;
@@ -37,6 +38,10 @@ type PothosTypes = {
     JSON: {
       Output: unknown;
       Input: unknown;
+    };
+    LocalDate: {
+      Output: string;
+      Input: string;
     };
     File: {
       Output: File;
@@ -80,4 +85,5 @@ export const builder = new SchemaBuilder<PothosTypes>({
 builder.addScalarType("DateTime", DateTimeResolver);
 builder.addScalarType("JSON", JSONResolver);
 builder.addScalarType("File", GraphQLFile);
+builder.addScalarType("LocalDate", GraphQLLocalDate);
 builder.addScalarType("URL", GraphQLURL);

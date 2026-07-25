@@ -1,4 +1,5 @@
 import { cors } from "@elysiajs/cors";
+import { getConfiguredExtensionOrigins } from "@vyrel/auth/lib/extension-origins";
 import { env } from "@vyrel/env/server";
 import { createVyrelElysiaPlugin } from "@vyrel/logging/elysia";
 import { Effect } from "effect";
@@ -12,15 +13,39 @@ import { userRestPlugin } from "./plugins/user-rest";
 
 const isDevelopment = env.NODE_ENV === "development";
 
-const corsOrigins = isDevelopment
-  ? [
-      env.CORS_ORIGIN,
-      "http://localhost:3000",
-      "http://10.0.2.2:3000",
-      "https://flavios-macbook-pro.tailf1b5e4.ts.net",
-      "mobile://",
-    ]
-  : env.CORS_ORIGIN;
+const corsOrigins = [
+  ...(isDevelopment
+    ? [
+        env.CORS_ORIGIN,
+        "http://localhost:3000",
+        "http://10.0.2.2:3000",
+        "https://flavios-macbook-pro.tailf1b5e4.ts.net",
+        "mobile://",
+      ]
+    : [env.CORS_ORIGIN]),
+  ...getConfiguredExtensionOrigins(),
+];
+
+function isAllowedCorsOrigin(request: Request): boolean {
+  const requestOrigin = request.headers.get("Origin");
+  if (requestOrigin === null || requestOrigin.length === 0) {
+    // Same-origin / server-to-server (e.g. Next RSC bootstrap) — no Origin header.
+    return true;
+  }
+
+  if (corsOrigins.includes(requestOrigin)) {
+    return true;
+  }
+
+  if (!isDevelopment) {
+    return false;
+  }
+
+  return (
+    requestOrigin.startsWith("chrome-extension://") ||
+    requestOrigin.startsWith("moz-extension://")
+  );
+}
 
 export const app = new Elysia()
   .use(createVyrelElysiaPlugin({ service: "vyrel-server" }))
@@ -32,10 +57,11 @@ export const app = new Elysia()
         "Cookie",
         "expo-origin",
         "x-skip-oauth-proxy",
+        "x-vyrel-session-cookie",
       ],
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      origin: corsOrigins,
+      origin: (request) => isAllowedCorsOrigin(request),
     })
   )
   .use(graphqlPlugin)
