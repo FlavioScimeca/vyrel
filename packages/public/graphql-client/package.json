@@ -1,10 +1,14 @@
 {
   "name": "@vyrel/graphql-client",
   "version": "0.2.0",
-  "description": "Type-safe, operation-driven GraphQL mutations and optimistic cache updates for Apollo React",
+  "description": "Operation-driven Apollo React hooks for type-safe optimistic GraphQL mutations, with a gql.tada + GraphQL Codegen registry",
   "keywords": [
     "apollo",
+    "apollo-client",
+    "codegen",
+    "gql.tada",
     "graphql",
+    "graphql-codegen",
     "optimistic-ui",
     "react",
     "typescript"
@@ -15,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/FlavioScimeca/vyrel.git",
+    "url": "git+https://github.com/FlavioScimeca/vyrel.git",
     "directory": "packages/public/graphql-client"
   },
   "license": "MIT",
@@ -46,7 +50,8 @@
     "dist",
     "docs",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "bun run script/compiler.ts",
