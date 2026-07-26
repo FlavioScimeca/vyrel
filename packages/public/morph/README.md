@@ -131,6 +131,28 @@ Model helpers:
 | `inputsFrom(schema, options?)` | Map a Zod schema to `withInput` fields |
 | `argsFrom(schema, options?)` | Map a Zod schema to field args |
 | `args` | Pre-built args when `listArgsSchema` is configured |
+| `connection({ type, name?, pageInfoName?, fields? })` | Forward-cursor `Connection` + `PageInfo` objects |
+
+### `model.connection(options)`
+
+Creates GraphQL types for forward-cursor pagination (not full Relay):
+
+```ts
+const TaskConnection = taskGraphql.connection({ type: TaskObject });
+// TaskConnection { nodes, pageInfo }
+// TaskPageInfo { endCursor, hasNextPage }
+```
+
+| Option | Description |
+| --- | --- |
+| `type` | Pothos node object type for `nodes` |
+| `name` | Connection type name (default `` `${objectName}Connection` ``) |
+| `pageInfoName` | PageInfo type name (default `` `${objectName}PageInfo` ``) |
+| `fields` | Optional extra fields on the Connection object |
+
+Also exported: `ConnectionPayload<TNode>` and `ConnectionPageInfo` for typing service return values.
+
+`z.array(z.string())` maps to `[String]`; `z.array(z.enum(...))` reuses a matching builder enum as a list.
 
 Common `inputsFrom` / `argsFrom` options:
 
@@ -148,6 +170,8 @@ Common `inputsFrom` / `argsFrom` options:
 | `z.number()` | `Float` / `Int` (inferred) |
 | `z.date()` | `DateTime` when registered |
 | `z.enum()` / `z.literal()` | Generated GraphQL enums |
+| `z.array(z.string())` | `[String]` |
+| `z.array(z.enum(...))` | `[ExistingEnum]` when values match a builder enum |
 | nullable / optional Zod | Nullable GraphQL fields |
 | `.describe()` | GraphQL field description |
 

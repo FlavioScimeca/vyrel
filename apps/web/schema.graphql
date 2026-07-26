@@ -5,7 +5,7 @@ input CreateTask {
   dueDate: LocalDate
   image: File
   labelIds: [String!]
-  organizationId: String!
+  organizationId: ID!
   priority: TaskPriority
   status: TaskStatus
   title: String!
@@ -15,7 +15,7 @@ input CreateTask {
 input CreateTaskLabel {
   color: String!
   name: String!
-  organizationId: String!
+  organizationId: ID!
 }
 
 """
@@ -117,7 +117,7 @@ type Task {
   imageFull: String
   imageThumb: String
   labels: [TaskLabel!]!
-  organizationId: String!
+  organizationId: ID!
   priority: TaskPriority!
   status: TaskStatus!
   title: String!
@@ -135,7 +135,7 @@ type TaskLabel {
   createdAt: DateTime!
   id: ID!
   name: String!
-  organizationId: String!
+  organizationId: ID!
 }
 
 type TaskPageInfo {

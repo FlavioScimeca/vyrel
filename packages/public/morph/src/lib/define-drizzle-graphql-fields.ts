@@ -1,6 +1,10 @@
 import type { FieldMap, GenericFieldRef, SchemaTypes } from "@pothos/core";
 import { z } from "zod/v4";
 
+import {
+  createMorphConnection,
+  type MorphConnectionOptions,
+} from "./connection";
 import { buildDrizzleGraphqlEnumRegistry } from "./drizzle-graphql-enum-registry";
 import { morphWarn } from "./warn";
 import {
@@ -21,6 +25,12 @@ import {
   unwrapZodField,
   type ZodSchemaKeys,
 } from "./zod-pothos-inputs";
+
+export type {
+  ConnectionPageInfo,
+  ConnectionPayload,
+  MorphConnectionOptions,
+} from "./connection";
 
 type ExtraEnumSource = readonly (string | number)[] | z.ZodType;
 type BivariantResolve<TParent> = {
@@ -105,6 +115,11 @@ type DrizzleGraphqlFieldsCore<
     schema: TSchema,
     options?: TOptions
   ) => PothosArgsFieldsFromZodSchema<Types, TSchema, TOptions>;
+  readonly connection: <TNodeType>(
+    options: MorphConnectionOptions<TNodeType>
+  ) => ReturnType<
+    ReturnType<PothosSchemaBuilder<Types>["objectRef"]>["implement"]
+  >;
   readonly exposeFields: <TBuilder>(
     t: TBuilder,
     options?: ExposeFieldsOptions<TRowSchema>
@@ -464,9 +479,13 @@ const createDrizzleGraphqlFields = <
     });
   };
 
+  const connection = <TNodeType>(options: MorphConnectionOptions<TNodeType>) =>
+    createMorphConnection(graphqlBuilder, config.objectName, options);
+
   const core: DrizzleGraphqlFieldsCore<Types, TRowSchema> = {
     argsFrom,
     computedEnumField,
+    connection,
     exposeFields,
     inputsFrom,
   };

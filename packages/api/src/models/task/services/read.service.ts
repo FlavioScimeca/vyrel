@@ -1,5 +1,6 @@
 import { db } from "@vyrel/db";
 import { task, taskLabelAssignment } from "@vyrel/db/schema";
+import type { ConnectionPayload } from "@vyrel/morph";
 import {
   and,
   asc,
@@ -23,6 +24,8 @@ import type {
 } from "../types/extra.types";
 import { assertOrgMembership, fetchTaskForUser } from "../utils/auth-api";
 import { TaskRepositoryError } from "../utils/errors";
+
+type TaskConnectionResult = ConnectionPayload<(typeof task)["$inferSelect"]>;
 
 export const getTask = (input: TaskTypeById, actorUserId: string) =>
   fetchTaskForUser(input.id, actorUserId);
@@ -283,7 +286,7 @@ export const listTaskConnection = (
               }),
         hasNextPage,
       },
-    };
+    } satisfies TaskConnectionResult;
   });
 
 export const getTaskSummary = (organizationId: string, actorUserId: string) =>

@@ -7,16 +7,6 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
 import z from "zod/v4";
 
-export const taskQuerySchema = createSelectSchema(task).omit({
-  imageAssetId: true,
-  imageFull: true,
-  imageThumb: true,
-  imagePlaceholder: true,
-});
-
-const taskInsertSchema = createInsertSchema(task);
-const taskLabelInsertSchema = createInsertSchema(taskLabel);
-
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const localDateSchema = z
@@ -35,6 +25,20 @@ export const localDateSchema = z
     );
   }, "Date must be a valid calendar date")
   .meta({ pothosType: "LocalDate" });
+
+export const taskQuerySchema = createSelectSchema(task)
+  .omit({
+    imageAssetId: true,
+    imageFull: true,
+    imageThumb: true,
+    imagePlaceholder: true,
+  })
+  .extend({
+    dueDate: localDateSchema.nullable(),
+  });
+
+const taskInsertSchema = createInsertSchema(task);
+const taskLabelInsertSchema = createInsertSchema(taskLabel);
 
 export const taskStatusSchema = z.enum(TASK_STATUSES);
 export const taskPrioritySchema = z.enum(TASK_PRIORITIES);
@@ -58,7 +62,10 @@ export const taskCreateSchema = taskInsertSchema
       .optional()
       .meta({ pothosType: "File" }),
     labelIds: z.array(z.string().min(1)).max(20).default([]),
-    organizationId: z.string().min(1, "Organization id is required"),
+    organizationId: z
+      .string()
+      .min(1, "Organization id is required")
+      .meta({ pothosType: "ID" }),
     priority: taskPrioritySchema.default("NONE"),
     status: taskStatusSchema.default("TODO"),
     title: z.string().trim().min(1, "Title is required"),
@@ -108,7 +115,7 @@ export const taskLabelCreateSchema = taskLabelInsertSchema
       .trim()
       .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid label color"),
     name: z.string().trim().min(1).max(32),
-    organizationId: z.string().min(1),
+    organizationId: z.string().min(1).meta({ pothosType: "ID" }),
   });
 
 export const taskLabelUpdateSchema = taskLabelCreateSchema

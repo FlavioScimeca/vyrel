@@ -382,6 +382,23 @@ export const resolveGraphqlTypeForZodField = <Types extends SchemaTypes>(
     );
   }
 
+  if (unwrapped instanceof z.ZodArray) {
+    const element = unwrapZodField(unwrapped.element as z.ZodType);
+
+    if (element instanceof z.ZodEnum) {
+      const enumType =
+        enumRegistry?.[fieldKey] ??
+        resolveZodEnumGraphqlType(element, graphqlBuilder);
+      if (enumType !== undefined) {
+        return [enumType] as PothosInputFieldType;
+      }
+    }
+
+    if (element instanceof z.ZodString) {
+      return ["String"] as PothosInputFieldType;
+    }
+  }
+
   if (unwrapped instanceof z.ZodString) {
     return "string";
   }

@@ -43,9 +43,27 @@ bridge-level `inputsFrom` helper.
 | `argsFrom(schema, options?)` | Typed Pothos query argument map |
 | `computedEnumField(t, field, options)` | One resolver-backed enum field |
 | `args` | Named pre-built args when `listArgsSchema` is configured |
+| `connection({ type, ... })` | Forward-cursor Connection + PageInfo object refs |
+
+### `model.connection(options)`
+
+Call after the node object exists:
+
+```ts
+const TaskConnection = taskGraphql.connection({ type: TaskObject });
+```
+
+Defaults: `` `${objectName}Connection` `` / `` `${objectName}PageInfo` `` with
+`nodes` and `{ endCursor, hasNextPage }`. Pass `fields` to extend the
+Connection. Export types `ConnectionPayload` / `ConnectionPageInfo` for
+service return shapes. This is not full Relay (`edges` / bi-directional
+PageInfo).
 
 Input/argument options support `exclude`, `fieldTypes`, `required`, and
 `unmappedFields`. Model-derived helpers also receive the model's enum registry.
+
+`z.array(z.string())` and `z.array(z.enum(...))` map to GraphQL lists
+automatically when enums are already on the builder.
 
 ## Automatic mapping
 
@@ -57,6 +75,8 @@ Input/argument options support `exclude`, `fieldTypes`, `required`, and
 | other `z.number()` | `Float` |
 | `z.date()` | `DateTime` |
 | `z.enum()` / supported literals | Registered GraphQL enum |
+| `z.array(z.string())` | `[String]` |
+| `z.array(z.enum(...))` | `[Enum]` when values match a builder enum |
 | Optional or nullable wrapper | Nullable GraphQL field |
 | `.describe()` | GraphQL description |
 
