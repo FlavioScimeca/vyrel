@@ -1,27 +1,37 @@
 # @vyrel/graphql-client
 
-Small, type-safe React helpers for Apollo mutations and optimistic cache updates.
-The package is operation-driven: pass only the mutation at the call site. Its
-GraphQL Codegen plugin generates the gql.tada fragment types and canonical CRUD
-collection registry without generating one hook per resource.
+Operation-driven React helpers for Apollo mutations and optimistic cache
+updates. Pass the mutation document at the call site; a GraphQL Codegen plugin
+builds the gql.tada fragment registry and canonical CRUD collection map — without
+generating one hook per resource.
 
 ```bash
 bun add @vyrel/graphql-client @apollo/client graphql react
+bun add --dev @graphql-codegen/cli gql.tada
 ```
+
+## Entry points
+
+| Import | Contents | Use from |
+| --- | --- | --- |
+| `@vyrel/graphql-client` | Optimistic hooks + helpers (`collectionOverrideWhen`, `createOptimisticListIdentity`, …) | Client components |
+| `@vyrel/graphql-client/cache` | Registry binding + collection write helpers | Apollo setup / RSC (no React) |
+| `@vyrel/graphql-client/codegen` | Schema metadata types / utilities | Build tooling |
+| `@vyrel/graphql-client/codegen-plugin` | GraphQL Code Generator plugin | `codegen.ts` (Node) |
 
 ## Why
 
-Apollo already provides an excellent normalized cache and typed hooks. The
-repetitive part is connecting optimistic responses to that cache:
+Apollo already provides a normalized cache and typed hooks. The repetitive part
+is wiring optimistic responses to that cache:
 
-- wrapping an entity in the correct mutation response field;
-- repeating `__typename`, temporary IDs and unchanged fields;
-- manually inserting and removing items from query results;
-- keeping optimistic and server-result updates consistent;
-- adding casts around fragment-masked gql.tada documents.
+- wrapping an entity in the correct mutation response field
+- repeating `__typename`, temporary IDs, and unchanged fields
+- inserting and removing items from list query results
+- keeping optimistic and server-result updates consistent
+- casting around fragment-masked gql.tada documents
 
-`@vyrel/graphql-client` handles those mechanical steps while leaving domain
-values, GraphQL operations and Apollo options in application code.
+`@vyrel/graphql-client` owns those mechanical steps. Domain values, GraphQL
+operations, and Apollo options stay in application code.
 
 ## Create
 
@@ -40,21 +50,53 @@ const [createTask] = useOptimisticCreate(CreateTaskDocument, {
 
 The callback variables come from `CreateTaskDocument`. The generated registry
 connects the mutation's `...TaskListItem` spread to
-`ResultOf<typeof TaskListItemFragment>`, so its selected fields are available to
-TypeScript without passing the fragment at every call site. At runtime the
-package reads the same fragment definitions from the gql.tada document, infers
-`Task`, creates a temporary `id`, adds conventional `createdAt` and `updatedAt`
-values when selected and builds the mutation response. The generated registry
-maps `Task` to `ListTasksDocument` and maps its `organizationId` variable to
-`CreateTask.input.organizationId`, so both the optimistic and real entity are
-prepended automatically.
+`ResultOf<typeof TaskListItemFragment>`, so selected fields are available to
+TypeScript without passing the fragment at every call site.
 
-The optimistic callback intentionally remains explicit. A generic library
-cannot safely invent a title, price, status or other domain value.
+At runtime the package reads the same fragment definitions from the gql.tada
+document, infers `Task`, creates a temporary `id`, adds conventional
+`createdAt` / `updatedAt` when selected, and builds the mutation response. The
+registry maps `Task` → `ListTasksDocument` and binds
+`organizationId` ← `CreateTask.input.organizationId`, so the entity is prepended
+to the canonical list automatically.
 
-Set `placement: "append"` when new items belong at the end. The default is
-`"prepend"`; the same placement is applied to the canonical list and an
-optional collection override.
+The optimistic callback stays explicit: a generic library cannot safely invent
+titles, prices, or other domain values.
+
+Use `placement: "append"` when new items belong at the end (default:
+`"prepend"`).
+
+### Filtered lists (dual-write)
+
+The canonical collection uses only variables resolvable from the mutation (for
+example `{ organizationId }`). When the UI query has extra `keyArgs` filters,
+pass an optional `collection` override — the package writes the canonical slot
+**and** the visible variant:
+
+```ts
+import {
+  collectionOverrideWhen,
+  useOptimisticCreate,
+} from "@vyrel/graphql-client";
+
+useOptimisticCreate(CreateTaskDocument, {
+  optimistic: ({ input }) => ({
+    description: input.description ?? null,
+    title: input.title,
+  }),
+  collection: ({ input }) =>
+    collectionOverrideWhen({
+      query: ListTasksDocument,
+      variables: activeListVariables,
+      when: taskBelongsToVisibleList(
+        { description: input.description ?? null, title: input.title },
+        activeListVariables
+      ),
+    }),
+});
+```
+
+Membership stays in the application; the package only performs the cache write.
 
 ## Update on demand
 
@@ -69,24 +111,10 @@ const [renameTask] = useOptimisticUpdate(UpdateTaskDocument, {
 });
 ```
 
-Another screen can update a different patch without defining another resource:
-
-```ts
-const [editTask] = useOptimisticUpdate(UpdateTaskDocument, {
-  current: task,
-  optimistic: ({ input }) => ({
-    description: input.description ?? task.description,
-    title: input.title ?? task.title,
-  }),
-});
-```
-
-Apollo normalizes the partial optimistic entity using its typename and ID, so
-every query containing the same entity sees the update. A list rewrite is not
-needed for ordinary updates. `current` must contain every field selected by the
-mutation fragment; TypeScript enforces this so Apollo never receives an
-incomplete optimistic response. The `optimistic` callback remains a partial
-on-demand patch.
+`current` must contain every field selected by the mutation fragment (TypeScript
+enforces this). `optimistic` remains a partial on-demand patch. Ordinary updates
+do not rewrite list membership; use `removeFromCollectionVariant` in `update`
+when a field change should drop the entity from a filtered visible list.
 
 ## Delete
 
@@ -96,19 +124,15 @@ const [deleteTask] = useOptimisticDelete(DeleteTaskDocument, {
 });
 ```
 
-The package builds the scalar optimistic response, finds `Task` through the
-generated mutation registry, removes the item from every cached argument variant
-of the canonical `tasks` collection and evicts its normalized entity. If an
-entity has no canonical list query, delete still evicts the normalized entity
-optimistically and rolls that eviction back on failure. The
-application-provided `id` callback is the sole source of the Apollo cache key;
-the server response remains available to callbacks but is not interpreted as a
-cache identity.
+The package builds the scalar optimistic response, removes the item from every
+cached argument variant of the canonical collection (when one exists), and
+evicts the normalized entity. The `id` callback is the sole source of the Apollo
+cache key.
 
 ## Server freshness
 
-The package deliberately does not refetch queries. The component that owns an
-Apollo query also owns its exact filters, pagination and `refetch` function:
+The package does not refetch. The component that owns the query also owns
+`refetch`:
 
 ```ts
 const { refetch } = useQuery(ListTasksDocument, { variables: filters });
@@ -118,17 +142,17 @@ await createTask({ variables: { input } });
 await refetch();
 ```
 
-This keeps network policy in application code and optimistic cache mechanics in
-the package, without reconstructing query variables in another abstraction.
-
 ## Stable list keys after create
 
 Apollo replaces the temporary create id with the server id. If the list uses
 `key={entity.id}`, React remounts the row. Opt into a per-feature identity
-tracker and pass it to the create hook:
+tracker:
 
 ```ts
-import { createOptimisticListIdentity, useOptimisticCreate } from "@vyrel/graphql-client";
+import {
+  createOptimisticListIdentity,
+  useOptimisticCreate,
+} from "@vyrel/graphql-client";
 
 const taskListIdentity = createOptimisticListIdentity();
 
@@ -137,21 +161,15 @@ const [createTask] = useOptimisticCreate(CreateTaskDocument, {
   optimistic: ({ input }) => ({ title: input.title }),
 });
 
-// In the list:
 // <Row key={taskListIdentity.getKey(task.id)} task={task} />
 ```
 
-The hook binds each temporary id to its own response, so concurrent creates can
-finish in any order without swapping React keys. For manual integrations, call
-`commit(optimisticId, realId)` before React re-renders and
-`abandon(optimisticId)` on failure. Pass the same identity to
-`useOptimisticDelete`; a successful delete calls `release(realId)`, while a
-failed delete preserves the mapping for Apollo's restored row. Call `clear()`
-when the owning feature/list unmounts.
+Pass the same `identity` to `useOptimisticDelete`. Call `clear()` when the
+owning feature unmounts.
 
 ## Apollo options and escape hatches
 
-Normal `useMutation` options stay at the top level and keep their Apollo types:
+Normal `useMutation` options stay at the top level:
 
 ```ts
 useOptimisticCreate(CreateTaskDocument, {
@@ -165,36 +183,18 @@ useOptimisticCreate(CreateTaskDocument, {
 });
 ```
 
-For a mutation with multiple top-level fields, `field` is required and
-autocompletes the valid response keys. `current` and `optimistic` are typed only
-from fragments belonging to that selected field. For a single-root mutation,
-`field` remains optional.
+For mutations with multiple top-level fields, `field` is required and
+autocompletes valid response keys. Cache key fields are configured only in
+codegen (default `id`). Per-call `update` replaces the hook-level application
+callback (Apollo semantics); built-in cache behavior always runs first.
 
-Cache key fields are configured only in codegen and default to `id`, keeping
-Apollo type policies, optimistic identification and eviction aligned.
-`optimisticId` remains the optional temporary-ID strategy.
-
-The mutation function returned by every hook accepts normal per-call Apollo
-options, but does not expose `optimisticResponse`. A per-call `update` follows
-Apollo semantics: it replaces the configured application callback, while the
-package's built-in cache behavior always runs first.
-
-Reads continue to use Apollo's `useQuery`. It is already concise and fully typed;
-wrapping it would add an abstraction without removing meaningful boilerplate.
+Reads continue to use Apollo `useQuery`.
 
 ## Required codegen
 
-The package is designed around gql.tada and uses the official GraphQL Code
-Generator document scanner. Install its CLI as a development dependency:
-
-```bash
-bun add --dev @graphql-codegen/cli
-```
-
-The `@vyrel/graphql-client/codegen-plugin` custom plugin receives the parsed
-schema and documents from GraphQL Codegen. It only implements Vyrel-specific
-knowledge: fragment type augmentation, canonical list discovery, CRUD mutation
-association and mutation-to-query variable binding.
+Documents are written with gql.tada. GraphQL Code Generator scans them; the
+Vyrel plugin adds fragment type augmentation, canonical list discovery, CRUD
+mutation association, and mutation→query variable binding.
 
 ```ts
 import type { CodegenConfig } from "@graphql-codegen/cli";
@@ -221,17 +221,11 @@ const config: CodegenConfig = {
 export default config;
 ```
 
-Documents follow the gql.tada export convention: fragment `TaskListItem` is
-exported as `TaskListItemFragment`, and operation `ListTasks` as
-`ListTasksDocument`. Codegen validates these export names. A mutation can spread
-multiple fragments and select multiple CRUD root fields; their result types and
-per-field variable bindings are generated independently.
-Codegen also verifies that each cache key exists in the schema and is selected
-without an alias in canonical collections and create/update responses, including
-through nested fragment spreads.
+Export convention: fragment `TaskListItem` → `TaskListItemFragment`; operation
+`ListTasks` → `ListTasksDocument`. Codegen validates export names and that cache
+keys exist in the schema and are selected without aliases.
 
-Register the generated runtime registry once for each Apollo cache. The `/cache`
-entry is isomorphic and does not import the React client bundle:
+Register the generated registry once per Apollo cache:
 
 ```ts
 import { configureGraphqlClientCache } from "@vyrel/graphql-client/cache";
@@ -254,28 +248,20 @@ import type { GraphqlClientModel } from "./client-schema";
 type Task = GraphqlClientModel<"Task">;
 ```
 
-`Task` has autocomplete for every field currently present in the schema. The
-generated artifact also records enum values, nested list/nullability structure,
-configured cache keys and custom scalar mappings. It exports
-`graphqlClientTypePolicies`, keeping Apollo normalization aligned with the
-generated optimistic registry.
-
-The generated artifact also exports schema metadata for `ModelOf` extensions.
-The `/codegen` and `/codegen-plugin` exports never enter the React bundle.
-
 ## 0.2 boundaries
 
-- Apollo Client 4 with React 18.2 or React 19 is supported.
-- Mutations may contain multiple CRUD root fields; `field` is then a required,
-  typed response key. Canonical collection queries contain one top-level list
-  field.
-- Canonical collections are top-level arrays. When multiple list queries return
-  the same entity, the unique `List<Field>` operation is canonical; unresolved
-  ambiguity fails code generation.
-- Optimistic create/update/delete are included. Offline queues, undo, conflict
-  resolution and UI notifications remain outside the core.
-- The package does not generate operations or replace Apollo or gql.tada.
+- Apollo Client 4 with React 18.2 or React 19
+- Multi-root mutations: `field` is a required typed response key
+- Canonical collections are top-level arrays; ambiguous list queries fail codegen
+- Optimistic create / update / delete included
+- Offline queues, undo, conflict resolution, and UI notifications stay outside
+- Does not generate operations or replace Apollo / gql.tada
 
-See [docs/flow-a-z.md](./docs/flow-a-z.md) for the complete server-to-client
-flow and [docs/contract-v1.md](./docs/contract-v1.md) for the current
-architectural contract.
+## Docs
+
+- [Flow A→Z](./docs/flow-a-z.md) — full server-to-client pipeline
+- [Contract v1](./docs/contract-v1.md) — architectural contract
+
+## License
+
+MIT

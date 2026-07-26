@@ -1,20 +1,35 @@
 # @vyrel/morph
 
-Bridge Zod row schemas to Pothos GraphQL fields, args, and inputs.
+Type-safe bridge from **Zod** schemas to **Pothos** GraphQL object fields, args,
+and inputs.
 
-Use it to derive GraphQL object fields, list filters, and input shapes from Zod models without hand-mapping every column
-
-## Install
-
-```bash
-bun install @vyrel/morph
-```
-
-Peer dependencies:
+Use one Zod row/model schema as the source of truth, then expose GraphQL fields,
+list filters, and mutation inputs without hand-mapping every column.
 
 ```bash
-bun install @pothos/core @pothos/plugin-validation @pothos/plugin-with-input zod
+bun add @vyrel/morph
+bun add @pothos/core @pothos/plugin-validation @pothos/plugin-with-input zod
 ```
+
+`@vyrel/logging` is an optional peer. When present, unmapped-field warnings use
+structured logs; otherwise the package falls back to `console.warn`.
+
+## Why
+
+In a Drizzle + Zod + Pothos stack you often redefine the same shape three times:
+
+1. database / Zod row schema
+2. GraphQL object fields
+3. mutation inputs and query args
+
+`@vyrel/morph` derives the GraphQL surface from Zod:
+
+- object field exposure (`exposeFields`)
+- `withInput` mutation fields (`inputsFrom`)
+- query/list args (`argsFrom` / `listArgsSchema`)
+- enum registration from `z.enum` / `z.literal`
+
+You keep control of resolvers, relations, and custom scalars.
 
 ## Quick start
 
@@ -34,27 +49,44 @@ const bridge = initializeDrizzleGraphqlBridge(builder, {
   unmappedFields: "throw",
 });
 
-const userRowSchema = z.object({
+const taskRowSchema = z.object({
   id: z.string(),
-  active: z.boolean(),
-  role: z.enum(["admin", "member"]),
+  title: z.string(),
+  completed: z.boolean(),
+  status: z.enum(["todo", "done"]),
 });
 
-const userGraphql = bridge.model({
-  objectName: "User",
-  rowSchema: userRowSchema,
+const taskGraphql = bridge.model({
+  objectName: "Task",
+  rowSchema: taskRowSchema,
   listArgsSchema: {
     filters: z.object({
-      role: z.enum(["admin", "member"]),
+      status: z.enum(["todo", "done"]).optional(),
     }),
   },
 });
 
-const User = builder.objectRef<z.infer<typeof userRowSchema>>("User");
+const Task = builder.objectRef<z.infer<typeof taskRowSchema>>("Task");
 
-builder.objectType(User, {
-  fields: (t) => userGraphql.exposeFields(t),
+builder.objectType(Task, {
+  fields: (t) => ({
+    ...taskGraphql.exposeFields(t),
+  }),
 });
+
+builder.mutationFields((t) => ({
+  createTask: t.fieldWithInput({
+    input: {
+      ...taskGraphql.inputsFrom(
+        taskRowSchema.omit({ id: true })
+      ),
+    },
+    resolve: () => {
+      throw new Error("Implement me");
+    },
+    type: Task,
+  }),
+}));
 ```
 
 ## API
@@ -63,45 +95,71 @@ builder.objectType(User, {
 
 Creates a bridge bound to your Pothos builder.
 
-Options:
-
-- `defaultIdFields` — columns exposed as GraphQL `ID` (default: none; bridge defaults to `["id", "orgId"]` when omitted in model config)
-- `defaultEnumName` — naming strategy for generated enums
-- `scalarTypes` — extra scalar names registered on the builder
-- `unmappedFields` — `"throw"`, `"warn"`, or `"omit"` when a Zod field cannot map to GraphQL
+| Option | Description |
+| --- | --- |
+| `defaultIdFields` | Column names exposed as GraphQL `ID`. When omitted on both bridge and model, defaults to `["id", "orgId"]`. |
+| `defaultEnumName` | Naming strategy for generated enums `(field, objectName) => string`. |
+| `scalarTypes` | Extra scalar names registered on the builder. |
+| `unmappedFields` | `"throw"` (default), `"warn"`, or `"omit"` when a Zod field cannot map to GraphQL. |
 
 Returns:
 
-- `bridge.model(config)` — model helpers for a Zod row schema
-- `bridge.fields(config)` — alias of `model`
-- `bridge.inputsFrom(schema, options?)` — shared input mapper
+| Method | Description |
+| --- | --- |
+| `bridge.model(config)` | Model helpers for a Zod row schema |
+| `bridge.fields(config)` | Alias of `model` |
+| `bridge.inputsFrom(schema, options?)` | Shared input mapper (no model binding) |
 
 ### `bridge.model(config)`
 
-- `rowSchema` — Zod object schema for the row
-- `objectName` — GraphQL type name used for enum registration
-- `exclude` — row keys omitted from GraphQL exposure
-- `idFields` — override ID columns for this model
-- `listArgsSchema` — named Zod schemas converted to query/list args
-- `extraEnums` / `extraEnumsFrom` — register additional enum sources
-- `computedEnumFields` — resolver-backed enum fields
+| Option | Description |
+| --- | --- |
+| `rowSchema` | Zod object schema for the row |
+| `objectName` | GraphQL type name used for enum registration |
+| `exclude` | Row keys omitted from GraphQL exposure |
+| `idFields` | Override ID columns for this model |
+| `listArgsSchema` | Named Zod schemas converted to query/list args |
+| `extraEnums` / `extraEnumsFrom` | Register additional enum sources |
+| `computedEnumFields` | Resolver-backed enum fields |
+| `unmappedFields` | Per-model override of the bridge policy |
 
 Model helpers:
 
-- `exposeFields(t, options?)` — map row columns to Pothos object fields
-- `inputsFrom(schema, options?)` — map a Zod schema to input fields
-- `argsFrom(schema, options?)` — map a Zod schema to field args
-- `args` — pre-built args when `listArgsSchema` is configured
+| Helper | Description |
+| --- | --- |
+| `exposeFields(t, options?)` | Map row columns to Pothos object fields |
+| `inputsFrom(schema, options?)` | Map a Zod schema to `withInput` fields |
+| `argsFrom(schema, options?)` | Map a Zod schema to field args |
+| `args` | Pre-built args when `listArgsSchema` is configured |
+
+Common `inputsFrom` / `argsFrom` options:
+
+- `exclude` — omit keys
+- `fieldTypes` — per-field GraphQL type overrides (scalars, ambiguous enums, lists)
+- `required` — force required/optional GraphQL input fields
+- `unmappedFields` — local policy override
 
 ## Mapping behavior
 
-- `z.string()` → `String`, or `ID` when the key is listed in `idFields`
-- `z.boolean()` → `Boolean`
-- `z.enum()` / `z.literal()` → generated GraphQL enums
-- nullable and optional Zod fields → nullable GraphQL fields
-- Zod `.describe()` → GraphQL field descriptions
+| Zod | GraphQL |
+| --- | --- |
+| `z.string()` | `String`, or `ID` when the key is in `idFields` |
+| `z.boolean()` | `Boolean` |
+| `z.number()` | `Float` / `Int` (inferred) |
+| `z.date()` | `DateTime` when registered |
+| `z.enum()` / `z.literal()` | Generated GraphQL enums |
+| nullable / optional Zod | Nullable GraphQL fields |
+| `.describe()` | GraphQL field description |
 
 Unmapped Zod types follow `unmappedFields` (`throw` by default).
+
+## What this package does not do
+
+- It does not replace Pothos, Zod, or Drizzle.
+- It does not generate resolvers or authorization.
+- It does not invent relation fields — add those manually next to `exposeFields`.
+- It does not run GraphQL Codegen (that belongs on the client with
+  `@vyrel/graphql-client`).
 
 ## License
 

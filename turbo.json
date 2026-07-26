@@ -19,7 +19,8 @@
     "R2_SIGNED_URL_TTL_SECONDS",
     "NEXT_PUBLIC_SERVER_URL",
     "RESEND_API_KEY",
-    "RESEND_FROM_EMAIL"
+    "RESEND_FROM_EMAIL",
+    "TAILSCALE_FUNNEL_URL"
   ],
   "tasks": {
     "build": {

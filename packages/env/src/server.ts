@@ -10,6 +10,11 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
     CORS_ORIGIN: z.url(),
+    /**
+     * Public Tailscale Funnel HTTPS URL for local multi-device auth/CORS
+     * (e.g. `https://<machine>.ts.net`). Dev-only; omit in production.
+     */
+    TAILSCALE_FUNNEL_URL: z.url().optional(),
     DATABASE_AUTH_TOKEN: z.string().min(1),
     DATABASE_URL: z.string().min(1),
     /**
