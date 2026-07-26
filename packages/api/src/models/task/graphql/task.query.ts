@@ -35,34 +35,37 @@ const metadata = {
   },
 };
 
-export const taskGraphql = graphqlBridge.model({
-  idFields: ["id", "organizationId"],
-  listArgsSchema: {
-    connection: taskConnectionArgsSchema,
-    list: taskListArgsSchema,
-  },
-  objectName: metadata.objectName,
-  rowSchema: taskQuerySchema,
-});
-
-export const taskLabelGraphql = graphqlBridge.model({
-  idFields: ["id", "organizationId"],
-  objectName: "TaskLabel",
-  rowSchema: taskLabelQuerySchema,
-});
+export const taskGraphql = {
+  task: graphqlBridge.model({
+    idFields: ["id", "organizationId"],
+    listArgsSchema: {
+      connection: taskConnectionArgsSchema,
+      list: taskListArgsSchema,
+    },
+    objectName: "Task",
+    rowSchema: taskQuerySchema,
+  }),
+  label: graphqlBridge.model({
+    idFields: ["id", "organizationId"],
+    objectName: "TaskLabel",
+    rowSchema: taskLabelQuerySchema,
+  }),
+};
 
 export const TaskLabelObject = builder.drizzleObject("taskLabel", {
   description: "A reusable organization-scoped task label.",
   fields: (t) => ({
-    ...taskLabelGraphql.exposeFields(t),
+    ...taskGraphql.label.exposeFields(t),
   }),
   name: "TaskLabel",
 });
 
 export const TaskObject = builder.drizzleObject("task", {
+  name: metadata.objectName,
   description: metadata.description,
+
   fields: (t) => ({
-    ...taskGraphql.exposeFields(t),
+    ...taskGraphql.task.exposeFields(t),
     assignee: t.field({
       nullable: true,
       resolve: (row) => {
@@ -111,10 +114,9 @@ export const TaskObject = builder.drizzleObject("task", {
       type: [TaskLabelObject],
     }),
   }),
-  name: metadata.objectName,
 });
 
-const TaskConnectionObject = taskGraphql.connection({ type: TaskObject });
+const TaskConnectionObject = taskGraphql.task.connection({ type: TaskObject });
 
 type TaskSummaryShape = {
   done: number;
@@ -154,7 +156,7 @@ builder.queryFields((t) => ({
   }),
   tasks: t.field({
     args: {
-      ...taskGraphql.args.list,
+      ...taskGraphql.task.args.list,
     },
     description: metadata.tasks.description,
     nullable: false,
@@ -172,7 +174,7 @@ builder.queryFields((t) => ({
   }),
   taskConnection: t.field({
     args: {
-      ...taskGraphql.args.connection,
+      ...taskGraphql.task.args.connection,
     },
     description:
       "List tasks using an opaque cursor and deterministic ordering.",

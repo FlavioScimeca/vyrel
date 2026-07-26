@@ -15,7 +15,7 @@ const typeOptionsMetadata = {
 builder.mutationFields((t) => ({
   createTask: t.fieldWithInput({
     input: {
-      ...taskGraphql.inputsFrom(taskCreateSchema),
+      ...taskGraphql.task.inputsFrom(taskCreateSchema),
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
