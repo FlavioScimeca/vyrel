@@ -1,6 +1,6 @@
 {
   "name": "@vyrel/graphql-client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Operation-driven Apollo React hooks for type-safe optimistic GraphQL mutations, with a gql.tada + GraphQL Codegen registry",
   "keywords": [
     "apollo",

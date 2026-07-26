@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.0.10
+
+### Patch Changes
+
+- 4762def: clean-up-for-public-access
+
 ## 0.0.9
 
 ### Patch Changes
