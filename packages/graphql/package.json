@@ -35,7 +35,7 @@
     "@whatwg-node/fetch": "^0.10.13",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "1.0.0-rc.4",
+    "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "elysia": "catalog:",
     "graphql": "catalog:",

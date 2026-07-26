@@ -2,7 +2,7 @@
 
 import { useSuspenseQuery } from "@apollo/client/react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@vyrel/shared/ui";
 import { CreateOrganizationDialog } from "@/features/dashboard/organization/components/create-organization-dialog";
 import { OrganizationList } from "@/features/dashboard/organization/components/organization-list";
 import { ListOrganizationsDocument } from "@/features/dashboard/organization/graphql/queries";

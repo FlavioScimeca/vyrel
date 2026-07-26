@@ -1,12 +1,8 @@
 import { useMutation } from "@apollo/client/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { taskCreateSchema } from "@vyrel/api/models/task/types/base.types";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import type z from "zod/v4";
-
-import { Button } from "@/src/components/ui/button";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -14,16 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/src/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/src/components/ui/field";
-import { Input } from "@/src/components/ui/input";
-import { Spinner } from "@/src/components/ui/spinner";
-import { Textarea } from "@/src/components/ui/textarea";
+  Input,
+  Spinner,
+  Textarea,
+} from "@vyrel/shared/ui";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type z from "zod/v4";
 import { CreateTaskDocument } from "@/src/features/dashboard/task/graphql/mutations";
 import { TaskSummaryDocument } from "@/src/features/dashboard/task/graphql/queries";
 

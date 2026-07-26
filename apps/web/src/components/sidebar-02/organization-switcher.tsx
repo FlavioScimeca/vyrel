@@ -2,24 +2,24 @@
 
 import { useSuspenseQuery } from "@apollo/client/react";
 import { IconBuilding, IconCheck } from "@tabler/icons-react";
-import { readFragment } from "gql.tada";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@vyrel/shared/ui";
+import { readFragment } from "gql.tada";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   OrganizationListItemFragment,
   type OrganizationListItemRef,

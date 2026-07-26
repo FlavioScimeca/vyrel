@@ -20,6 +20,7 @@
     "@vyrel/env",
     "@vyrel/graphql",
     "@vyrel/logging",
-    "@vyrel/storage"
+    "@vyrel/storage",
+    "@vyrel/shared"
   ]
 }

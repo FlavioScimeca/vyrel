@@ -1,9 +1,6 @@
 "use client";
 
 import { IconTrash } from "@tabler/icons-react";
-import { readFragment } from "gql.tada";
-import { useState } from "react";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+  Button,
+} from "@vyrel/shared/ui";
+import { readFragment } from "gql.tada";
+import { useState } from "react";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";
 import { useDeleteTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";

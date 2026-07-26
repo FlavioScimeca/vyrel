@@ -1,24 +1,22 @@
 "use client";
 
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
-import type { Route as NextRoute } from "next";
-import Link from "next/link";
-import type React from "react";
-import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuItem as SidebarMenuSubItem,
+  SidebarMenuSubItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@vyrel/shared/ui";
+import type { Route as NextRoute } from "next";
+import Link from "next/link";
+import type React from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type Route = {

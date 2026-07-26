@@ -3,13 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPencil } from "@tabler/icons-react";
 import { taskUpdateSchema } from "@vyrel/api/models/task/types/base.types";
-import { readFragment } from "gql.tada";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import z from "zod/v4";
-
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,16 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
+  Input,
+  Spinner,
+  Textarea,
+} from "@vyrel/shared/ui";
+import { readFragment } from "gql.tada";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import z from "zod/v4";
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
 import { TaskListItemFragment } from "@/features/dashboard/task/graphql/fragments";
 import type { TaskListItemRef } from "@/features/dashboard/task/graphql/types";

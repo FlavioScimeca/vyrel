@@ -3,12 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPlus } from "@tabler/icons-react";
 import { taskCreateSchema } from "@vyrel/api/models/task/types/base.types";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import type z from "zod/v4";
-
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,16 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
+  Input,
+  Spinner,
+  Textarea,
+} from "@vyrel/shared/ui";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type z from "zod/v4";
+
 import { TaskImageField } from "@/features/dashboard/task/components/task-image-field";
 import { useCreateTaskMutation } from "@/features/dashboard/task/hooks/use-task-mutations";
 

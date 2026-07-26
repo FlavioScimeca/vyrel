@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 
-import "./index.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import "@vyrel/shared/styles/index.css";
 import { cn } from "@/lib/utils";
+import { AppProvider } from "@/providers/app-provider";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -43,10 +41,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ThemeProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster />
-        </ThemeProvider>
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

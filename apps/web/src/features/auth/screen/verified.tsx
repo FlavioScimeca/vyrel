@@ -1,16 +1,16 @@
 "use client";
 
-import type { Route } from "next";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import {
+  buttonVariants,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@vyrel/shared/ui";
+import type { Route } from "next";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function AuthEmailVerifiedScreen() {

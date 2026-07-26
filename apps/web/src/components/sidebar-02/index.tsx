@@ -1,7 +1,7 @@
 "use client";
 
+import { SidebarInset, SidebarProvider } from "@vyrel/shared/ui";
 import { DashboardSidebar } from "@/components/sidebar-02/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Sidebar02({
   activeOrganizationId,

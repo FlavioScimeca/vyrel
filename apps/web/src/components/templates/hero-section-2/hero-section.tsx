@@ -1,9 +1,9 @@
+import { Button } from "@vyrel/shared/ui";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatedGroup } from "@/components/motion-primitives/animated-group";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
-import { Button } from "@/components/ui/button";
 import { HeroHeader } from "./header";
 
 const ctaHref = "#link" as Route;

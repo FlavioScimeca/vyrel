@@ -28,7 +28,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@vyrel/shared/*": ["../../shared/src/*"]
     }
   },
   "include": [

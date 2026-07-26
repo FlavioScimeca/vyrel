@@ -1,11 +1,11 @@
 "use client";
 import { IconMenu, IconX } from "@tabler/icons-react";
+import { Button } from "@vyrel/shared/ui";
 import { useMotionValueEvent, useScroll } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
 import { VyrelLogo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const menuItems = [

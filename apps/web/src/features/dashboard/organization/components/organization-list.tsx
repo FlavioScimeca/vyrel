@@ -5,21 +5,22 @@ import { readFragment } from "gql.tada";
 
 const WHITESPACE_PATTERN = /\s+/;
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty";
+} from "@vyrel/shared/ui";
+
 import {
   OrganizationListItemFragment,
   type OrganizationListItemRef,

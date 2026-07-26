@@ -1,15 +1,6 @@
 "use client";
 
 import { IconBuilding, IconX } from "@tabler/icons-react";
-import Image from "next/image";
-import { useId, useRef } from "react";
-import {
-  type Control,
-  type FieldError as RhfFieldError,
-  type UseFormClearErrors,
-  type UseFormSetError,
-  useController,
-} from "react-hook-form";
 import {
   Attachment,
   AttachmentAction,
@@ -19,9 +10,20 @@ import {
   AttachmentMedia,
   AttachmentTitle,
   AttachmentTrigger,
-} from "@/components/ui/attachment";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
+  Field,
+  FieldError,
+  FieldLabel,
+  Spinner,
+} from "@vyrel/shared/ui";
+import Image from "next/image";
+import { useId, useRef } from "react";
+import {
+  type Control,
+  type FieldError as RhfFieldError,
+  type UseFormClearErrors,
+  type UseFormSetError,
+  useController,
+} from "react-hook-form";
 import type { OnboardingFormValues } from "@/features/auth/onboarding-form.schema";
 import { useObjectUrl } from "@/hooks/use-object-url";
 

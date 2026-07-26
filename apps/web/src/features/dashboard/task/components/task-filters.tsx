@@ -1,21 +1,18 @@
 "use client";
 
 import { IconCalendar, IconSearch, IconX } from "@tabler/icons-react";
-import type { ChangeEvent } from "react";
-import type { DateRange } from "react-day-picker";
-
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
+  Button,
+  Calendar,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@/components/ui/input-group";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@vyrel/shared/ui";
+import type { ChangeEvent } from "react";
+import type { DateRange } from "react-day-picker";
 import { formatMediumDate } from "@/lib/format-date";
 
 type TaskFiltersProps = {

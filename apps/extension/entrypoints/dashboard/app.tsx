@@ -1,7 +1,5 @@
 import { useQuery } from "@apollo/client/react";
-
-import { Button } from "@/src/components/ui/button";
-import { Spinner } from "@/src/components/ui/spinner";
+import { Button, Spinner } from "@vyrel/shared/ui";
 import { OrganizationSwitcher } from "@/src/features/dashboard/organization/components/organization-switcher";
 import { CreateTaskDialog } from "@/src/features/dashboard/task/components/create-task-dialog";
 import { TaskSummaryDocument } from "@/src/features/dashboard/task/graphql/queries";

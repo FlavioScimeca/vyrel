@@ -130,7 +130,7 @@ describe("AuthResetPasswordPage", () => {
 
     expect(screen.getByText("Reset link expired")).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Request a new link" })
+      screen.getByRole("link", { name: "Request a new link" })
     ).toHaveAttribute("href", "/auth/reset-password");
     expect(mocks.resetPassword).not.toHaveBeenCalled();
   });

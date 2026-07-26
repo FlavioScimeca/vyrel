@@ -1,6 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  Input,
+  Spinner,
+} from "@vyrel/shared/ui";
 import { AnimatePresence, LazyMotion, m } from "motion/react";
 import { useEffect, useRef } from "react";
 import {
@@ -10,16 +21,6 @@ import {
   useForm,
   useFormState,
 } from "react-hook-form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { authenticate } from "@/features/auth/authenticate";
 import { SignUpAvatarField } from "@/features/auth/components/sign-up-avatar-field";
 import {
