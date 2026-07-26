@@ -7,8 +7,8 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
+import { toast } from "@vyrel/shared/ui";
 import type { VariablesOf } from "gql.tada";
-import { toast } from "sonner";
 import { useTaskListScope } from "@/features/dashboard/task/context/task-list-scope";
 import {
   CreateTaskDocument,

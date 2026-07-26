@@ -1,4 +1,5 @@
 import { Toast as ToastPrimitive } from "@base-ui/react/toast";
+import type { ToastManagerAddOptions } from "@base-ui/react/toast";
 import {
   IconCircleCheck,
   IconInfoCircle,
@@ -11,7 +12,23 @@ import type * as React from "react";
 import { Button } from "@vyrel/shared/components/ui/button";
 import { cn } from "@vyrel/shared/lib/utils";
 
-const toast = ToastPrimitive.createToastManager();
+const toastManager = ToastPrimitive.createToastManager();
+
+type ToastCallOptions = Omit<ToastManagerAddOptions<object>, "title" | "type">;
+
+function createTypedToast(type: string) {
+  return (title: string, options?: ToastCallOptions) =>
+    toastManager.add({ ...options, title, type });
+}
+
+/** Imperative API with Sonner-style helpers on top of Base UI's toast manager. */
+const toast = Object.assign(toastManager, {
+  error: createTypedToast("error"),
+  info: createTypedToast("info"),
+  loading: createTypedToast("loading"),
+  success: createTypedToast("success"),
+  warning: createTypedToast("warning"),
+});
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
   return <ToastPrimitive.Provider {...props} />;
@@ -191,11 +208,11 @@ function ToastList() {
 
 function Toaster({
   children,
-  toastManager = toast,
+  toastManager: toastManagerProp = toastManager,
   ...props
 }: ToastPrimitive.Provider.Props) {
   return (
-    <ToastProvider toastManager={toastManager} {...props}>
+    <ToastProvider toastManager={toastManagerProp} {...props}>
       {children}
       <ToastPortal>
         <ToastViewport>

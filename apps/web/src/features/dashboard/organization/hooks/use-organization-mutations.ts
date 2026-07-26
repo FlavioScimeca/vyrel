@@ -4,7 +4,7 @@ import {
   useOptimisticDelete,
   useOptimisticUpdate,
 } from "@vyrel/graphql-client";
-import { toast } from "sonner";
+import { toast } from "@vyrel/shared/ui";
 import {
   DeleteOrganizationDocument,
   UpdateOrganizationDocument,
