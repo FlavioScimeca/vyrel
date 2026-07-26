@@ -1,10 +1,7 @@
 import type { SchemaTypes } from "@pothos/core";
 import { z } from "zod/v4";
 
-import type {
-  DrizzleGraphqlEnumRegistryConfig,
-  InitializeDrizzleGraphqlBridgeOptions,
-} from "./define-drizzle-graphql-fields";
+import type { DrizzleGraphqlEnumRegistryConfig } from "./define-drizzle-graphql-fields";
 import {
   graphqlEnumRuntimeValues,
   type PothosInputFieldType,
@@ -110,12 +107,10 @@ const registerEnumsFromShape = <Types extends SchemaTypes>(
 
 export const buildDrizzleGraphqlEnumRegistry = <Types extends SchemaTypes>(
   graphqlBuilder: PothosSchemaBuilder<Types>,
-  bridgeOptions: InitializeDrizzleGraphqlBridgeOptions,
   config: DrizzleGraphqlEnumRegistryConfig
 ): Record<string, PothosInputFieldType> => {
   const enumRegistry: Record<string, PothosInputFieldType> = {};
-  const enumName =
-    config.enumName ?? bridgeOptions.defaultEnumName ?? defaultEnumName;
+  const enumName = config.enumName ?? defaultEnumName;
 
   registerEnumsFromShape(
     graphqlBuilder,

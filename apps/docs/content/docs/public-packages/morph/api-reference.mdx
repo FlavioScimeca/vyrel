@@ -10,12 +10,11 @@ Creates a bridge bound to one Pothos builder.
 | Option | Purpose |
 | --- | --- |
 | `defaultIdFields` | Field names exposed as GraphQL `ID`; model options can override them |
-| `defaultEnumName` | Naming strategy for enums generated from a model field |
-| `scalarTypes` | Additional named input/scalar types available to mappings |
-| `unmappedFields` | Default `throw`, `warn`, or `omit` behavior |
+| `unmappedFields` | Optional mapping failure policy (`throw` by default, or `warn` / `omit`) |
 
 Built-in GraphQL input names and scalar types already registered on the builder
-are discovered during initialization.
+are discovered during initialization. Generated enum names default to
+`` `${objectName}${PascalCase(field)}` ``; override per model with `enumName`.
 
 The returned bridge exposes `model`, the equivalent `fields` alias, and a
 bridge-level `inputsFrom` helper.

@@ -141,9 +141,7 @@ export type DrizzleGraphqlFields<
     : Record<string, never>);
 
 export type InitializeDrizzleGraphqlBridgeOptions = {
-  readonly defaultEnumName?: (field: string, objectName: string) => string;
   readonly defaultIdFields?: readonly string[];
-  readonly scalarTypes?: readonly PothosInputFieldType[];
   readonly unmappedFields?: PothosUnmappedFieldPolicy;
 };
 
@@ -221,8 +219,7 @@ const builtInGraphqlInputTypeNames = [
 ] as const;
 
 const registerBuilderNamedGraphqlTypes = <Types extends SchemaTypes>(
-  graphqlBuilder: PothosSchemaBuilder<Types>,
-  scalarTypes: readonly PothosInputFieldType[] | undefined
+  graphqlBuilder: PothosSchemaBuilder<Types>
 ) => {
   for (const typeName of builtInGraphqlInputTypeNames) {
     registerNamedPothosGraphqlType(typeName);
@@ -231,12 +228,6 @@ const registerBuilderNamedGraphqlTypes = <Types extends SchemaTypes>(
   for (const config of graphqlBuilder.configStore.typeConfigs.values()) {
     if (config.kind === "Scalar") {
       registerNamedPothosGraphqlType(config.name);
-    }
-  }
-
-  for (const typeName of scalarTypes ?? []) {
-    if (typeof typeName === "string") {
-      registerNamedPothosGraphqlType(typeName);
     }
   }
 };
@@ -372,11 +363,7 @@ const createDrizzleGraphqlFields = <
   TRowSchema,
   ListArgsSchemaFromConfig<TConfig>
 > => {
-  const enumRegistry = buildDrizzleGraphqlEnumRegistry(
-    graphqlBuilder,
-    bridgeOptions,
-    config
-  );
+  const enumRegistry = buildDrizzleGraphqlEnumRegistry(graphqlBuilder, config);
   const idFields = new Set(
     config.idFields ?? bridgeOptions.defaultIdFields ?? ["id", "orgId"]
   );
@@ -509,7 +496,7 @@ export const initializeDrizzleGraphqlBridge = <
   graphqlBuilder: PothosSchemaBuilder<Types>,
   options: InitializeDrizzleGraphqlBridgeOptions = {}
 ): DrizzleGraphqlBridge<Types> => {
-  registerBuilderNamedGraphqlTypes(graphqlBuilder, options.scalarTypes);
+  registerBuilderNamedGraphqlTypes(graphqlBuilder);
 
   const inputsFrom = createPothosInputsFromZodSchema(graphqlBuilder);
   const argsFromZodSchema = createPothosArgsFromZodSchema(graphqlBuilder);

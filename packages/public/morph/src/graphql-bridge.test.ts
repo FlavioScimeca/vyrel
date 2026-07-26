@@ -45,7 +45,6 @@ describe("initializeDrizzleGraphqlBridge", () => {
     });
     const bridge = initializeDrizzleGraphqlBridge(builder, {
       defaultIdFields: ["id"],
-      unmappedFields: "throw",
     });
     const rowSchema = z.object({
       active: z.boolean(),

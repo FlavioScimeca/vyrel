@@ -310,7 +310,7 @@ const readPothosTypeFromZodMeta = (
 
     if (typeof meta.pothosType === "string") {
       throw new Error(
-        `[pothosInputsFromZodSchema] Unknown GraphQL type "${meta.pothosType}" in Zod meta.pothosType. Register it on the shared Pothos builder or pass scalarTypes to initializeDrizzleGraphqlBridge(...).`
+        `[pothosInputsFromZodSchema] Unknown GraphQL type "${meta.pothosType}" in Zod meta.pothosType. Register it on the shared Pothos builder via builder.addScalarType(...).`
       );
     }
   }

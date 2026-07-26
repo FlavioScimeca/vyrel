@@ -46,7 +46,6 @@ const builder = new SchemaBuilder({
 
 const bridge = initializeDrizzleGraphqlBridge(builder, {
   defaultIdFields: ["id", "orgId"],
-  unmappedFields: "throw",
 });
 
 const taskRowSchema = z.object({
@@ -98,9 +97,10 @@ Creates a bridge bound to your Pothos builder.
 | Option | Description |
 | --- | --- |
 | `defaultIdFields` | Column names exposed as GraphQL `ID`. When omitted on both bridge and model, defaults to `["id", "orgId"]`. |
-| `defaultEnumName` | Naming strategy for generated enums `(field, objectName) => string`. |
-| `scalarTypes` | Extra scalar names registered on the builder. |
-| `unmappedFields` | `"throw"` (default), `"warn"`, or `"omit"` when a Zod field cannot map to GraphQL. |
+| `unmappedFields` | Optional. `"throw"` (default), `"warn"`, or `"omit"` when a Zod field cannot map to GraphQL. |
+
+Scalars already registered on the Pothos builder are discovered automatically.
+Enum GraphQL names default to `` `${objectName}${PascalCase(field)}` ``; override per model with `enumName`.
 
 Returns:
 
