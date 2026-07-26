@@ -4,12 +4,12 @@ import { builder } from "@vyrel/graphql/pothos";
 import { deleteTaskLabel } from "../../services/label.service";
 import { taskLabelDeleteSchema } from "../../types/base.types";
 import { runTaskGraphqlEffect } from "../effect";
-import { taskLabelGraphql } from "../task.query";
+import { taskGraphql } from "../task.query";
 
 builder.mutationFields((t) => ({
   deleteTaskLabel: t.fieldWithInput({
     input: {
-      ...taskLabelGraphql.inputsFrom(taskLabelDeleteSchema),
+      ...taskGraphql.label.inputsFrom(taskLabelDeleteSchema),
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(

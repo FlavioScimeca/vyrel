@@ -348,7 +348,7 @@ export const graphqlClientSchema = {
             "kind": "NON_NULL",
             "ofType": {
               "kind": "NAMED",
-              "name": "String"
+              "name": "ID"
             }
           }
         },
@@ -465,7 +465,7 @@ export const graphqlClientSchema = {
             "kind": "NON_NULL",
             "ofType": {
               "kind": "NAMED",
-              "name": "String"
+              "name": "ID"
             }
           }
         }

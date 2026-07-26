@@ -31,7 +31,6 @@ const builder = new SchemaBuilder({
 
 const bridge = initializeDrizzleGraphqlBridge(builder, {
   defaultIdFields: ["id"],
-  unmappedFields: "throw",
 });
 
 const userSchema = z.object({

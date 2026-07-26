@@ -17,7 +17,7 @@ export const taskByIdSchema = z.object({
   id: z.string().min(1),
 });
 
-/** Plain object shape for GraphQL list args (morph). */
+/** Plain object shape for GraphQL list filters (morph). */
 export const taskListFiltersSchema = z.object({
   assigneeId: z.string().min(1).optional(),
   createdFrom: z.coerce.date().optional(),
@@ -31,10 +31,17 @@ export const taskListFiltersSchema = z.object({
   statuses: z.array(taskStatusSchema).optional(),
 });
 
-export const taskListGraphqlFiltersSchema = taskListFiltersSchema.omit({
-  labelIds: true,
-  priorities: true,
-  statuses: true,
+/** GraphQL args for `tasks` (refines applied at parse time). */
+export const taskListArgsSchema = z
+  .object({
+    organizationId: z.string().min(1).meta({ pothosType: "ID" }),
+  })
+  .extend(taskListFiltersSchema.shape);
+
+/** GraphQL args for `taskConnection` (refines applied at parse time). */
+export const taskConnectionArgsSchema = taskListArgsSchema.extend({
+  after: z.string().optional(),
+  first: z.number().int().min(1).max(100).default(30),
 });
 
 const createdFromBeforeCreatedTo = (value: {
@@ -47,30 +54,33 @@ const createdFromBeforeCreatedTo = (value: {
   return value.createdFrom.getTime() <= value.createdTo.getTime();
 };
 
-export const tasksByOrganizationSchema = z
-  .object({
-    organizationId: z.string().min(1),
-  })
-  .extend(taskListFiltersSchema.shape)
+const dueFromBeforeDueTo = (value: {
+  dueFrom?: string | undefined;
+  dueTo?: string | undefined;
+}): boolean =>
+  value.dueFrom === undefined ||
+  value.dueTo === undefined ||
+  value.dueFrom <= value.dueTo;
+
+export const tasksByOrganizationSchema = taskListArgsSchema
   .refine(createdFromBeforeCreatedTo, {
     message: "createdFrom must be on or before createdTo",
     path: ["createdFrom"],
   })
-  .refine(
-    (value) =>
-      value.dueFrom === undefined ||
-      value.dueTo === undefined ||
-      value.dueFrom <= value.dueTo,
-    {
-      message: "dueFrom must be on or before dueTo",
-      path: ["dueFrom"],
-    }
-  );
+  .refine(dueFromBeforeDueTo, {
+    message: "dueFrom must be on or before dueTo",
+    path: ["dueFrom"],
+  });
 
-export const taskConnectionSchema = tasksByOrganizationSchema.extend({
-  after: z.string().optional(),
-  first: z.number().int().min(1).max(100).default(30),
-});
+export const taskConnectionSchema = taskConnectionArgsSchema
+  .refine(createdFromBeforeCreatedTo, {
+    message: "createdFrom must be on or before createdTo",
+    path: ["createdFrom"],
+  })
+  .refine(dueFromBeforeDueTo, {
+    message: "dueFrom must be on or before dueTo",
+    path: ["dueFrom"],
+  });
 
 export type TaskTypeById = z.infer<typeof taskByIdSchema>;
 export type TaskListFilters = z.infer<typeof taskListFiltersSchema>;

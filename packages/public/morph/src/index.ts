@@ -4,8 +4,11 @@ export const initializeDrizzleGraphqlBridge =
   initializeDrizzleGraphqlBridgeImpl;
 
 export type {
+  ConnectionPageInfo,
+  ConnectionPayload,
   DefineDrizzleGraphqlFieldsConfig,
   DrizzleGraphqlBridge,
   DrizzleGraphqlFields,
   InitializeDrizzleGraphqlBridgeOptions,
+  MorphConnectionOptions,
 } from "./lib/define-drizzle-graphql-fields";

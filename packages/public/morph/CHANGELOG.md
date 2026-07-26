@@ -1,5 +1,15 @@
 # @vyrel/morph
 
+## 0.0.11
+
+### Minor Changes
+
+- Add `model.connection({ type })` forward-cursor helper and
+  `ConnectionPayload` / `ConnectionPageInfo` types.
+- Map `z.array(z.string())` and `z.array(z.enum(...))` to GraphQL lists
+  without `fieldTypes`.
+- Remove bridge options `defaultEnumName` and `scalarTypes`.
+
 ## 0.0.10
 
 ### Patch Changes

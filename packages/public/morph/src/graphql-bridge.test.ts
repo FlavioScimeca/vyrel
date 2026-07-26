@@ -45,7 +45,6 @@ describe("initializeDrizzleGraphqlBridge", () => {
     });
     const bridge = initializeDrizzleGraphqlBridge(builder, {
       defaultIdFields: ["id"],
-      unmappedFields: "throw",
     });
     const rowSchema = z.object({
       active: z.boolean(),
@@ -70,6 +69,41 @@ describe("initializeDrizzleGraphqlBridge", () => {
       "role",
     ]);
     expect(Object.keys(model.args.filters)).toEqual(["role"]);
+  });
+
+  it("creates forward-cursor Connection and PageInfo objects", () => {
+    const builder = new SchemaBuilder({
+      plugins: [ValidationPlugin, WithInputPlugin],
+    });
+    builder.queryType({});
+    const bridge = initializeDrizzleGraphqlBridge(builder);
+    const rowSchema = z.object({
+      id: z.string(),
+      title: z.string(),
+    });
+
+    const model = bridge.model({
+      objectName: "Task",
+      rowSchema,
+    });
+
+    const TaskObject = builder.objectRef<{ id: string; title: string }>("Task");
+    TaskObject.implement({
+      fields: (t) => ({
+        id: t.exposeString("id", { nullable: false }),
+        title: t.exposeString("title", { nullable: false }),
+      }),
+    });
+
+    model.connection({ type: TaskObject });
+
+    expect(builder.configStore.typeConfigs.has("TaskConnection")).toBe(true);
+    expect(builder.configStore.typeConfigs.has("TaskPageInfo")).toBe(true);
+
+    const connection = builder.configStore.typeConfigs.get("TaskConnection");
+    const pageInfo = builder.configStore.typeConfigs.get("TaskPageInfo");
+    expect(connection?.kind).toBe("Object");
+    expect(pageInfo?.kind).toBe("Object");
   });
 
   it("does not import internal Vyrel builders from the public package source", async () => {

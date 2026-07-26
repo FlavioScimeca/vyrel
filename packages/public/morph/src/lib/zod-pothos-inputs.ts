@@ -310,7 +310,7 @@ const readPothosTypeFromZodMeta = (
 
     if (typeof meta.pothosType === "string") {
       throw new Error(
-        `[pothosInputsFromZodSchema] Unknown GraphQL type "${meta.pothosType}" in Zod meta.pothosType. Register it on the shared Pothos builder or pass scalarTypes to initializeDrizzleGraphqlBridge(...).`
+        `[pothosInputsFromZodSchema] Unknown GraphQL type "${meta.pothosType}" in Zod meta.pothosType. Register it on the shared Pothos builder via builder.addScalarType(...).`
       );
     }
   }
@@ -380,6 +380,23 @@ export const resolveGraphqlTypeForZodField = <Types extends SchemaTypes>(
       enumRegistry?.[fieldKey] ??
       resolveZodEnumGraphqlType(unwrapped, graphqlBuilder)
     );
+  }
+
+  if (unwrapped instanceof z.ZodArray) {
+    const element = unwrapZodField(unwrapped.element as z.ZodType);
+
+    if (element instanceof z.ZodEnum) {
+      const enumType =
+        enumRegistry?.[fieldKey] ??
+        resolveZodEnumGraphqlType(element, graphqlBuilder);
+      if (enumType !== undefined) {
+        return [enumType] as PothosInputFieldType;
+      }
+    }
+
+    if (element instanceof z.ZodString) {
+      return ["String"] as PothosInputFieldType;
+    }
   }
 
   if (unwrapped instanceof z.ZodString) {

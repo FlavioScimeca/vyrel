@@ -1,12 +1,5 @@
 import { db } from "@vyrel/db";
-import {
-  TASK_PRIORITIES,
-  TASK_STATUSES,
-  type task,
-  taskLabel,
-  taskLabelAssignment,
-  user,
-} from "@vyrel/db/schema";
+import { taskLabel, taskLabelAssignment, user } from "@vyrel/db/schema";
 import { requireActorUserId } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
@@ -23,10 +16,10 @@ import {
 } from "../services/read.service";
 import { taskLabelQuerySchema, taskQuerySchema } from "../types/base.types";
 import {
-  TASK_SORTS,
   taskByIdSchema,
+  taskConnectionArgsSchema,
   taskConnectionSchema,
-  taskListGraphqlFiltersSchema,
+  taskListArgsSchema,
   tasksByOrganizationSchema,
 } from "../types/extra.types";
 import { runTaskGraphqlEffect } from "./effect";
@@ -42,45 +35,37 @@ const metadata = {
   },
 };
 
-export const TaskStatusEnum = builder.enumType("TaskStatus", {
-  values: TASK_STATUSES,
-});
-
-export const TaskPriorityEnum = builder.enumType("TaskPriority", {
-  values: TASK_PRIORITIES,
-});
-
-export const TaskSortEnum = builder.enumType("TaskSort", {
-  values: TASK_SORTS,
-});
-
-export const taskGraphql = graphqlBridge.model({
-  listArgsSchema: {
-    filters: taskListGraphqlFiltersSchema,
-  },
-  objectName: metadata.objectName,
-  rowSchema: taskQuerySchema,
-});
-
-export const taskLabelGraphql = graphqlBridge.model({
-  objectName: "TaskLabel",
-  rowSchema: taskLabelQuerySchema,
-});
+export const taskGraphql = {
+  task: graphqlBridge.model({
+    idFields: ["id", "organizationId"],
+    listArgsSchema: {
+      connection: taskConnectionArgsSchema,
+      list: taskListArgsSchema,
+    },
+    objectName: "Task",
+    rowSchema: taskQuerySchema,
+  }),
+  label: graphqlBridge.model({
+    idFields: ["id", "organizationId"],
+    objectName: "TaskLabel",
+    rowSchema: taskLabelQuerySchema,
+  }),
+};
 
 export const TaskLabelObject = builder.drizzleObject("taskLabel", {
   description: "A reusable organization-scoped task label.",
   fields: (t) => ({
-    ...taskLabelGraphql.exposeFields(t, { exclude: [] }),
+    ...taskGraphql.label.exposeFields(t),
   }),
   name: "TaskLabel",
 });
 
 export const TaskObject = builder.drizzleObject("task", {
+  name: metadata.objectName,
   description: metadata.description,
+
   fields: (t) => ({
-    ...taskGraphql.exposeFields(t, {
-      exclude: ["dueDate"],
-    }),
+    ...taskGraphql.task.exposeFields(t),
     assignee: t.field({
       nullable: true,
       resolve: (row) => {
@@ -90,11 +75,6 @@ export const TaskObject = builder.drizzleObject("task", {
         return db.select().from(user).where(eq(user.id, row.assigneeId)).get();
       },
       type: UserObject,
-    }),
-    dueDate: t.field({
-      nullable: true,
-      resolve: (row) => row.dueDate,
-      type: "LocalDate",
     }),
     imageFull: t.field({
       nullable: true,
@@ -134,42 +114,9 @@ export const TaskObject = builder.drizzleObject("task", {
       type: [TaskLabelObject],
     }),
   }),
-  name: metadata.objectName,
 });
 
-type TaskConnectionShape = {
-  nodes: (typeof task.$inferSelect)[];
-  pageInfo: {
-    endCursor: string | null;
-    hasNextPage: boolean;
-  };
-};
-
-const TaskPageInfoObject = builder
-  .objectRef<TaskConnectionShape["pageInfo"]>("TaskPageInfo")
-  .implement({
-    fields: (t) => ({
-      endCursor: t.exposeString("endCursor", { nullable: true }),
-      hasNextPage: t.exposeBoolean("hasNextPage", { nullable: false }),
-    }),
-  });
-
-const TaskConnectionObject = builder
-  .objectRef<TaskConnectionShape>("TaskConnection")
-  .implement({
-    fields: (t) => ({
-      nodes: t.field({
-        nullable: false,
-        resolve: (connection) => connection.nodes,
-        type: [TaskObject],
-      }),
-      pageInfo: t.field({
-        nullable: false,
-        resolve: (connection) => connection.pageInfo,
-        type: TaskPageInfoObject,
-      }),
-    }),
-  });
+const TaskConnectionObject = taskGraphql.task.connection({ type: TaskObject });
 
 type TaskSummaryShape = {
   done: number;
@@ -209,15 +156,7 @@ builder.queryFields((t) => ({
   }),
   tasks: t.field({
     args: {
-      labelIds: t.arg.stringList(),
-      organizationId: t.arg.id({ required: true }),
-      priorities: t.arg({
-        type: [TaskPriorityEnum],
-      }),
-      statuses: t.arg({
-        type: [TaskStatusEnum],
-      }),
-      ...taskGraphql.args.filters,
+      ...taskGraphql.task.args.list,
     },
     description: metadata.tasks.description,
     nullable: false,
@@ -235,17 +174,7 @@ builder.queryFields((t) => ({
   }),
   taskConnection: t.field({
     args: {
-      after: t.arg.string(),
-      first: t.arg.int(),
-      labelIds: t.arg.stringList(),
-      organizationId: t.arg.id({ required: true }),
-      priorities: t.arg({
-        type: [TaskPriorityEnum],
-      }),
-      statuses: t.arg({
-        type: [TaskStatusEnum],
-      }),
-      ...taskGraphql.args.filters,
+      ...taskGraphql.task.args.connection,
     },
     description:
       "List tasks using an opaque cursor and deterministic ordering.",
