@@ -1,5 +1,11 @@
 # @vyrel/graphql-client
 
+## 0.2.1
+
+### Patch Changes
+
+- 4762def: clean-up-for-public-access
+
 ## 0.2.0
 
 ### Minor Changes
