@@ -42,7 +42,16 @@
       "inputs": ["source.config.ts", "content/**"],
       "outputs": [".source/**"]
     },
-    "check-effect-ts": {
+    "effect:codegen": {
+      "cache": false
+    },
+    "effect:diagnostics": {
+      "cache": false
+    },
+    "effect:overview": {
+      "cache": false
+    },
+    "effect:quickfixes": {
       "cache": false
     },
     "test": {

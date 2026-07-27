@@ -1,7 +1,6 @@
 import { userAvatarObjectKeys } from "@vyrel/storage/keys";
-import { uploadObject } from "@vyrel/storage/object-storage";
 import { Effect } from "effect";
-
+import { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import {
   type ImageOptimizeError,
   messageForImageOptimizeError,
@@ -26,8 +25,13 @@ const mapImageOptimizeFailure = (error: ImageOptimizeError): UserMediaError =>
 export const uploadUserAvatar = (
   userId: string,
   avatar: File
-): Effect.Effect<UserAvatarFields, UserMediaError | UserValidationError> =>
+): Effect.Effect<
+  UserAvatarFields,
+  UserMediaError | UserValidationError,
+  ObjectStorage
+> =>
   Effect.gen(function* () {
+    const storage = yield* ObjectStorage;
     const validation = yield* Effect.tryPromise({
       catch: (cause) =>
         new UserMediaError({
@@ -50,10 +54,10 @@ export const uploadUserAvatar = (
 
     yield* Effect.all(
       [
-        uploadObject(keys.thumbKey, previews.thumb.buffer, {
+        storage.upload(keys.thumbKey, previews.thumb.buffer, {
           contentType: previews.thumb.contentType,
         }),
-        uploadObject(keys.fullKey, previews.full.buffer, {
+        storage.upload(keys.fullKey, previews.full.buffer, {
           contentType: previews.full.contentType,
         }),
       ],
@@ -74,4 +78,13 @@ export const uploadUserAvatar = (
       imagePlaceholder: previews.placeholder,
       imageThumb: keys.thumbKey,
     };
+  });
+
+export const getSignedUserImageUrl = (key: string | null) =>
+  Effect.gen(function* () {
+    if (key === null) {
+      return;
+    }
+    const storage = yield* ObjectStorage;
+    return storage.signedUrl(key);
   });

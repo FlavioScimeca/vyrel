@@ -1,7 +1,39 @@
-import { DateTime } from "effect";
-import { describe, expect, it } from "vitest";
+// @effect-diagnostics asyncFunction:off
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { finishUserCreate } from "./effect";
+vi.mock("@vyrel/env/server", () => ({
+  env: {
+    BETTER_AUTH_SECRET: "test-better-auth-secret-32chars!!",
+    BETTER_AUTH_URL: "http://localhost:3000",
+    CORS_ORIGIN: "http://localhost:3001",
+    DATABASE_AUTH_TOKEN: "test-token",
+    DATABASE_URL: "file:test.db",
+    LOG_LEVEL: "error",
+    MEDIA_MAX_UPLOAD_BYTES: 100 * 1024 * 1024,
+    NODE_ENV: "test",
+    PROFILE_SQL_LIMIT: 20,
+    PROFILING: false,
+    R2_ACCESS_KEY_ID: "test-access-key",
+    R2_ACCOUNT_ID: "test-account",
+    R2_BUCKET_NAME: "test-bucket",
+    R2_SECRET_ACCESS_KEY: "test-secret-key",
+    R2_SIGNED_URL_TTL_SECONDS: 3600,
+    RESEND_API_KEY: "re_test_key",
+    RESEND_FROM_EMAIL: "onboarding@resend.dev",
+  },
+}));
+
+vi.mock("@vyrel/db", () => ({
+  db: {},
+}));
+
+vi.mock("@vyrel/storage/object-storage", () => ({
+  deleteObjects: vi.fn(),
+  getSignedDownloadUrl: (key: string) => key,
+  uploadObject: vi.fn(),
+}));
+
+import { DateTime } from "effect";
 
 type FinishSet = {
   headers: Record<string, string | string[] | undefined>;
@@ -13,6 +45,12 @@ const fixedDate = DateTime.toDateUtc(
 );
 
 describe("finishUserCreate", () => {
+  let finishUserCreate: typeof import("./effect").finishUserCreate;
+
+  beforeAll(async () => {
+    ({ finishUserCreate } = await import("./effect"));
+  });
+
   it("applies set-cookie and omits mediaWarning when absent", () => {
     const set: FinishSet = {
       headers: {},

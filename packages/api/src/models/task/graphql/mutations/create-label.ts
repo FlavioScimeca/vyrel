@@ -1,5 +1,6 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { Effect } from "effect";
 
 import { createTaskLabel } from "../../services/label.service";
 import { taskLabelCreateSchema } from "../../types/base.types";
@@ -13,11 +14,11 @@ builder.mutationFields((t) => ({
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        createTaskLabel(
-          taskLabelCreateSchema.parse(args.input),
-          requireActorUserId(context)
-        ),
-        { mutation: "createTaskLabel" }
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          return yield* createTaskLabel(args.input, actorUserId);
+        }),
+        { kind: "mutation", operation: "createTaskLabel" }
       ),
     type: TaskLabelObject,
     typeOptions: {

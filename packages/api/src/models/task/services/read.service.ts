@@ -1,4 +1,3 @@
-import { db } from "@vyrel/db";
 import { task, taskLabelAssignment } from "@vyrel/db/schema";
 import type { ConnectionPayload } from "@vyrel/morph";
 import {
@@ -17,13 +16,15 @@ import {
 } from "drizzle-orm";
 import { DateTime, Effect } from "effect";
 
+import type { DatabaseClient } from "../../../effect/infrastructure/database.service";
+import { Database } from "../../../effect/infrastructure/database.service";
 import type {
   TaskConnectionInput,
   TasksTypeByOrganization,
   TaskTypeById,
 } from "../types/extra.types";
 import { assertOrgMembership, fetchTaskForUser } from "../utils/auth-api";
-import { TaskRepositoryError } from "../utils/errors";
+import { TaskRepository } from "./task.repository";
 
 type TaskConnectionResult = ConnectionPayload<(typeof task)["$inferSelect"]>;
 
@@ -48,7 +49,10 @@ const endOfDay = (date: Date): Date =>
 const escapeLikePattern = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 
-const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
+const buildTaskListConditions = (
+  input: TasksTypeByOrganization,
+  client: DatabaseClient
+): SQL[] => {
   const conditions: SQL[] = [eq(task.organizationId, input.organizationId)];
 
   if (input.search !== undefined) {
@@ -94,7 +98,7 @@ const buildTaskListConditions = (input: TasksTypeByOrganization): SQL[] => {
     conditions.push(
       inArray(
         task.id,
-        db
+        client
           .select({ taskId: taskLabelAssignment.taskId })
           .from(taskLabelAssignment)
           .where(inArray(taskLabelAssignment.labelId, input.labelIds))
@@ -133,23 +137,10 @@ export const listTasksByOrganization = (
 ) =>
   Effect.gen(function* () {
     yield* assertOrgMembership(input.organizationId, actorUserId);
-
-    const conditions = buildTaskListConditions(input);
-
-    return yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to list tasks.",
-        }),
-      try: () =>
-        db
-          .select()
-          .from(task)
-          .where(and(...conditions))
-          .orderBy(...taskOrderBy(input.sort))
-          .all(),
-    });
+    const database = yield* Database;
+    const conditions = buildTaskListConditions(input, database.client);
+    const tasks = yield* TaskRepository;
+    return yield* tasks.list(conditions, [...taskOrderBy(input.sort)]);
   });
 
 type TaskCursor = {
@@ -203,8 +194,8 @@ const cursorCondition = (
   cursor: TaskCursor,
   sort: TasksTypeByOrganization["sort"]
 ): SQL => {
-  const createdAt = new Date(cursor.createdAt);
-  const updatedAt = new Date(cursor.updatedAt);
+  const createdAt = DateTime.toDateUtc(DateTime.unsafeMake(cursor.createdAt));
+  const updatedAt = DateTime.toDateUtc(DateTime.unsafeMake(cursor.updatedAt));
 
   if (sort === "RECENTLY_UPDATED") {
     return descendingDateCursorCondition(task.updatedAt, updatedAt, cursor.id);
@@ -247,26 +238,18 @@ export const listTaskConnection = (
 ) =>
   Effect.gen(function* () {
     yield* assertOrgMembership(input.organizationId, actorUserId);
-    const conditions = buildTaskListConditions(input);
+    const database = yield* Database;
+    const conditions = buildTaskListConditions(input, database.client);
     const cursor = decodeCursor(input.after);
     if (cursor !== null) {
       conditions.push(cursorCondition(cursor, input.sort));
     }
-    const records = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to load tasks.",
-        }),
-      try: () =>
-        db
-          .select()
-          .from(task)
-          .where(and(...conditions))
-          .orderBy(...taskOrderBy(input.sort))
-          .limit(input.first + 1)
-          .all(),
-    });
+    const tasks = yield* TaskRepository;
+    const records = yield* tasks.list(
+      conditions,
+      [...taskOrderBy(input.sort)],
+      input.first + 1
+    );
 
     const hasNextPage = records.length > input.first;
     const nodes = hasNextPage ? records.slice(0, input.first) : records;
@@ -292,26 +275,9 @@ export const listTaskConnection = (
 export const getTaskSummary = (organizationId: string, actorUserId: string) =>
   Effect.gen(function* () {
     yield* assertOrgMembership(organizationId, actorUserId);
-    const today = new Date().toISOString().slice(0, 10);
-    const [summary] = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to load task summary.",
-        }),
-      try: () =>
-        db
-          .select({
-            done: sql<number>`sum(case when ${task.status} = 'DONE' then 1 else 0 end)`,
-            inProgress: sql<number>`sum(case when ${task.status} = 'IN_PROGRESS' then 1 else 0 end)`,
-            overdue: sql<number>`sum(case when ${task.status} != 'DONE' and ${task.dueDate} < ${today} then 1 else 0 end)`,
-            todo: sql<number>`sum(case when ${task.status} = 'TODO' then 1 else 0 end)`,
-            total: sql<number>`count(*)`,
-          })
-          .from(task)
-          .where(eq(task.organizationId, organizationId))
-          .all(),
-    });
+    const today = DateTime.formatIsoDateUtc(DateTime.unsafeNow());
+    const tasks = yield* TaskRepository;
+    const summary = yield* tasks.getSummary(organizationId, today);
 
     return {
       done: Number(summary?.done ?? 0),
@@ -320,4 +286,14 @@ export const getTaskSummary = (organizationId: string, actorUserId: string) =>
       todo: Number(summary?.todo ?? 0),
       total: Number(summary?.total ?? 0),
     };
+  });
+
+export const getTaskAssignee = (assigneeId: string | null) =>
+  Effect.gen(function* () {
+    if (assigneeId === null) {
+      return null;
+    }
+    const tasks = yield* TaskRepository;
+    const record = yield* tasks.findUserById(assigneeId);
+    return record ?? null;
   });

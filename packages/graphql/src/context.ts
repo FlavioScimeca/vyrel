@@ -6,7 +6,10 @@ import { verifyBearer } from "@vyrel/auth/lib/verify-bearer";
 import { type AuditableLogger, createLogger } from "@vyrel/logging";
 import { useLogger } from "@vyrel/logging/elysia";
 import type { Session, User } from "better-auth";
+import { Effect } from "effect";
 import { GraphQLError } from "graphql";
+
+import { UnauthenticatedError } from "./lib/domain-errors";
 
 export type GraphQLSession = { user: User; session: Session } | null;
 
@@ -24,7 +27,18 @@ export interface GraphQLContext {
   user?: AuthClaims;
 }
 
-/** Defense-in-depth guard for resolvers executed outside the Yoga auth plugin. */
+/** Effect-channel auth guard for resolvers. Prefer this inside Effect.gen. */
+export const requireActorEffect = (
+  context: GraphQLContext
+): Effect.Effect<string, UnauthenticatedError> =>
+  context.actorUserId === null
+    ? Effect.fail(new UnauthenticatedError("UNAUTHENTICATED"))
+    : Effect.succeed(context.actorUserId);
+
+/**
+ * @deprecated Prefer `requireActorEffect` inside Effect programs.
+ * Sync guard kept for non-Effect call sites.
+ */
 export function requireActorUserId(context: GraphQLContext): string {
   if (context.actorUserId !== null) {
     return context.actorUserId;

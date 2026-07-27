@@ -1,60 +1,32 @@
-import { toGraphQLError } from "@vyrel/graphql/utils/to-graphql-error";
-import { Cause, Effect, Exit } from "effect";
-import type { GraphQLError } from "graphql";
+import { createGraphqlRunner } from "@vyrel/graphql/effect/create-graphql-runner";
+import { log } from "@vyrel/logging";
 
 import type { OrganizationServices } from "../services/organization.layer";
 import { OrganizationRuntime } from "../services/organization.layer";
-import type { OrganizationError } from "../utils/errors";
 
-const mapOrganizationErrorsToGraphQL = <A>(
-  effect: Effect.Effect<
-    A,
-    OrganizationError | GraphQLError,
-    OrganizationServices
-  >
-): Effect.Effect<A, GraphQLError, OrganizationServices> =>
-  effect.pipe(
-    Effect.catchTags({
-      OrganizationForbiddenError: (error) =>
-        Effect.fail(toGraphQLError(error.message, "FORBIDDEN", 403)),
-      OrganizationMediaError: (error) =>
-        Effect.fail(toGraphQLError(error.message, "BAD_USER_INPUT", 400)),
-      OrganizationNotFoundError: (error) =>
-        Effect.fail(
-          toGraphQLError(
-            error.message ?? `Organization ${error.id} was not found.`,
-            "NOT_FOUND",
-            404
-          )
-        ),
-      OrganizationRepositoryError: (error) =>
-        Effect.fail(
-          toGraphQLError(error.message, "ORGANIZATION_REPOSITORY", 503)
-        ),
-      OrganizationValidationError: (error) =>
-        Effect.fail(
-          toGraphQLError(error.message, "BAD_USER_INPUT", 400, {
-            issues: error.issues,
-          })
-        ),
-    })
-  );
-
-export function runOrganizationGraphqlEffect<A>(
-  effect: Effect.Effect<
-    A,
-    OrganizationError | GraphQLError,
-    OrganizationServices
-  >
-): Promise<A> {
-  return OrganizationRuntime.runPromiseExit(
-    mapOrganizationErrorsToGraphQL(effect)
-  ).then((exit) =>
-    Exit.match(exit, {
-      onFailure: (cause) => {
-        throw Cause.squash(cause);
+export const runOrganizationGraphqlEffect =
+  createGraphqlRunner<OrganizationServices>({
+    domain: "organization",
+    errorMap: {
+      OrganizationForbiddenError: { code: "FORBIDDEN", status: 403 },
+      OrganizationMediaError: { code: "BAD_USER_INPUT", status: 400 },
+      OrganizationNotFoundError: {
+        code: "NOT_FOUND",
+        message: (error) =>
+          error.message ?? `Organization ${error.id} was not found.`,
+        status: 404,
       },
-      onSuccess: (value) => value,
-    })
-  );
-}
+      OrganizationRepositoryError: {
+        code: "ORGANIZATION_REPOSITORY",
+        status: 503,
+      },
+      OrganizationValidationError: {
+        code: "BAD_USER_INPUT",
+        extras: (error) =>
+          error.issues === undefined ? undefined : { issues: error.issues },
+        status: 400,
+      },
+    },
+    log,
+    runtime: OrganizationRuntime,
+  });

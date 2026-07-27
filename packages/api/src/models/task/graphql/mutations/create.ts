@@ -1,5 +1,6 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
 import { Effect } from "effect";
 
 import { createTask } from "../../services/create.service";
@@ -14,20 +15,18 @@ const typeOptionsMetadata = {
 
 builder.mutationFields((t) => ({
   createTask: t.fieldWithInput({
+    // Morph inputsFrom already attaches Zod validate for ValidationPlugin.
     input: {
       ...taskGraphql.task.inputsFrom(taskCreateSchema),
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        Effect.sync(() => ({
-          actorUserId: requireActorUserId(context),
-          input: taskCreateSchema.parse(args.input),
-        })).pipe(
-          Effect.flatMap(({ actorUserId, input }) =>
-            createTask(input, actorUserId)
-          )
-        ),
-        { mutation: "createTask" }
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(taskCreateSchema, args.input);
+          return yield* createTask(input, actorUserId);
+        }),
+        { kind: "mutation", operation: "createTask" }
       ),
     type: TaskObject,
     typeOptions: typeOptionsMetadata,

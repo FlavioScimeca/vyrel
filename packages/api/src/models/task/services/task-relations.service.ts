@@ -1,9 +1,7 @@
-import { db } from "@vyrel/db";
-import { member, taskLabel } from "@vyrel/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
 import { Effect } from "effect";
 
-import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
+import { TaskValidationError } from "../utils/errors";
+import { TaskRepository } from "./task.repository";
 
 type ValidatedTaskRelations = {
   assigneeId: string | null;
@@ -16,27 +14,14 @@ export const validateTaskRelations = (
   labelIds: readonly string[] | undefined
 ) =>
   Effect.gen(function* () {
+    const tasks = yield* TaskRepository;
     const uniqueLabelIds = [...new Set(labelIds ?? [])];
 
     if (assigneeId !== undefined && assigneeId !== null) {
-      const assigneeMembership = yield* Effect.tryPromise({
-        catch: (cause) =>
-          new TaskRepositoryError({
-            cause,
-            message: "Unable to validate task assignee.",
-          }),
-        try: () =>
-          db
-            .select({ id: member.id })
-            .from(member)
-            .where(
-              and(
-                eq(member.organizationId, organizationId),
-                eq(member.userId, assigneeId)
-              )
-            )
-            .get(),
-      });
+      const assigneeMembership = yield* tasks.findAssigneeMembership(
+        organizationId,
+        assigneeId
+      );
 
       if (assigneeMembership === undefined) {
         return yield* new TaskValidationError({
@@ -46,24 +31,10 @@ export const validateTaskRelations = (
     }
 
     if (uniqueLabelIds.length > 0) {
-      const matchingLabels = yield* Effect.tryPromise({
-        catch: (cause) =>
-          new TaskRepositoryError({
-            cause,
-            message: "Unable to validate task labels.",
-          }),
-        try: () =>
-          db
-            .select({ id: taskLabel.id })
-            .from(taskLabel)
-            .where(
-              and(
-                eq(taskLabel.organizationId, organizationId),
-                inArray(taskLabel.id, uniqueLabelIds)
-              )
-            )
-            .all(),
-      });
+      const matchingLabels = yield* tasks.findLabelsByIdsInOrganization(
+        organizationId,
+        uniqueLabelIds
+      );
 
       if (matchingLabels.length !== uniqueLabelIds.length) {
         return yield* new TaskValidationError({

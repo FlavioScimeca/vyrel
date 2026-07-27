@@ -1,7 +1,11 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
-import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
+import { Effect } from "effect";
+import { z } from "zod/v4";
+
+import { getSignedUserImageUrl } from "../services/avatar.service";
 import { getUser } from "../services/read.service";
 import { userQuerySchema } from "../types/base.types";
 import { userByIdSchema } from "../types/extra.types";
@@ -32,22 +36,20 @@ export const UserObject = builder.drizzleObject("user", {
     }),
     imageFull: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageFull === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageFull);
-      },
+      resolve: (row) =>
+        runUserGraphqlEffect(getSignedUserImageUrl(row.imageFull), {
+          kind: "query",
+          operation: "User.imageFull",
+        }),
       type: "String",
     }),
     imageThumb: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageThumb === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageThumb);
-      },
+      resolve: (row) =>
+        runUserGraphqlEffect(getSignedUserImageUrl(row.imageThumb), {
+          kind: "query",
+          operation: "User.imageThumb",
+        }),
       type: "String",
     }),
   }),
@@ -57,16 +59,23 @@ export const UserObject = builder.drizzleObject("user", {
 builder.queryFields((t) => ({
   user: t.field({
     args: {
-      id: t.arg.id({ required: true }),
+      id: t.arg.id({
+        required: true,
+        validate: z.string().min(1),
+      }),
     },
     description: metadata.user.description,
     nullable: true,
     resolve: (_root, args, context) =>
       runUserGraphqlEffect(
-        getUser(
-          userByIdSchema.parse({ id: String(args.id) }),
-          requireActorUserId(context)
-        )
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(userByIdSchema, {
+            id: String(args.id),
+          });
+          return yield* getUser(input, actorUserId);
+        }),
+        { kind: "query", operation: "user" }
       ),
     type: UserObject,
   }),

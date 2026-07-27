@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-
+import type { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import {
   afterCreateAttachMedia,
   type WithMediaWarning,
@@ -26,7 +26,11 @@ export type CreateOrganizationServiceResult =
 export const createOrganization = (
   input: OrganizationTypeCreate,
   requestHeaders: Headers
-): Effect.Effect<CreateOrganizationServiceResult, OrganizationError> =>
+): Effect.Effect<
+  CreateOrganizationServiceResult,
+  OrganizationError,
+  ObjectStorage
+> =>
   Effect.gen(function* () {
     const safeValues = organizationCreateSchema.safeParse(input);
     if (!safeValues.success) {

@@ -1,5 +1,6 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
 import { Effect } from "effect";
 
 import { updateOrganization } from "../../services/update.service";
@@ -19,15 +20,15 @@ builder.mutationFields((t) => ({
     },
     resolve: (_root, args, context) =>
       runOrganizationGraphqlEffect(
-        Effect.sync(() => ({
-          actorUserId: requireActorUserId(context),
-          headers: context.headers,
-          input: organizationUpdateSchema.parse(args.input),
-        })).pipe(
-          Effect.flatMap(({ actorUserId, headers, input }) =>
-            updateOrganization(input, headers, actorUserId)
-          )
-        )
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(
+            organizationUpdateSchema,
+            args.input
+          );
+          return yield* updateOrganization(input, context.headers, actorUserId);
+        }),
+        { kind: "mutation", operation: "updateOrganization" }
       ),
     type: OrganizationObject,
     typeOptions: typeOptionsMetadata,

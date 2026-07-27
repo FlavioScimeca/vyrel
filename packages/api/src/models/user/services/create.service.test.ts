@@ -1,7 +1,4 @@
-import { describe, expect, it } from "@effect/vitest";
-import { DateTime, Effect } from "effect";
-import { beforeEach, vi } from "vitest";
-
+// @effect-diagnostics strictEffectProvide:off
 vi.mock("@vyrel/env/server", () => ({
   env: {
     BETTER_AUTH_SECRET: "test-better-auth-secret-32chars!!",
@@ -24,6 +21,18 @@ vi.mock("@vyrel/env/server", () => ({
   },
 }));
 
+vi.mock("@vyrel/storage/object-storage", () => ({
+  deleteObjects: vi.fn(),
+  getSignedDownloadUrl: (key: string) => key,
+  messageForObjectStorageFailure: () => "storage failed",
+  uploadObject: vi.fn(),
+}));
+
+import { describe, expect, it } from "@effect/vitest";
+import { DateTime, Effect, Layer } from "effect";
+import { beforeEach, vi } from "vitest";
+
+import { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import { UserMediaError } from "../utils/errors";
 import type { SignUpEmailResult } from "./auth.service";
 
@@ -41,6 +50,12 @@ vi.mock("./avatar.service", () => ({
 }));
 
 import { createUser } from "./create.service";
+
+const TestObjectStorage = Layer.succeed(ObjectStorage, {
+  deleteMany: () => Effect.void,
+  signedUrl: (key: string) => key,
+  upload: () => Effect.succeed({ key: "test" }),
+} as unknown as ObjectStorage);
 
 const fixedDate = DateTime.toDateUtc(
   DateTime.unsafeMake("2026-01-01T00:00:00.000Z")
@@ -87,7 +102,7 @@ describe("createUser soft-fail media", () => {
           password: "password1",
         },
         new Headers()
-      );
+      ).pipe(Effect.provide(TestObjectStorage));
 
       expect(signUpEmail).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -114,7 +129,7 @@ describe("createUser soft-fail media", () => {
           password: "password1",
         },
         new Headers()
-      );
+      ).pipe(Effect.provide(TestObjectStorage));
 
       expect(result.setCookies).toEqual(signUpResult.setCookies);
       expect(result.mediaWarning).toBeUndefined();
@@ -143,7 +158,7 @@ describe("createUser soft-fail media", () => {
             password: "password1",
           },
           new Headers()
-        );
+        ).pipe(Effect.provide(TestObjectStorage));
 
         expect(result.setCookies).toEqual(["better-auth.session_token=abc"]);
         expect(result.mediaWarning).toBe(

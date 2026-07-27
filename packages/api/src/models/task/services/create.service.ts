@@ -1,11 +1,10 @@
-import { db } from "@vyrel/db";
-import { task, taskLabelAssignment } from "@vyrel/db/schema";
 import { Effect } from "effect";
 
 import { type TaskTypeCreate, taskCreateSchema } from "../types/base.types";
 import { assertOrgMembership } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
+import { TaskRepository } from "./task.repository";
 import { validateTaskRelations } from "./task-relations.service";
 
 export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
@@ -48,42 +47,19 @@ export const createTask = (input: TaskTypeCreate, actorUserId: string) =>
           }
         : yield* uploadTaskImage(taskId, image);
 
-    const record = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to create task.",
-        }),
-      try: () =>
-        db.transaction(async (transaction) => {
-          const createdTask = await transaction
-            .insert(task)
-            .values({
-              assigneeId: taskRelations.assigneeId,
-              createdById: actorUserId,
-              description: description ?? null,
-              dueDate: dueDate ?? null,
-              id: taskId,
-              organizationId,
-              priority: priority ?? "NONE",
-              status: status ?? "TODO",
-              title,
-              ...imageFields,
-            })
-            .returning()
-            .get();
-
-          if (taskRelations.labelIds.length > 0) {
-            await transaction.insert(taskLabelAssignment).values(
-              taskRelations.labelIds.map((labelId) => ({
-                labelId,
-                taskId,
-              }))
-            );
-          }
-
-          return createdTask;
-        }),
+    const tasks = yield* TaskRepository;
+    const record = yield* tasks.createWithLabels({
+      assigneeId: taskRelations.assigneeId,
+      createdById: actorUserId,
+      description: description ?? null,
+      dueDate: dueDate ?? null,
+      id: taskId,
+      organizationId,
+      priority: priority ?? "NONE",
+      status: status ?? "TODO",
+      title,
+      ...imageFields,
+      labelIds: taskRelations.labelIds,
     });
 
     if (record === undefined) {

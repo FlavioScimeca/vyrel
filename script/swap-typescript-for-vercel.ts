@@ -25,7 +25,7 @@ const program = Effect.gen(function* () {
   if (yield* fs.exists(typescriptPath)) {
     const existing = yield* fs
       .readLink(typescriptPath)
-      .pipe(Effect.catchAll(() => Effect.succeed(null)));
+      .pipe(Effect.orElseSucceed(() => null));
 
     if (existing === typescript6Path) {
       log.info(

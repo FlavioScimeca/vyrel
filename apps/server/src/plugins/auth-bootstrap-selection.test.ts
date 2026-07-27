@@ -1,3 +1,4 @@
+// @effect-diagnostics globalDate:off
 import { selectActiveOrganizationId } from "@vyrel/db/utils/membership-selection";
 import { describe, expect, it } from "vitest";
 

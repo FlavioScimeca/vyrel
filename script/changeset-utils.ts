@@ -17,10 +17,10 @@ const changesetIntentSchema = Schema.Union(
 );
 
 /** Semver bump — derived from Effect Schema so encode/decode stay aligned. */
-export type Bump = Schema.Schema.Type<typeof bumpSchema>;
+export type Bump = typeof bumpSchema.Type;
 
 /** Changeset intent — `packages` is readonly to match `Schema.Array`. */
-export type ChangesetIntent = Schema.Schema.Type<typeof changesetIntentSchema>;
+export type ChangesetIntent = typeof changesetIntentSchema.Type;
 
 const paths = scriptRuntime.runSync(
   Effect.gen(function* () {

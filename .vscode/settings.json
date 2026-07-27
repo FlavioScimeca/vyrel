@@ -10,11 +10,13 @@
     "linux-x64": "./node_modules/@biomejs/cli-linux-x64/biome",
     "win32-x64": "./node_modules/@biomejs/cli-win32-x64/biome.exe"
   },
-  "typescript.tsdk": "node_modules/typescript6/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "js/ts.tsdk.path": "node_modules/typescript6/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "js/ts.experimental.useTsgo": false,
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSaveMode": "all",
 
   "emmet.showExpandedAbbreviation": "never",
   "[css]": {

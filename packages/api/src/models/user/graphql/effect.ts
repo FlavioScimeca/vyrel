@@ -1,48 +1,27 @@
-import { toGraphQLError } from "@vyrel/graphql/utils/to-graphql-error";
-import { Cause, Effect, Exit } from "effect";
-import type { GraphQLError } from "graphql";
+import { createGraphqlRunner } from "@vyrel/graphql/effect/create-graphql-runner";
+import { log } from "@vyrel/logging";
+
 import type { UserServices } from "../services/user.layer";
 import { UserRuntime } from "../services/user.layer";
-import type { UserError } from "../utils/errors";
 
-const mapUserErrorsToGraphQL = <A>(
-  effect: Effect.Effect<A, UserError | GraphQLError, UserServices>
-): Effect.Effect<A, GraphQLError, UserServices> =>
-  effect.pipe(
-    Effect.catchTags({
-      UserForbiddenError: (error) =>
-        Effect.fail(toGraphQLError(error.message, "FORBIDDEN", 403)),
-      UserMediaError: (error) =>
-        Effect.fail(toGraphQLError(error.message, "BAD_USER_INPUT", 400)),
-      UserNotFoundError: (error) =>
-        Effect.fail(
-          toGraphQLError(
-            error.message ?? `User ${error.id} was not found.`,
-            "NOT_FOUND",
-            404
-          )
-        ),
-      UserRepositoryError: (error) =>
-        Effect.fail(toGraphQLError(error.message, "USER_REPOSITORY", 503)),
-      UserValidationError: (error) =>
-        Effect.fail(
-          toGraphQLError(error.message, "BAD_USER_INPUT", 400, {
-            issues: error.issues,
-          })
-        ),
-    })
-  );
-
-export function runUserGraphqlEffect<A>(
-  effect: Effect.Effect<A, UserError | GraphQLError, UserServices>
-): Promise<A> {
-  return UserRuntime.runPromiseExit(mapUserErrorsToGraphQL(effect)).then(
-    (exit) =>
-      Exit.match(exit, {
-        onFailure: (cause) => {
-          throw Cause.squash(cause);
-        },
-        onSuccess: (value) => value,
-      })
-  );
-}
+export const runUserGraphqlEffect = createGraphqlRunner<UserServices>({
+  domain: "user",
+  errorMap: {
+    UserForbiddenError: { code: "FORBIDDEN", status: 403 },
+    UserMediaError: { code: "BAD_USER_INPUT", status: 400 },
+    UserNotFoundError: {
+      code: "NOT_FOUND",
+      message: (error) => error.message ?? `User ${error.id} was not found.`,
+      status: 404,
+    },
+    UserRepositoryError: { code: "USER_REPOSITORY", status: 503 },
+    UserValidationError: {
+      code: "BAD_USER_INPUT",
+      extras: (error) =>
+        error.issues === undefined ? undefined : { issues: error.issues },
+      status: 400,
+    },
+  },
+  log,
+  runtime: UserRuntime,
+});

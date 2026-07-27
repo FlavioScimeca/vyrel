@@ -5,6 +5,7 @@ import {
   taskLabel,
 } from "@vyrel/db/schema";
 import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
+import { DateTime, Option } from "effect";
 import z from "zod/v4";
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -17,14 +18,20 @@ export const localDateSchema = z
     const year = Number(yearText);
     const month = Number(monthText);
     const day = Number(dayText);
-    const date = new Date(Date.UTC(year, month - 1, day));
-    return (
-      date.getUTCFullYear() === year &&
-      date.getUTCMonth() === month - 1 &&
-      date.getUTCDate() === day
-    );
+    const made = DateTime.make({ day, month, year });
+    if (Option.isNone(made)) {
+      return false;
+    }
+    const parts = DateTime.toPartsUtc(made.value);
+    return parts.year === year && parts.month === month && parts.day === day;
   }, "Date must be a valid calendar date")
   .meta({ pothosType: "LocalDate" });
+
+const idSchema = z.string().min(1).meta({ pothosType: "ID" });
+
+const taskLabelIdsSchema = z.array(idSchema).max(20);
+
+export { idSchema, taskLabelIdsSchema };
 
 export const taskQuerySchema = createSelectSchema(task)
   .omit({
@@ -54,18 +61,15 @@ export const taskCreateSchema = taskInsertSchema
     title: true,
   })
   .extend({
-    assigneeId: z.string().min(1).nullable().optional(),
+    assigneeId: idSchema.nullable().optional(),
     description: z.string().trim().optional(),
     dueDate: localDateSchema.nullable().optional(),
     image: z
       .custom<File>((value) => value instanceof File)
       .optional()
       .meta({ pothosType: "File" }),
-    labelIds: z.array(z.string().min(1)).max(20).default([]),
-    organizationId: z
-      .string()
-      .min(1, "Organization id is required")
-      .meta({ pothosType: "ID" }),
+    labelIds: taskLabelIdsSchema.default([]),
+    organizationId: idSchema.describe("Organization id is required"),
     priority: taskPrioritySchema.default("NONE"),
     status: taskStatusSchema.default("TODO"),
     title: z.string().trim().min(1, "Title is required"),
@@ -92,13 +96,13 @@ export const taskUpdateSchema = taskCreateSchema
     title: true,
   })
   .extend({
-    labelIds: z.array(z.string().min(1)).max(20).optional(),
+    labelIds: taskLabelIdsSchema.optional(),
     removeImage: z.boolean().optional(),
-    taskId: z.string().min(1, "Task id is required"),
+    taskId: idSchema.describe("Task id is required"),
   });
 
 export const taskDeleteSchema = z.object({
-  taskId: z.string().min(1, "Task id is required"),
+  taskId: idSchema.describe("Task id is required"),
 });
 
 export const taskLabelQuerySchema = createSelectSchema(taskLabel);
@@ -115,16 +119,16 @@ export const taskLabelCreateSchema = taskLabelInsertSchema
       .trim()
       .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid label color"),
     name: z.string().trim().min(1).max(32),
-    organizationId: z.string().min(1).meta({ pothosType: "ID" }),
+    organizationId: idSchema,
   });
 
 export const taskLabelUpdateSchema = taskLabelCreateSchema
   .pick({ color: true, name: true })
   .partial()
-  .extend({ labelId: z.string().min(1) });
+  .extend({ labelId: idSchema });
 
 export const taskLabelDeleteSchema = z.object({
-  labelId: z.string().min(1),
+  labelId: idSchema,
 });
 
 export type TaskTypeQuery = z.infer<typeof taskQuerySchema>;

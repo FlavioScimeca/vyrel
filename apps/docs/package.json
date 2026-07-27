@@ -6,9 +6,12 @@
   "scripts": {
     "prebuild": "bun run --cwd ../.. script/swap-typescript-for-vercel.ts",
     "build": "bunx next build",
-    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
     "dev": "next dev --port 4000",
+    "effect:codegen": "effect-language-service codegen --project tsconfig.json",
+    "effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json --format text",
+    "effect:overview": "effect-language-service overview --project tsconfig.json",
+    "effect:quickfixes": "effect-language-service quickfixes --project tsconfig.json",
     "source": "fumadocs-mdx",
     "start": "next start"
   },

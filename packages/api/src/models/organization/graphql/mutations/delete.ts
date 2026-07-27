@@ -1,9 +1,11 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { Effect } from "effect";
 
 import { deleteOrganization } from "../../services/delete.service";
 import { organizationDeleteSchema } from "../../types/base.types";
 import { runOrganizationGraphqlEffect } from "../effect";
+import { organizationGraphql } from "../organization.query";
 
 const typeOptionsMetadata = {
   description: "Delete an organization the caller belongs to.",
@@ -13,15 +15,19 @@ const typeOptionsMetadata = {
 builder.mutationFields((t) => ({
   deleteOrganization: t.fieldWithInput({
     input: {
-      organizationId: t.input.string({ required: true }),
+      ...organizationGraphql.inputsFrom(organizationDeleteSchema),
     },
     resolve: (_root, args, context) =>
       runOrganizationGraphqlEffect(
-        deleteOrganization(
-          organizationDeleteSchema.parse(args.input),
-          context.headers,
-          requireActorUserId(context)
-        )
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          return yield* deleteOrganization(
+            args.input,
+            context.headers,
+            actorUserId
+          );
+        }),
+        { kind: "mutation", operation: "deleteOrganization" }
       ),
     type: "String",
     typeOptions: typeOptionsMetadata,

@@ -59,12 +59,10 @@ export const authPlugin = new Elysia({ name: "auth" })
           },
         };
       }).pipe(
-        Effect.catchAll(() =>
-          Effect.succeed(
-            status(503, {
-              message: "Authentication bootstrap is temporarily unavailable",
-            })
-          )
+        Effect.orElseSucceed(() =>
+          status(503, {
+            message: "Authentication bootstrap is temporarily unavailable",
+          })
         )
       )
     )
@@ -92,7 +90,7 @@ export const authPlugin = new Elysia({ name: "auth" })
         return yield* Effect.tryPromise(() =>
           auth.api.listOrganizations({ headers: authRequest.headers })
         );
-      }).pipe(Effect.catchAll(() => Effect.succeed(status(401))))
+      }).pipe(Effect.orElseSucceed(() => status(401)))
     )
   )
   .all("/api/auth/*", ({ request, status }) => {
