@@ -9,7 +9,10 @@
     "./web": "./src/web.ts"
   },
   "scripts": {
-    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text"
+    "effect:codegen": "effect-language-service codegen --project tsconfig.json",
+    "effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json --format text",
+    "effect:overview": "effect-language-service overview --project tsconfig.json",
+    "effect:quickfixes": "effect-language-service quickfixes --project tsconfig.json"
   },
   "dependencies": {
     "@vyrel/env": "workspace:*"

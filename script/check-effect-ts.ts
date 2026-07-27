@@ -15,7 +15,7 @@ const tsconfigSchema = Schema.Struct({
 const parseTsconfig = Schema.decodeUnknown(Schema.parseJson(tsconfigSchema));
 
 /**
- * Packages whose tsconfig extends the repo root (inherits @effect/language-service).
+ * Packages whose tsconfig extends the repo root (inherits @effect/language-service plugin config for @effect/tsgo).
  * Discovered automatically so new Effect packages are included without manual updates.
  */
 export const discoverEffectProjects = (
@@ -103,7 +103,7 @@ export const runEffectDiagnosticsWithTurbo = (
   repoRoot: string
 ): Effect.Effect<number> =>
   Effect.promise(() => {
-    const proc = Bun.spawn(["bunx", "turbo", "check-effect-ts"], {
+    const proc = Bun.spawn(["bunx", "turbo", "effect:diagnostics"], {
       cwd: repoRoot,
       stdio: ["inherit", "inherit", "inherit"],
     });
@@ -119,14 +119,16 @@ export const checkEffectProjectsEffect = (
     const root = path.resolve(repoRoot);
 
     log.info(
-      "check-effect-ts",
-      "Effect language service (@effect/language-service) diagnostics"
+      "effect:diagnostics",
+      "Effect language service (@effect/tsgo) diagnostics"
     );
 
     const exitCode = yield* runEffectDiagnosticsWithTurbo(root);
 
     return {
-      results: [{ exitCode, project: "turbo check-effect-ts", skipped: false }],
+      results: [
+        { exitCode, project: "turbo effect:diagnostics", skipped: false },
+      ],
       root,
     };
   });
@@ -152,13 +154,13 @@ const main = Effect.gen(function* () {
     return failed.exitCode;
   }
 
-  log.info("check-effect-ts", "");
-  log.info("check-effect-ts", "Effect language service checks passed.");
+  log.info("effect:diagnostics", "");
+  log.info("effect:diagnostics", "Effect language service checks passed.");
   return 0;
 });
 
 if (import.meta.main) {
-  initScriptLogging({ script: "check-effect-ts" });
+  initScriptLogging({ script: "effect:diagnostics" });
   const exitCode = await scriptRuntime.runPromise(main);
   process.exit(exitCode);
 }

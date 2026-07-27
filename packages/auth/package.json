@@ -17,8 +17,11 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "check-effect-ts": "effect-language-service diagnostics --project tsconfig.json --format text",
     "check-types": "tsc --noEmit",
+    "effect:codegen": "effect-language-service codegen --project tsconfig.json",
+    "effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json --format text",
+    "effect:overview": "effect-language-service overview --project tsconfig.json",
+    "effect:quickfixes": "effect-language-service quickfixes --project tsconfig.json",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -38,7 +41,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@effect/language-service": "catalog:",
     "@types/react": "catalog:",
     "@vyrel/config": "workspace:*",
     "typescript": "catalog:",

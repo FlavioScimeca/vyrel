@@ -2,6 +2,7 @@
   "recommendations": [
     "biomejs.biome",
     "emeraldwalk.runonsave",
-    "expo.vscode-expo-tools"
+    "expo.vscode-expo-tools",
+    "TypeScriptTeam.native-preview"
   ]
 }

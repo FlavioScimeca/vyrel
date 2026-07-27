@@ -48,8 +48,8 @@ const MENU_OPTIONS: MenuOption[] = [
     value: "check-double-dep",
   },
   {
-    description: "Run @effect/language-service diagnostics on Effect projects",
-    label: "Check Effect diagnostics",
+    description: "Run @effect/tsgo diagnostics on Effect projects",
+    label: "Effect diagnostics",
     value: "check-effect",
   },
   {

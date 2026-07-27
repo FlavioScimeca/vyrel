@@ -63,6 +63,8 @@ export const fetchTaskForUser = (id: string, actorUserId: string) =>
 
     return record;
   }).pipe(
-    Effect.catchTag("TaskInaccessibleError", () => Effect.succeed(null)),
-    Effect.catchTag("TaskForbiddenError", () => Effect.succeed(null))
+    Effect.catchTags({
+      TaskInaccessibleError: () => Effect.succeed(null),
+      TaskForbiddenError: () => Effect.succeed(null),
+    })
   );

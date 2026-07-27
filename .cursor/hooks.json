@@ -8,7 +8,7 @@
         "command": "bun run lint"
       },
       {
-        "command": "bun run check:effect-ts"
+        "command": "bun run effect:diagnostics"
       }
     ]
   },
