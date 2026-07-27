@@ -449,6 +449,7 @@
         "graphql": "catalog:",
         "graphql-scalars": "catalog:",
         "graphql-yoga": "catalog:",
+        "zod": "4.4.3",
       },
       "devDependencies": {
         "@effect/platform": "catalog:",
@@ -513,7 +514,7 @@
     },
     "packages/public/morph": {
       "name": "@vyrel/morph",
-      "version": "0.0.10",
+      "version": "0.1.0",
       "devDependencies": {
         "@effect/language-service": "catalog:",
         "@pothos/core": "catalog:",

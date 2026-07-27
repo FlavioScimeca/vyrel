@@ -1,5 +1,6 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { Effect } from "effect";
 
 import { deleteTask } from "../../services/delete.service";
 import { taskDeleteSchema } from "../../types/base.types";
@@ -18,11 +19,11 @@ builder.mutationFields((t) => ({
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        deleteTask(
-          taskDeleteSchema.parse(args.input),
-          requireActorUserId(context)
-        ),
-        { mutation: "deleteTask" }
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          return yield* deleteTask(args.input, actorUserId);
+        }),
+        { kind: "mutation", operation: "deleteTask" }
       ),
     type: "String",
     typeOptions: typeOptionsMetadata,

@@ -1,8 +1,11 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
-import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
+import { Effect } from "effect";
+import { z } from "zod/v4";
 
+import { getSignedOrganizationImageUrl } from "../services/logo.service";
 import { getOrganization, listOrganizations } from "../services/read.service";
 import { organizationQuerySchema } from "../types/base.types";
 import { organizationByIdSchema } from "../types/extra.types";
@@ -32,22 +35,20 @@ export const OrganizationObject = builder.drizzleObject("organization", {
     }),
     imageFull: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageFull === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageFull);
-      },
+      resolve: (row) =>
+        runOrganizationGraphqlEffect(
+          getSignedOrganizationImageUrl(row.imageFull),
+          { kind: "query", operation: "Organization.imageFull" }
+        ),
       type: "String",
     }),
     imageThumb: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageThumb === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageThumb);
-      },
+      resolve: (row) =>
+        runOrganizationGraphqlEffect(
+          getSignedOrganizationImageUrl(row.imageThumb),
+          { kind: "query", operation: "Organization.imageThumb" }
+        ),
       type: "String",
     }),
   }),
@@ -57,16 +58,23 @@ export const OrganizationObject = builder.drizzleObject("organization", {
 builder.queryFields((t) => ({
   organization: t.field({
     args: {
-      id: t.arg.id({ required: true }),
+      id: t.arg.id({
+        required: true,
+        validate: z.string().min(1),
+      }),
     },
     description: metadata.organization.description,
     nullable: true,
     resolve: (_root, args, context) =>
       runOrganizationGraphqlEffect(
-        getOrganization(
-          organizationByIdSchema.parse({ id: String(args.id) }),
-          requireActorUserId(context)
-        )
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(organizationByIdSchema, {
+            id: String(args.id),
+          });
+          return yield* getOrganization(input, actorUserId);
+        }),
+        { kind: "query", operation: "organization" }
       ),
     type: OrganizationObject,
   }),
@@ -75,7 +83,11 @@ builder.queryFields((t) => ({
     nullable: false,
     resolve: (_root, _args, context) =>
       runOrganizationGraphqlEffect(
-        listOrganizations(requireActorUserId(context))
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          return yield* listOrganizations(actorUserId);
+        }),
+        { kind: "query", operation: "organizations" }
       ),
     type: [OrganizationObject],
   }),

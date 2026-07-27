@@ -3,6 +3,7 @@ export {
   createGraphqlContext,
   type GraphQLContext,
   type GraphQLSession,
+  requireActorEffect,
   requireActorUserId,
 } from "./context";
 export { graphqlYogaServer } from "./handler";

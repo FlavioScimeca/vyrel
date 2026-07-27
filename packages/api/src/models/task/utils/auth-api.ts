@@ -1,9 +1,7 @@
-import { db } from "@vyrel/db";
-import { task } from "@vyrel/db/schema";
-import { eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
-import { assertOrganizationMember } from "../../organization/utils/auth-api";
+import { MembershipRepository } from "../../../effect/repositories/membership.repository";
+import { TaskRepository } from "../services/task.repository";
 import {
   TaskForbiddenError,
   TaskNotFoundError,
@@ -15,34 +13,29 @@ class TaskInaccessibleError extends Data.TaggedError("TaskInaccessibleError")<{
 }> {}
 
 export const assertOrgMembership = (organizationId: string, userId: string) =>
-  assertOrganizationMember(organizationId, userId).pipe(
-    Effect.mapError((error) => {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "_tag" in error &&
-        error._tag === "OrganizationInaccessibleError"
-      ) {
-        return new TaskForbiddenError({
-          message: "You are not a member of this organization.",
-        });
-      }
+  Effect.gen(function* () {
+    const memberships = yield* MembershipRepository;
+    const isMember = yield* memberships.isMember(organizationId, userId).pipe(
+      Effect.mapError(
+        (cause) =>
+          new TaskRepositoryError({
+            cause,
+            message: "Unable to verify organization membership.",
+          })
+      )
+    );
 
-      return new TaskRepositoryError({
-        cause: error,
-        message: "Unable to verify organization membership.",
+    if (!isMember) {
+      return yield* new TaskForbiddenError({
+        message: "You are not a member of this organization.",
       });
-    })
-  );
+    }
+  });
 
 export const fetchTaskById = (id: string) =>
-  Effect.tryPromise({
-    catch: (cause) =>
-      new TaskRepositoryError({
-        cause,
-        message: "Unable to load task.",
-      }),
-    try: () => db.select().from(task).where(eq(task.id, id)).get(),
+  Effect.gen(function* () {
+    const tasks = yield* TaskRepository;
+    return yield* tasks.findById(id);
   });
 
 export const assertTaskAccess = (taskId: string, userId: string) =>

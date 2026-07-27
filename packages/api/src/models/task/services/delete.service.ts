@@ -1,12 +1,10 @@
-import { db } from "@vyrel/db";
-import { task } from "@vyrel/db/schema";
-import { deleteObjects } from "@vyrel/storage/object-storage";
-import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
+import { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import { type TaskTypeDelete, taskDeleteSchema } from "../types/base.types";
 import { assertTaskAccess } from "../utils/auth-api";
-import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
+import { TaskValidationError } from "../utils/errors";
+import { TaskRepository } from "./task.repository";
 
 export const deleteTask = (input: TaskTypeDelete, actorUserId: string) =>
   Effect.gen(function* () {
@@ -26,17 +24,14 @@ export const deleteTask = (input: TaskTypeDelete, actorUserId: string) =>
     );
 
     if (objectKeys.length > 0) {
-      yield* deleteObjects(objectKeys).pipe(Effect.catchAll(() => Effect.void));
+      const storage = yield* ObjectStorage;
+      yield* storage
+        .deleteMany(objectKeys)
+        .pipe(Effect.catchAll(() => Effect.void));
     }
 
-    yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to delete task.",
-        }),
-      try: () => db.delete(task).where(eq(task.id, taskId)).run(),
-    });
+    const tasks = yield* TaskRepository;
+    yield* tasks.deleteById(taskId);
 
     return taskId;
   });

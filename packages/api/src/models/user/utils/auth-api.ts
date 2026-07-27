@@ -1,10 +1,8 @@
-import { db } from "@vyrel/db";
 import type { user } from "@vyrel/db/schema";
-import { user as userTable } from "@vyrel/db/schema";
 import { APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
+import { UserRepository } from "../services/user.repository";
 import {
   UserForbiddenError,
   UserRepositoryError,
@@ -69,15 +67,11 @@ export function mapAuthApiFailure(
 }
 
 export const fetchCurrentUser = (actorUserId: string) =>
-  Effect.tryPromise({
-    catch: (cause) =>
-      new UserRepositoryError({
-        cause,
-        message: "Unable to load current user.",
-      }),
-    try: () =>
-      db.select().from(userTable).where(eq(userTable.id, actorUserId)).get(),
-  }).pipe(Effect.map((record) => record ?? null));
+  Effect.gen(function* () {
+    const users = yield* UserRepository;
+    const record = yield* users.findById(actorUserId);
+    return record ?? null;
+  });
 
 export const fetchUser = (id: string, actorUserId: string) =>
   fetchCurrentUser(actorUserId).pipe(

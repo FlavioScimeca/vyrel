@@ -1,15 +1,16 @@
-import { db } from "@vyrel/db";
-import { user } from "@vyrel/db/schema";
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
-import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
-import { eq } from "drizzle-orm";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
+import { Effect } from "effect";
+import { z } from "zod/v4";
 
 import { UserObject } from "../../user/graphql/user.query";
+import { getSignedTaskImageUrl } from "../services/image.service";
 import { listLabelsForTask, listTaskLabels } from "../services/label.service";
 import {
   getTask,
+  getTaskAssignee,
   getTaskSummary,
   listTaskConnection,
   listTasksByOrganization,
@@ -74,37 +75,38 @@ export const TaskObject = builder.drizzleObject("task", {
     ...taskGraphql.task.exposeFields(t),
     assignee: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.assigneeId === null) {
-          return null;
-        }
-        return db.select().from(user).where(eq(user.id, row.assigneeId)).get();
-      },
+      resolve: (row) =>
+        runTaskGraphqlEffect(getTaskAssignee(row.assigneeId), {
+          kind: "query",
+          operation: "Task.assignee",
+        }),
       type: UserObject,
     }),
     imageFull: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageFull === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageFull);
-      },
+      resolve: (row) =>
+        runTaskGraphqlEffect(getSignedTaskImageUrl(row.imageFull), {
+          kind: "query",
+          operation: "Task.imageFull",
+        }),
       type: "String",
     }),
     imageThumb: t.field({
       nullable: true,
-      resolve: (row) => {
-        if (row.imageThumb === null) {
-          return;
-        }
-        return getSignedDownloadUrl(row.imageThumb);
-      },
+      resolve: (row) =>
+        runTaskGraphqlEffect(getSignedTaskImageUrl(row.imageThumb), {
+          kind: "query",
+          operation: "Task.imageThumb",
+        }),
       type: "String",
     }),
     labels: t.field({
       nullable: false,
-      resolve: (row) => runTaskGraphqlEffect(listLabelsForTask(row.id)),
+      resolve: (row) =>
+        runTaskGraphqlEffect(listLabelsForTask(row.id), {
+          kind: "query",
+          operation: "Task.labels",
+        }),
       type: [TaskLabelObject],
     }),
   }),
@@ -120,19 +122,30 @@ const TaskSummaryObject = builder
     }),
   });
 
+const organizationIdArgSchema = z.object({
+  organizationId: z.string().min(1),
+});
+
 builder.queryFields((t) => ({
   task: t.field({
     args: {
-      id: t.arg.id({ required: true }),
+      id: t.arg.id({
+        required: true,
+        validate: z.string().min(1),
+      }),
     },
     description: metadata.task.description,
     nullable: true,
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        getTask(
-          taskByIdSchema.parse({ id: String(args.id) }),
-          requireActorUserId(context)
-        )
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(taskByIdSchema, {
+            id: String(args.id),
+          });
+          return yield* getTask(input, actorUserId);
+        }),
+        { kind: "query", operation: "task" }
       ),
     type: TaskObject,
   }),
@@ -144,13 +157,15 @@ builder.queryFields((t) => ({
     nullable: false,
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        listTasksByOrganization(
-          tasksByOrganizationSchema.parse({
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(tasksByOrganizationSchema, {
             ...args,
             organizationId: String(args.organizationId),
-          }),
-          requireActorUserId(context)
-        )
+          });
+          return yield* listTasksByOrganization(input, actorUserId);
+        }),
+        { kind: "query", operation: "tasks" }
       ),
     type: [TaskObject],
   }),
@@ -163,35 +178,59 @@ builder.queryFields((t) => ({
     nullable: false,
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        listTaskConnection(
-          taskConnectionSchema.parse({
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(taskConnectionSchema, {
             ...args,
             organizationId: String(args.organizationId),
-          }),
-          requireActorUserId(context)
-        )
+          });
+          return yield* listTaskConnection(input, actorUserId);
+        }),
+        { kind: "query", operation: "taskConnection" }
       ),
     type: TaskConnectionObject,
   }),
   taskLabels: t.field({
     args: {
-      organizationId: t.arg.id({ required: true }),
+      organizationId: t.arg.id({
+        required: true,
+        validate: z.string().min(1),
+      }),
     },
     nullable: false,
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        listTaskLabels(String(args.organizationId), requireActorUserId(context))
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const { organizationId } = yield* parseArgsEffect(
+            organizationIdArgSchema,
+            { organizationId: String(args.organizationId) }
+          );
+          return yield* listTaskLabels(organizationId, actorUserId);
+        }),
+        { kind: "query", operation: "taskLabels" }
       ),
     type: [TaskLabelObject],
   }),
   taskSummary: t.field({
     args: {
-      organizationId: t.arg.id({ required: true }),
+      organizationId: t.arg.id({
+        required: true,
+        validate: z.string().min(1),
+      }),
     },
     nullable: false,
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        getTaskSummary(String(args.organizationId), requireActorUserId(context))
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const { organizationId } = yield* parseArgsEffect(
+            organizationIdArgSchema,
+            { organizationId: String(args.organizationId) }
+          );
+          return yield* getTaskSummary(organizationId, actorUserId);
+        }),
+        { kind: "query", operation: "taskSummary" }
       ),
     type: TaskSummaryObject,
   }),

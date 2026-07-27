@@ -1,10 +1,7 @@
 import { taskImageObjectKeys } from "@vyrel/storage/keys";
-import {
-  messageForObjectStorageFailure,
-  uploadObject,
-} from "@vyrel/storage/object-storage";
+import { messageForObjectStorageFailure } from "@vyrel/storage/object-storage";
 import { Effect } from "effect";
-
+import { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import {
   type ImageOptimizeError,
   messageForImageOptimizeError,
@@ -29,8 +26,13 @@ const mapImageOptimizeFailure = (error: ImageOptimizeError): TaskMediaError =>
 export const uploadTaskImage = (
   taskId: string,
   image: File
-): Effect.Effect<TaskImageFields, TaskMediaError | TaskValidationError> =>
+): Effect.Effect<
+  TaskImageFields,
+  TaskMediaError | TaskValidationError,
+  ObjectStorage
+> =>
   Effect.gen(function* () {
+    const storage = yield* ObjectStorage;
     const validation = yield* Effect.tryPromise({
       catch: (cause) =>
         new TaskMediaError({
@@ -53,10 +55,10 @@ export const uploadTaskImage = (
 
     yield* Effect.all(
       [
-        uploadObject(keys.thumbKey, previews.thumb.buffer, {
+        storage.upload(keys.thumbKey, previews.thumb.buffer, {
           contentType: previews.thumb.contentType,
         }),
-        uploadObject(keys.fullKey, previews.full.buffer, {
+        storage.upload(keys.fullKey, previews.full.buffer, {
           contentType: previews.full.contentType,
         }),
       ],
@@ -77,4 +79,13 @@ export const uploadTaskImage = (
       imagePlaceholder: previews.placeholder,
       imageThumb: keys.thumbKey,
     };
+  });
+
+export const getSignedTaskImageUrl = (key: string | null) =>
+  Effect.gen(function* () {
+    if (key === null) {
+      return;
+    }
+    const storage = yield* ObjectStorage;
+    return storage.signedUrl(key);
   });

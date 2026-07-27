@@ -1,6 +1,7 @@
 import { env } from "@vyrel/env/server";
 import { Effect } from "effect";
 
+import type { ObjectStorage } from "../../../effect/infrastructure/object-storage.service";
 import {
   afterCreateAttachMedia,
   type WithMediaWarning,
@@ -22,7 +23,7 @@ const emailVerifiedCallbackURL = `${env.CORS_ORIGIN.replace(/\/$/, "")}/auth/ver
 export const createUser = (
   input: UserTypeCreate,
   requestHeaders: Headers
-): Effect.Effect<CreateUserResult, UserError> =>
+): Effect.Effect<CreateUserResult, UserError, ObjectStorage> =>
   Effect.gen(function* () {
     const safeValues = userCreateSchema.safeParse(input);
     if (!safeValues.success) {

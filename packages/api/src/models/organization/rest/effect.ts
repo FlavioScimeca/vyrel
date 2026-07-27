@@ -1,73 +1,58 @@
-import { Cause, Data, Effect, Exit } from "effect";
+import { createHttpRunner } from "@vyrel/graphql/effect/create-http-runner";
+import { log } from "@vyrel/logging";
+import type { Effect } from "effect";
 
 import type { CreateOrganizationServiceResult } from "../services/create.service";
+import type { OrganizationServices } from "../services/organization.layer";
+import { OrganizationRuntime } from "../services/organization.layer";
 import type { OrganizationError } from "../utils/errors";
 
-export class OrganizationHttpError extends Data.TaggedError(
-  "OrganizationHttpError"
-)<{
-  readonly status: number;
-  readonly body: Record<string, unknown>;
-}> {}
+// biome-ignore lint/performance/noBarrelFile: _
+export { HttpBoundaryError as OrganizationHttpError } from "@vyrel/graphql/effect/create-http-runner";
 
-function organizationHttpError(
-  status: number,
-  body: Record<string, unknown>
-): OrganizationHttpError {
-  return new OrganizationHttpError({ body, status });
-}
-
-const mapOrganizationErrorsToHttp = <A>(
-  effect: Effect.Effect<A, OrganizationError>
-): Effect.Effect<A, OrganizationHttpError> =>
-  effect.pipe(
-    Effect.catchTags({
-      OrganizationForbiddenError: (error) =>
-        Effect.fail(
-          organizationHttpError(403, {
-            message: error.message,
-          })
-        ),
-      OrganizationMediaError: (error) =>
-        Effect.fail(
-          organizationHttpError(400, {
-            message: error.message,
-          })
-        ),
-      OrganizationNotFoundError: (error) =>
-        Effect.fail(
-          organizationHttpError(404, {
-            message: error.message ?? `Organization ${error.id} was not found.`,
-          })
-        ),
-      OrganizationRepositoryError: (error) =>
-        Effect.fail(
-          organizationHttpError(503, {
-            message: error.message,
-          })
-        ),
-      OrganizationValidationError: (error) =>
-        Effect.fail(
-          organizationHttpError(400, {
-            issues: error.issues,
-            message: error.message,
-          })
-        ),
-    })
-  );
+const runOrganizationHttpEffect = createHttpRunner<OrganizationServices>({
+  domain: "organization",
+  errorMap: {
+    OrganizationForbiddenError: {
+      body: (error) => ({ message: error.message }),
+      status: 403,
+    },
+    OrganizationMediaError: {
+      body: (error) => ({ message: error.message }),
+      status: 400,
+    },
+    OrganizationNotFoundError: {
+      body: (error) => ({
+        message: error.message ?? `Organization ${error.id} was not found.`,
+      }),
+      status: 404,
+    },
+    OrganizationRepositoryError: {
+      body: (error) => ({ message: error.message }),
+      status: 503,
+    },
+    OrganizationValidationError: {
+      body: (error) => ({
+        issues: error.issues,
+        message: error.message,
+      }),
+      status: 400,
+    },
+  },
+  log,
+  runtime: OrganizationRuntime,
+});
 
 export function runOrganizationCreateEffect(
-  effect: Effect.Effect<CreateOrganizationServiceResult, OrganizationError>
+  effect: Effect.Effect<
+    CreateOrganizationServiceResult,
+    OrganizationError,
+    OrganizationServices
+  >
 ): Promise<CreateOrganizationServiceResult> {
-  return Effect.runPromiseExit(mapOrganizationErrorsToHttp(effect)).then(
-    (exit) =>
-      Exit.match(exit, {
-        onFailure: (cause) => {
-          throw Cause.squash(cause);
-        },
-        onSuccess: (value) => value,
-      })
-  );
+  return runOrganizationHttpEffect(effect, {
+    operation: "createOrganization",
+  });
 }
 
 type OrganizationCreateSetContext = {

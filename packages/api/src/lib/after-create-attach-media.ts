@@ -12,10 +12,14 @@ type ErrorWithMessage = {
  * Runs post-create media attach as best-effort. If attach fails, returns the
  * original create result plus `mediaWarning` so session cookies are still applied.
  */
-export const afterCreateAttachMedia = <A, E extends ErrorWithMessage>(
+export const afterCreateAttachMedia = <
+  A,
+  E extends ErrorWithMessage,
+  R = never,
+>(
   createResult: A,
-  attach: Effect.Effect<A, E>
-): Effect.Effect<WithMediaWarning<A>> =>
+  attach: Effect.Effect<A, E, R>
+): Effect.Effect<WithMediaWarning<A>, never, R> =>
   Effect.map(Effect.either(attach), (outcome): WithMediaWarning<A> => {
     if (Either.isLeft(outcome)) {
       return {

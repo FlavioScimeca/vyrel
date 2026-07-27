@@ -1,9 +1,7 @@
-import { db } from "@vyrel/db";
-import { member, organization } from "@vyrel/db/schema";
 import { APIError } from "better-auth/api";
-import { and, eq } from "drizzle-orm";
 import { Data, Effect } from "effect";
 
+import { OrganizationRepository } from "../services/organization.repository";
 import {
   OrganizationForbiddenError,
   OrganizationRepositoryError,
@@ -43,68 +41,27 @@ export const assertOrganizationMember = (
   organizationId: string,
   userId: string
 ) =>
-  Effect.tryPromise({
-    catch: (cause) =>
-      new OrganizationRepositoryError({
-        cause,
-        message: "Unable to verify organization membership.",
-      }),
-    try: () =>
-      db
-        .select({ id: member.id })
-        .from(member)
-        .where(
-          and(
-            eq(member.organizationId, organizationId),
-            eq(member.userId, userId)
-          )
-        )
-        .get(),
-  }).pipe(
-    Effect.flatMap((record) => {
-      if (record === undefined) {
-        return Effect.fail(
-          new OrganizationInaccessibleError({ id: organizationId })
-        );
-      }
+  Effect.gen(function* () {
+    const organizations = yield* OrganizationRepository;
+    const record = yield* organizations.findMembership(organizationId, userId);
 
-      return Effect.void;
-    })
-  );
+    if (record === undefined) {
+      return yield* new OrganizationInaccessibleError({ id: organizationId });
+    }
+  });
 
 export const fetchOrganizationsForUser = (actorUserId: string) =>
   Effect.gen(function* () {
-    const records = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new OrganizationRepositoryError({
-          cause,
-          message: "Unable to load organizations.",
-        }),
-      try: () =>
-        db
-          .select({ organization })
-          .from(organization)
-          .innerJoin(member, eq(member.organizationId, organization.id))
-          .where(eq(member.userId, actorUserId))
-          .all(),
-    });
-
-    return records.map((row) => row.organization);
+    const organizations = yield* OrganizationRepository;
+    return yield* organizations.listForUser(actorUserId);
   });
 
 export const fetchOrganization = (id: string, actorUserId: string) =>
   Effect.gen(function* () {
     yield* assertOrganizationMember(id, actorUserId);
 
-    const record = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new OrganizationRepositoryError({
-          cause,
-          message: "Unable to load organization.",
-        }),
-      try: () =>
-        db.select().from(organization).where(eq(organization.id, id)).get(),
-    });
+    const organizations = yield* OrganizationRepository;
+    const record = yield* organizations.findById(id);
 
     return record ?? null;
   }).pipe(

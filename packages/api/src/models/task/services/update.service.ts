@@ -1,12 +1,10 @@
-import { db } from "@vyrel/db";
-import { task, taskLabelAssignment } from "@vyrel/db/schema";
-import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import { type TaskTypeUpdate, taskUpdateSchema } from "../types/base.types";
 import { assertTaskAccess } from "../utils/auth-api";
 import { TaskRepositoryError, TaskValidationError } from "../utils/errors";
 import { uploadTaskImage } from "./image.service";
+import { TaskRepository } from "./task.repository";
 import { validateTaskRelations } from "./task-relations.service";
 
 type TaskUpdates = {
@@ -53,46 +51,6 @@ const buildTaskUpdates = (
     updates.imageThumb = null;
   }
   return updates;
-};
-
-const persistTaskChanges = async ({
-  labelIds,
-  taskId,
-  updates,
-}: {
-  labelIds: string[] | undefined;
-  taskId: string;
-  updates: TaskUpdates;
-}): Promise<void> => {
-  if (Object.keys(updates).length === 0 && labelIds === undefined) {
-    return;
-  }
-
-  await db.transaction(async (transaction) => {
-    if (Object.keys(updates).length > 0) {
-      await transaction
-        .update(task)
-        .set(updates)
-        .where(eq(task.id, taskId))
-        .run();
-    }
-
-    if (labelIds !== undefined) {
-      await transaction
-        .delete(taskLabelAssignment)
-        .where(eq(taskLabelAssignment.taskId, taskId))
-        .run();
-
-      if (labelIds.length > 0) {
-        await transaction.insert(taskLabelAssignment).values(
-          labelIds.map((labelId) => ({
-            labelId,
-            taskId,
-          }))
-        );
-      }
-    }
-  });
 };
 
 export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
@@ -145,28 +103,14 @@ export const updateTask = (input: TaskTypeUpdate, actorUserId: string) =>
       Object.assign(updates, imageFields);
     }
 
-    yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to update task.",
-        }),
-      try: () =>
-        persistTaskChanges({
-          labelIds: labelIds === undefined ? undefined : taskRelations.labelIds,
-          taskId,
-          updates,
-        }),
+    const tasks = yield* TaskRepository;
+    yield* tasks.updateWithLabels({
+      labelIds: labelIds === undefined ? undefined : taskRelations.labelIds,
+      taskId,
+      updates,
     });
 
-    const record = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new TaskRepositoryError({
-          cause,
-          message: "Unable to load updated task.",
-        }),
-      try: () => db.select().from(task).where(eq(task.id, taskId)).get(),
-    });
+    const record = yield* tasks.findById(taskId);
 
     if (record === undefined) {
       return yield* new TaskRepositoryError({

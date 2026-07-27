@@ -1,5 +1,6 @@
-import { requireActorUserId } from "@vyrel/graphql/context";
+import { requireActorEffect } from "@vyrel/graphql/context";
 import { builder } from "@vyrel/graphql/pothos";
+import { parseArgsEffect } from "@vyrel/graphql/utils/zod-pothos-validation";
 import { Effect } from "effect";
 
 import { updateTask } from "../../services/update.service";
@@ -19,15 +20,12 @@ builder.mutationFields((t) => ({
     },
     resolve: (_root, args, context) =>
       runTaskGraphqlEffect(
-        Effect.sync(() => ({
-          actorUserId: requireActorUserId(context),
-          input: taskUpdateSchema.parse(args.input),
-        })).pipe(
-          Effect.flatMap(({ actorUserId, input }) =>
-            updateTask(input, actorUserId)
-          )
-        ),
-        { mutation: "updateTask" }
+        Effect.gen(function* () {
+          const actorUserId = yield* requireActorEffect(context);
+          const input = yield* parseArgsEffect(taskUpdateSchema, args.input);
+          return yield* updateTask(input, actorUserId);
+        }),
+        { kind: "mutation", operation: "updateTask" }
       ),
     type: TaskObject,
     typeOptions: typeOptionsMetadata,

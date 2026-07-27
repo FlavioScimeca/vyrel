@@ -40,7 +40,8 @@
     "elysia": "catalog:",
     "graphql": "catalog:",
     "graphql-scalars": "catalog:",
-    "graphql-yoga": "catalog:"
+    "graphql-yoga": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@effect/platform": "catalog:",
