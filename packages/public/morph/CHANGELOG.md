@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.1.0
+
+### Minor Changes
+
+- 50dc60a: remove some non necessary params
+
 ## 0.0.11
 
 ### Minor Changes
