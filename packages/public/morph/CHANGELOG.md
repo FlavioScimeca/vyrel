@@ -1,5 +1,11 @@
 # @vyrel/morph
 
+## 0.1.1
+
+### Patch Changes
+
+- d890add: Respect Pothos type metadata on Zod string array elements when resolving GraphQL input types (e.g. ID arrays).
+
 ## 0.1.0
 
 ### Minor Changes
