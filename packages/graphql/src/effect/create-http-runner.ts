@@ -20,7 +20,7 @@ export type CreateHttpRunnerConfig<R> = {
   log?: {
     error: (payload: Record<string, unknown>) => void;
   };
-  runtime?: ManagedRuntime.ManagedRuntime<R, never>;
+  runtime: ManagedRuntime.ManagedRuntime<R, never>;
 };
 
 function isZodError(
@@ -96,12 +96,8 @@ export function createHttpRunner<R = never>(config: CreateHttpRunnerConfig<R>) {
     options?: { operation?: string }
   ): Promise<A> {
     const mapped = mapErrors(effect);
-    const run =
-      runtime === undefined
-        ? Effect.runPromiseExit(mapped as Effect.Effect<A, HttpBoundaryError>)
-        : runtime.runPromiseExit(mapped);
 
-    return run.then((exit) =>
+    return runtime.runPromiseExit(mapped).then((exit) =>
       Exit.match(exit, {
         onFailure: (cause) => {
           const error = Cause.squash(cause);

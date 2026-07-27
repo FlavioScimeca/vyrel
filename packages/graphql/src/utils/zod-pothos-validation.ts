@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { z } from "zod/v4";
+import { ZodError, type z } from "zod/v4";
 
 type FieldConfig = {
   validate?: unknown;
@@ -78,9 +78,22 @@ export function withZodArgsValidation<TArgs extends Record<string, unknown>>(
 export function parseArgsEffect<T>(
   schema: { parse: (value: unknown) => T },
   value: unknown
-): Effect.Effect<T, unknown> {
+): Effect.Effect<T, ZodError> {
   return Effect.try({
-    catch: (cause) => cause,
+    catch: (cause) => {
+      if (cause instanceof ZodError) {
+        return cause;
+      }
+
+      return new ZodError([
+        {
+          code: "custom",
+          message:
+            cause instanceof Error ? cause.message : "Invalid arguments.",
+          path: [],
+        },
+      ]);
+    },
     try: () => schema.parse(value),
   });
 }

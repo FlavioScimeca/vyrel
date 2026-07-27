@@ -1,3 +1,6 @@
+// @effect-diagnostics asyncFunction:off
+// @effect-diagnostics globalDate:off
+// @effect-diagnostics globalErrorInEffectFailure:off
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

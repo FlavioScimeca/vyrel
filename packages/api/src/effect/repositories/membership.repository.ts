@@ -1,11 +1,17 @@
 import { member } from "@vyrel/db/schema";
 import { and, eq } from "drizzle-orm";
-import { Effect } from "effect";
+import { Data, Effect } from "effect";
 
 import { Database } from "../infrastructure/database.service";
 
+export class MembershipLookupError extends Data.TaggedError(
+  "MembershipLookupError"
+)<{
+  readonly cause: unknown;
+}> {}
+
 export class MembershipRepository extends Effect.Service<MembershipRepository>()(
-  "MembershipRepository",
+  "@vyrel/api/effect/repositories/membership.repository/MembershipRepository",
   {
     dependencies: [Database.Default],
     effect: Effect.gen(function* () {
@@ -13,7 +19,7 @@ export class MembershipRepository extends Effect.Service<MembershipRepository>()
 
       const findMembership = (organizationId: string, userId: string) =>
         Effect.tryPromise({
-          catch: (cause) => cause,
+          catch: (cause) => new MembershipLookupError({ cause }),
           try: () =>
             database.client
               .select({ id: member.id, role: member.role })

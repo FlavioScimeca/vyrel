@@ -1,3 +1,4 @@
+import { DateTime, Option } from "effect";
 import { GraphQLError, GraphQLScalarType, Kind } from "graphql";
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -11,13 +12,14 @@ const parseLocalDate = (value: unknown): string => {
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  const made = DateTime.make({ day, month, year });
 
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
+  if (Option.isNone(made)) {
+    throw new GraphQLError("LocalDate must be a valid calendar date.");
+  }
+
+  const parts = DateTime.toPartsUtc(made.value);
+  if (parts.year !== year || parts.month !== month || parts.day !== day) {
     throw new GraphQLError("LocalDate must be a valid calendar date.");
   }
 

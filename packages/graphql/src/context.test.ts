@@ -1,3 +1,4 @@
+// @effect-diagnostics asyncFunction:off
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({

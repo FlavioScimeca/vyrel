@@ -25,6 +25,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "effect": "catalog:",
     "evlog": "catalog:"
   },
   "devDependencies": {

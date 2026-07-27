@@ -1,3 +1,4 @@
+import { Config, Effect, Option } from "effect";
 import {
   defineEvlog,
   type EvlogConfig,
@@ -58,10 +59,25 @@ export function mapLogLevel(
   }
 }
 
+const environmentConfig = Config.string("NODE_ENV").pipe(
+  Config.orElse(() => Config.string("VERCEL_ENV")),
+  Config.withDefault("development")
+);
+
+const serviceNameConfig = Config.string("SERVICE_NAME").pipe(
+  Config.withDefault("vyrel")
+);
+
+const logLevelConfig = Config.option(Config.string("LOG_LEVEL")).pipe(
+  Config.map(Option.getOrUndefined)
+);
+
 function resolveEnvironment(override?: string): string {
-  return (
-    override ?? process.env.NODE_ENV ?? process.env.VERCEL_ENV ?? "development"
-  );
+  if (override !== undefined) {
+    return override;
+  }
+
+  return Effect.runSync(environmentConfig);
 }
 
 /**
@@ -74,11 +90,17 @@ export function defineVyrelLogging(
   const isProd = environment === "production";
   const defaultMinLevel = isProd ? "info" : "debug";
 
+  const { logLevel, serviceName } = Effect.runSync(
+    Effect.all({
+      logLevel: logLevelConfig,
+      serviceName: serviceNameConfig,
+    })
+  );
+
   return defineEvlog({
-    service: options.service ?? process.env.SERVICE_NAME ?? "vyrel",
+    service: options.service ?? serviceName,
     environment,
-    minLevel:
-      options.minLevel ?? mapLogLevel(process.env.LOG_LEVEL, defaultMinLevel),
+    minLevel: options.minLevel ?? mapLogLevel(logLevel, defaultMinLevel),
     pretty: options.pretty ?? !isProd,
     redact: options.redact ?? isProd,
     ...options.config,

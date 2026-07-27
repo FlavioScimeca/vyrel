@@ -1,3 +1,4 @@
+// @effect-diagnostics asyncFunction:off
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@vyrel/env/server", () => ({

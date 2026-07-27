@@ -449,7 +449,7 @@
         "graphql": "catalog:",
         "graphql-scalars": "catalog:",
         "graphql-yoga": "catalog:",
-        "zod": "4.4.3",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@effect/platform": "catalog:",
@@ -463,6 +463,7 @@
       "name": "@vyrel/logging",
       "version": "0.0.0",
       "dependencies": {
+        "effect": "catalog:",
         "evlog": "catalog:",
       },
       "devDependencies": {

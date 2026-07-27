@@ -1,3 +1,4 @@
+// @effect-diagnostics strictEffectProvide:off
 vi.mock("@vyrel/env/server", () => ({
   env: {
     BETTER_AUTH_SECRET: "test-better-auth-secret-32chars!!",

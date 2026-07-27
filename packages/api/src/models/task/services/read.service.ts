@@ -194,8 +194,8 @@ const cursorCondition = (
   cursor: TaskCursor,
   sort: TasksTypeByOrganization["sort"]
 ): SQL => {
-  const createdAt = new Date(cursor.createdAt);
-  const updatedAt = new Date(cursor.updatedAt);
+  const createdAt = DateTime.toDateUtc(DateTime.unsafeMake(cursor.createdAt));
+  const updatedAt = DateTime.toDateUtc(DateTime.unsafeMake(cursor.updatedAt));
 
   if (sort === "RECENTLY_UPDATED") {
     return descendingDateCursorCondition(task.updatedAt, updatedAt, cursor.id);
@@ -275,7 +275,7 @@ export const listTaskConnection = (
 export const getTaskSummary = (organizationId: string, actorUserId: string) =>
   Effect.gen(function* () {
     yield* assertOrgMembership(organizationId, actorUserId);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = DateTime.formatIsoDateUtc(DateTime.unsafeNow());
     const tasks = yield* TaskRepository;
     const summary = yield* tasks.getSummary(organizationId, today);
 

@@ -11,7 +11,7 @@ const repositoryError = (message: string, cause: unknown) =>
   new OrganizationRepositoryError({ cause, message });
 
 export class OrganizationRepository extends Effect.Service<OrganizationRepository>()(
-  "OrganizationRepository",
+  "@vyrel/api/models/organization/services/organization.repository/OrganizationRepository",
   {
     dependencies: [Database.Default],
     effect: Effect.gen(function* () {
@@ -54,15 +54,14 @@ export class OrganizationRepository extends Effect.Service<OrganizationRepositor
           Effect.tryPromise({
             catch: (cause) =>
               repositoryError("Unable to load organizations.", cause),
-            try: async () => {
-              const records = await client
+            try: () =>
+              client
                 .select({ organization })
                 .from(organization)
                 .innerJoin(member, eq(member.organizationId, organization.id))
                 .where(eq(member.userId, actorUserId))
-                .all();
-              return records.map((row) => row.organization);
-            },
+                .all()
+                .then((records) => records.map((row) => row.organization)),
           }),
       } as const;
     }),

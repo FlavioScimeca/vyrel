@@ -49,7 +49,7 @@ const repositoryError = (message: string, cause: unknown) =>
   new TaskRepositoryError({ cause, message });
 
 export class TaskRepository extends Effect.Service<TaskRepository>()(
-  "TaskRepository",
+  "@vyrel/api/models/task/services/task.repository/TaskRepository",
   {
     dependencies: [Database.Default],
     effect: Effect.gen(function* () {
@@ -74,24 +74,29 @@ export class TaskRepository extends Effect.Service<TaskRepository>()(
           Effect.tryPromise({
             catch: (cause) => repositoryError("Unable to create task.", cause),
             try: () =>
-              client.transaction(async (transaction) => {
+              client.transaction((transaction) => {
                 const { labelIds, ...taskValues } = values;
-                const createdTask = await transaction
-                  .insert(task)
-                  .values(taskValues)
-                  .returning()
-                  .get();
+                let createdTask: TaskRow;
 
-                if (labelIds.length > 0) {
-                  await transaction.insert(taskLabelAssignment).values(
-                    labelIds.map((labelId) => ({
-                      labelId,
-                      taskId: values.id,
-                    }))
-                  );
-                }
+                return Promise.resolve(
+                  transaction.insert(task).values(taskValues).returning().get()
+                )
+                  .then((result) => {
+                    createdTask = result;
+                    if (labelIds.length === 0) {
+                      return;
+                    }
 
-                return createdTask;
+                    return Promise.resolve(
+                      transaction.insert(taskLabelAssignment).values(
+                        labelIds.map((labelId) => ({
+                          labelId,
+                          taskId: values.id,
+                        }))
+                      )
+                    );
+                  })
+                  .then(() => createdTask);
               }),
           }),
 
@@ -219,8 +224,8 @@ export class TaskRepository extends Effect.Service<TaskRepository>()(
           Effect.tryPromise({
             catch: (cause) =>
               repositoryError("Unable to load task summary.", cause),
-            try: async () => {
-              const [summary] = await client
+            try: () =>
+              client
                 .select({
                   done: sql<number>`sum(case when ${task.status} = 'DONE' then 1 else 0 end)`,
                   inProgress: sql<number>`sum(case when ${task.status} = 'IN_PROGRESS' then 1 else 0 end)`,
@@ -230,9 +235,8 @@ export class TaskRepository extends Effect.Service<TaskRepository>()(
                 })
                 .from(task)
                 .where(eq(task.organizationId, organizationId))
-                .all();
-              return summary;
-            },
+                .all()
+                .then(([summary]) => summary),
           }),
 
         list: (conditions: SQL[], orderBy: readonly SQL[], limit?: number) =>
@@ -277,30 +281,45 @@ export class TaskRepository extends Effect.Service<TaskRepository>()(
           Effect.tryPromise({
             catch: (cause) => repositoryError("Unable to update task.", cause),
             try: () =>
-              client.transaction(async (transaction) => {
-                if (Object.keys(updates).length > 0) {
-                  await transaction
-                    .update(task)
-                    .set(updates)
-                    .where(eq(task.id, taskId))
-                    .run();
-                }
+              client.transaction((transaction) => {
+                const updatePromise =
+                  Object.keys(updates).length > 0
+                    ? Promise.resolve(
+                        transaction
+                          .update(task)
+                          .set(updates)
+                          .where(eq(task.id, taskId))
+                          .run()
+                      )
+                    : Promise.resolve();
 
-                if (labelIds !== undefined) {
-                  await transaction
-                    .delete(taskLabelAssignment)
-                    .where(eq(taskLabelAssignment.taskId, taskId))
-                    .run();
+                return updatePromise
+                  .then(() => {
+                    if (labelIds === undefined) {
+                      return;
+                    }
 
-                  if (labelIds.length > 0) {
-                    await transaction.insert(taskLabelAssignment).values(
-                      labelIds.map((labelId) => ({
-                        labelId,
-                        taskId,
-                      }))
+                    return Promise.resolve(
+                      transaction
+                        .delete(taskLabelAssignment)
+                        .where(eq(taskLabelAssignment.taskId, taskId))
+                        .run()
                     );
-                  }
-                }
+                  })
+                  .then(() => {
+                    if (labelIds === undefined || labelIds.length === 0) {
+                      return;
+                    }
+
+                    return Promise.resolve(
+                      transaction.insert(taskLabelAssignment).values(
+                        labelIds.map((labelId) => ({
+                          labelId,
+                          taskId,
+                        }))
+                      )
+                    );
+                  });
               }),
           }),
       } as const;

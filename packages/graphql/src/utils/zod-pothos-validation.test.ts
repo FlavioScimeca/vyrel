@@ -1,3 +1,5 @@
+// @effect-diagnostics anyUnknownInErrorContext:off
+// @effect-diagnostics asyncFunction:off
 import { Data, Effect, Exit, Layer, ManagedRuntime } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod/v4";

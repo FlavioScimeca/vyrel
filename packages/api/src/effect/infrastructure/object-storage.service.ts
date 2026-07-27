@@ -6,7 +6,7 @@ import {
 import { Effect } from "effect";
 
 export class ObjectStorage extends Effect.Service<ObjectStorage>()(
-  "ObjectStorage",
+  "@vyrel/api/effect/infrastructure/object-storage.service/ObjectStorage",
   {
     succeed: {
       deleteMany: deleteObjects,

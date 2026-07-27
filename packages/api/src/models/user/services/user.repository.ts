@@ -11,7 +11,7 @@ const repositoryError = (message: string, cause: unknown) =>
   new UserRepositoryError({ cause, message });
 
 export class UserRepository extends Effect.Service<UserRepository>()(
-  "UserRepository",
+  "@vyrel/api/models/user/services/user.repository/UserRepository",
   {
     dependencies: [Database.Default],
     effect: Effect.gen(function* () {
