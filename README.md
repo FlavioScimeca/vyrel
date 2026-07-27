@@ -44,3 +44,43 @@ packages/public/graphql-client   @vyrel/graphql-client (published to npm)
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions, changesets, and the release workflow.
 
+## Cursor agents
+
+### Effect diagnostics
+
+Runs `bun run effect:diagnostics` (`effect-tsgo` + turbo), then opens failing
+files and applies idiomatic Effect fixes (uses the Effect MCP docs server when
+unsure). Defined in [`.cursor/agents/agent-diagnostics.md`](./.cursor/agents/agent-diagnostics.md).
+
+Paste into Cursor Agent chat:
+
+```text
+@.cursor/agents/agent-diagnostics.md run diagnostics and fix
+```
+
+### Preflight
+
+Runs `bun run preflight` (deps lint, ultracite, knip, typecheck, build, tests —
+same gate as CI / pre-push), then fixes failures until green. Routes to the
+correct MCP / skill by failure type (Effect, Next, HeroUI Native, Better Auth,
+Ultracite, Turborepo, …). Defined in [`.cursor/agents/agent-preflight.md`](./.cursor/agents/agent-preflight.md).
+
+Paste into Cursor Agent chat:
+
+```text
+@.cursor/agents/agent-preflight.md run preflight and fix
+```
+
+### Release (changeset)
+
+Uses **read-only git** (commits ahead of `main` + uncommitted changes) to detect
+publishable edits under `packages/public/*`, then creates/updates **changeset
+summary content** only. No version bumps, no `git add` / commit. **May only
+write inside `.changeset/`.** Defined in
+[`.cursor/agents/agent-release.md`](./.cursor/agents/agent-release.md).
+
+Paste into Cursor Agent chat:
+
+```text
+@.cursor/agents/agent-release.md prepare changeset from commits ahead of main
+```

@@ -491,6 +491,7 @@
       "version": "0.2.1",
       "devDependencies": {
         "@apollo/client": "catalog:",
+        "@effect/language-service": "catalog:",
         "@testing-library/react": "^16.3.2",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
@@ -517,6 +518,7 @@
       "name": "@vyrel/morph",
       "version": "0.1.0",
       "devDependencies": {
+        "@effect/language-service": "catalog:",
         "@pothos/core": "catalog:",
         "@pothos/plugin-validation": "catalog:",
         "@pothos/plugin-with-input": "catalog:",
