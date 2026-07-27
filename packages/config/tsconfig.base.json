@@ -116,7 +116,11 @@
           "unsafeEffectTypeAssertion": "error",
           "unsupportedServiceAccessors": "error"
         },
-        "ignoreEffectSuggestionsInTscExitCode": false
+        "ignoreEffectSuggestionsInTscExitCode": false,
+        "quickinfo": true,
+        "noExternal": false,
+        "layerGraphFollowDepth": 2,
+        "mermaidProvider": "mermaid.live"
       }
     ]
   }
