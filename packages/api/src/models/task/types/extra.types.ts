@@ -1,7 +1,9 @@
 import z from "zod/v4";
 
 import {
+  idSchema,
   localDateSchema,
+  taskLabelIdsSchema,
   taskPrioritySchema,
   taskStatusSchema,
 } from "./base.types";
@@ -14,17 +16,17 @@ export const TASK_SORTS = [
 ] as const;
 
 export const taskByIdSchema = z.object({
-  id: z.string().min(1),
+  id: idSchema,
 });
 
 /** Plain object shape for GraphQL list filters (morph). */
 export const taskListFiltersSchema = z.object({
-  assigneeId: z.string().min(1).optional(),
+  assigneeId: idSchema.optional(),
   createdFrom: z.coerce.date().optional(),
   createdTo: z.coerce.date().optional(),
   dueFrom: localDateSchema.optional(),
   dueTo: localDateSchema.optional(),
-  labelIds: z.array(z.string().min(1)).max(20).optional(),
+  labelIds: taskLabelIdsSchema.optional(),
   priorities: z.array(taskPrioritySchema).optional(),
   search: z.string().trim().min(1).optional(),
   sort: z.enum(TASK_SORTS).default("NEWEST"),
@@ -34,7 +36,7 @@ export const taskListFiltersSchema = z.object({
 /** GraphQL args for `tasks` (refines applied at parse time). */
 export const taskListArgsSchema = z
   .object({
-    organizationId: z.string().min(1).meta({ pothosType: "ID" }),
+    organizationId: idSchema,
   })
   .extend(taskListFiltersSchema.shape);
 
@@ -82,6 +84,16 @@ export const taskConnectionSchema = taskConnectionArgsSchema
     path: ["dueFrom"],
   });
 
+/** Aggregated task counts returned by `taskSummary`. */
+export const taskSummarySchema = z.object({
+  done: z.number().int(),
+  inProgress: z.number().int(),
+  overdue: z.number().int(),
+  todo: z.number().int(),
+  total: z.number().int(),
+});
+
+export type TaskSummary = z.infer<typeof taskSummarySchema>;
 export type TaskTypeById = z.infer<typeof taskByIdSchema>;
 export type TaskListFilters = z.infer<typeof taskListFiltersSchema>;
 export type TasksTypeByOrganization = z.infer<typeof tasksByOrganizationSchema>;

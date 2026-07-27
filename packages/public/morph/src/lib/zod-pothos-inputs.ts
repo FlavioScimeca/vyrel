@@ -351,6 +351,7 @@ export const resolveGraphqlTypeForZodField = <Types extends SchemaTypes>(
   | "float"
   | "int"
   | "string"
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: _
   | undefined => {
   if (fieldTypeOverride !== undefined) {
     return fieldTypeOverride;
@@ -395,6 +396,11 @@ export const resolveGraphqlTypeForZodField = <Types extends SchemaTypes>(
     }
 
     if (element instanceof z.ZodString) {
+      const elementMetaType = readPothosTypeFromZodMeta(element);
+      if (elementMetaType !== undefined) {
+        return [elementMetaType] as PothosInputFieldType;
+      }
+
       return ["String"] as PothosInputFieldType;
     }
   }

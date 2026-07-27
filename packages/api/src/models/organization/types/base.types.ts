@@ -11,6 +11,11 @@ export const organizationQuerySchema = createSelectSchema(organization).omit({
 
 const organizationInsertSchema = createInsertSchema(organization);
 
+const organizationIdSchema = z
+  .string()
+  .min(1, "Organization id is required")
+  .meta({ pothosType: "ID" });
+
 export const organizationCreateSchema = organizationInsertSchema
   .pick({
     name: true,
@@ -43,11 +48,11 @@ export const organizationUpdateSchema = organizationCreateSchema
     slug: true,
   })
   .extend({
-    organizationId: z.string().min(1, "Organization id is required"),
+    organizationId: organizationIdSchema,
   });
 
 export const organizationDeleteSchema = z.object({
-  organizationId: z.string().min(1, "Organization id is required"),
+  organizationId: organizationIdSchema,
 });
 
 export type OrganizationTypeCreate = z.infer<typeof organizationCreateSchema>;

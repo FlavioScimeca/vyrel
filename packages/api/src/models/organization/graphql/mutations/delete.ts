@@ -4,6 +4,7 @@ import { builder } from "@vyrel/graphql/pothos";
 import { deleteOrganization } from "../../services/delete.service";
 import { organizationDeleteSchema } from "../../types/base.types";
 import { runOrganizationGraphqlEffect } from "../effect";
+import { organizationGraphql } from "../organization.query";
 
 const typeOptionsMetadata = {
   description: "Delete an organization the caller belongs to.",
@@ -13,7 +14,7 @@ const typeOptionsMetadata = {
 builder.mutationFields((t) => ({
   deleteOrganization: t.fieldWithInput({
     input: {
-      organizationId: t.input.string({ required: true }),
+      ...organizationGraphql.inputsFrom(organizationDeleteSchema),
     },
     resolve: (_root, args, context) =>
       runOrganizationGraphqlEffect(

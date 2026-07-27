@@ -274,7 +274,7 @@ export const graphqlClientSchema = {
         "assigneeId": {
           "type": {
             "kind": "NAMED",
-            "name": "String"
+            "name": "ID"
           }
         },
         "createdAt": {
@@ -291,7 +291,7 @@ export const graphqlClientSchema = {
             "kind": "NON_NULL",
             "ofType": {
               "kind": "NAMED",
-              "name": "String"
+              "name": "ID"
             }
           }
         },

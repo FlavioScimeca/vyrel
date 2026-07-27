@@ -1,5 +1,5 @@
 import { db } from "@vyrel/db";
-import { member, taskLabel } from "@vyrel/db/schema";
+import { member, taskLabel, taskLabelAssignment } from "@vyrel/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
@@ -53,6 +53,28 @@ const assertLabelManager = (organizationId: string, actorUserId: string) =>
         message: "Only organization owners and admins can manage labels.",
       });
     }
+  });
+
+export const listLabelsForTask = (taskId: string) =>
+  Effect.tryPromise({
+    catch: (cause) =>
+      new TaskRepositoryError({
+        cause,
+        message: "Unable to load labels for task.",
+      }),
+    try: () =>
+      db
+        .select({
+          color: taskLabel.color,
+          createdAt: taskLabel.createdAt,
+          id: taskLabel.id,
+          name: taskLabel.name,
+          organizationId: taskLabel.organizationId,
+        })
+        .from(taskLabelAssignment)
+        .innerJoin(taskLabel, eq(taskLabel.id, taskLabelAssignment.labelId))
+        .where(eq(taskLabelAssignment.taskId, taskId))
+        .all(),
   });
 
 export const listTaskLabels = (organizationId: string, actorUserId: string) =>

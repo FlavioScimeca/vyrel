@@ -1,5 +1,5 @@
 import { db } from "@vyrel/db";
-import { taskLabel, taskLabelAssignment, user } from "@vyrel/db/schema";
+import { user } from "@vyrel/db/schema";
 import { requireActorUserId } from "@vyrel/graphql/context";
 import { graphqlBridge } from "@vyrel/graphql/graphql-bridge";
 import { builder } from "@vyrel/graphql/pothos";
@@ -7,7 +7,7 @@ import { getSignedDownloadUrl } from "@vyrel/storage/object-storage";
 import { eq } from "drizzle-orm";
 
 import { UserObject } from "../../user/graphql/user.query";
-import { listTaskLabels } from "../services/label.service";
+import { listLabelsForTask, listTaskLabels } from "../services/label.service";
 import {
   getTask,
   getTaskSummary,
@@ -16,10 +16,12 @@ import {
 } from "../services/read.service";
 import { taskLabelQuerySchema, taskQuerySchema } from "../types/base.types";
 import {
+  type TaskSummary,
   taskByIdSchema,
   taskConnectionArgsSchema,
   taskConnectionSchema,
   taskListArgsSchema,
+  taskSummarySchema,
   tasksByOrganizationSchema,
 } from "../types/extra.types";
 import { runTaskGraphqlEffect } from "./effect";
@@ -37,7 +39,7 @@ const metadata = {
 
 export const taskGraphql = {
   task: graphqlBridge.model({
-    idFields: ["id", "organizationId"],
+    idFields: ["id", "organizationId", "assigneeId", "createdById"],
     listArgsSchema: {
       connection: taskConnectionArgsSchema,
       list: taskListArgsSchema,
@@ -49,6 +51,10 @@ export const taskGraphql = {
     idFields: ["id", "organizationId"],
     objectName: "TaskLabel",
     rowSchema: taskLabelQuerySchema,
+  }),
+  summary: graphqlBridge.model({
+    objectName: "TaskSummary",
+    rowSchema: taskSummarySchema,
   }),
 };
 
@@ -98,19 +104,7 @@ export const TaskObject = builder.drizzleObject("task", {
     }),
     labels: t.field({
       nullable: false,
-      resolve: (row) =>
-        db
-          .select({
-            color: taskLabel.color,
-            createdAt: taskLabel.createdAt,
-            id: taskLabel.id,
-            name: taskLabel.name,
-            organizationId: taskLabel.organizationId,
-          })
-          .from(taskLabelAssignment)
-          .innerJoin(taskLabel, eq(taskLabel.id, taskLabelAssignment.labelId))
-          .where(eq(taskLabelAssignment.taskId, row.id))
-          .all(),
+      resolve: (row) => runTaskGraphqlEffect(listLabelsForTask(row.id)),
       type: [TaskLabelObject],
     }),
   }),
@@ -118,23 +112,11 @@ export const TaskObject = builder.drizzleObject("task", {
 
 const TaskConnectionObject = taskGraphql.task.connection({ type: TaskObject });
 
-type TaskSummaryShape = {
-  done: number;
-  inProgress: number;
-  overdue: number;
-  todo: number;
-  total: number;
-};
-
 const TaskSummaryObject = builder
-  .objectRef<TaskSummaryShape>("TaskSummary")
+  .objectRef<TaskSummary>("TaskSummary")
   .implement({
     fields: (t) => ({
-      done: t.exposeInt("done", { nullable: false }),
-      inProgress: t.exposeInt("inProgress", { nullable: false }),
-      overdue: t.exposeInt("overdue", { nullable: false }),
-      todo: t.exposeInt("todo", { nullable: false }),
-      total: t.exposeInt("total", { nullable: false }),
+      ...taskGraphql.summary.exposeFields(t),
     }),
   });
 
