@@ -14,7 +14,9 @@ export default function Sidebar02({
     <SidebarProvider>
       <div className="relative flex h-dvh w-full">
         <DashboardSidebar activeOrganizationId={activeOrganizationId} />
-        <SidebarInset className="flex flex-col">{children}</SidebarInset>
+        <SidebarInset className="flex flex-col overflow-y-auto overscroll-none">
+          {children}
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
