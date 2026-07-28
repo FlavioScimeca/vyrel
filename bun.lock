@@ -517,7 +517,7 @@
     },
     "packages/public/morph": {
       "name": "@vyrel/morph",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "devDependencies": {
         "@effect/language-service": "catalog:",
         "@pothos/core": "catalog:",
