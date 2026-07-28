@@ -1,17 +1,28 @@
 # Project: vyrel
-# Ecosystem: Typescript
+# Ecosystem: TypeScript
 
-You are working on a TypeScript project.
-Runtime: bun
-Package manager: bun
-Frontend: next + expo (apps/mobile)
-Backend: elysia
-Database: sqlite with drizzle
-API: graphql-yoga
-Auth: better-auth-organizations (+ @better-auth/expo for mobile)
-Testing: vitest-playwright
-Validation: zod
+Monorepo context for Cursor. Full stack map, commands, and conventions live in
+[`AGENTS.md`](./AGENTS.md) — keep that file updated when the repo changes.
 
-Follow existing code patterns and conventions.
-Use the established project structure.
-Keep this file updated when the project structure changes.
+## Stack (current)
+
+- Runtime / PM: bun
+- Web: Next.js App Router + Tailwind + shadcn (`@vyrel/shared`)
+- Mobile: Expo ~57 + Expo Router + HeroUI Native (`apps/mobile`)
+- API: Elysia + graphql-yoga + Pothos
+- Data: SQLite/libSQL + Drizzle; Zod validation; Effect on server domain
+- GraphQL clients: gql.tada + Apollo + `@vyrel/graphql-client`
+- Bridge: `@vyrel/morph` (Zod → Pothos)
+- Auth: better-auth organizations (+ `@better-auth/expo` on mobile)
+- Env: `@vyrel/env` · Logging: `@vyrel/logging` (evlog) · Jobs: BullMQ · Email: Resend
+- Lint/format: Ultracite (Biome)
+- Tests: Vitest / Playwright; mobile Jest + Maestro
+
+## Conventions
+
+- Follow existing code patterns and package boundaries (`@vyrel/*` workspace scope).
+- Client state: React state, feature context, Apollo cache, `authClient` — **no Zustand** unless asked.
+- New server model → `.agents/skills/add-model-server/SKILL.md`
+- New web feature → `.agents/skills/add-model-client/SKILL.md`
+- Do not run db migrate/push or GraphQL codegen unless the user asks.
+- HeroUI Native: search `.heroui-docs/native` / MCP; memory of the library is unreliable.

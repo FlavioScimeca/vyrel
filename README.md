@@ -33,12 +33,18 @@ npx heroui-cli@latest agents-md --native
 ## Structure
 
 ```
-apps/web       Next.js frontend
-apps/server    Elysia API
-packages/      api, auth, db, graphql, …
-packages/public/morph   @vyrel/morph (published to npm)
-packages/public/graphql-client   @vyrel/graphql-client (published to npm)
+apps/web         Next.js App Router
+apps/mobile      Expo + HeroUI Native
+apps/server      Elysia + GraphQL Yoga
+apps/docs        Fumadocs
+apps/extension   Browser extension
+packages/        api, auth, bun-porting, config, consts, db, env,
+                 graphql, logging, storage, …
+packages/public/ morph + graphql-client (published to npm)
+shared/          Web UI (`@vyrel/shared`)
 ```
+
+Agent context: [`AGENTS.md`](./AGENTS.md). Template prep: [`TEMPLATE_CONVERSION.md`](./TEMPLATE_CONVERSION.md).
 
 ## Contributing
 
